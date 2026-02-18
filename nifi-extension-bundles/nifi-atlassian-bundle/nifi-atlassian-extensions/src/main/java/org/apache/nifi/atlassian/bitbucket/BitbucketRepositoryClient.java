@@ -448,6 +448,13 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
             multipartBuilder.addPart(FIELD_BRANCH, StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
             multipartBuilder.addPart(FIELD_PARENTS, StandardHttpContentType.TEXT_PLAIN, branchHead.getBytes(StandardCharsets.UTF_8));
 
+            final String authorName = request.getAuthorName();
+            final String authorEmail = request.getAuthorEmail();
+            if (authorName != null && authorEmail != null) {
+                final String authorValue = "%s <%s>".formatted(authorName, authorEmail);
+                multipartBuilder.addPart(FIELD_AUTHOR, StandardHttpContentType.TEXT_PLAIN, authorValue.getBytes(StandardCharsets.UTF_8));
+            }
+
             final HttpResponseEntity response = this.webClient.getWebClientService()
                     .post()
                     .uri(uri)

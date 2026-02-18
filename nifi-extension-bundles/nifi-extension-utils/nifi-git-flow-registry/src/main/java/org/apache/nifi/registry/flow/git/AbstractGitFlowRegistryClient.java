@@ -238,6 +238,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final FlowLocation flowLocation = new FlowLocation(branch, flow.getBucketIdentifier(), flow.getIdentifier());
         final String filePath = getSnapshotFilePath(flowLocation);
         final String commitMessage = REGISTER_FLOW_MESSAGE_FORMAT.formatted(flow.getIdentifier());
+        final String userIdentity = context.getNiFiUserIdentity().orElse(null);
 
         final Optional<String> existingFileSha = repositoryClient.getContentSha(filePath, branch);
         if (existingFileSha.isPresent()) {
@@ -258,6 +259,8 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .path(filePath)
                 .content(flowSnapshotSerializer.serialize(flowSnapshot))
                 .message(commitMessage)
+                .authorName(userIdentity)
+                .authorEmail(userIdentity)
                 .build();
 
         repositoryClient.createContent(request);
@@ -278,7 +281,8 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String branch = flowLocation.getBranch();
         final String filePath = getSnapshotFilePath(flowLocation);
         final String commitMessage = DEREGISTER_FLOW_MESSAGE_FORMAT.formatted(flowLocation.getFlowId());
-        try (final InputStream deletedSnapshotContent = repositoryClient.deleteContent(filePath, commitMessage, branch)) {
+        final String userIdentity = context.getNiFiUserIdentity().orElse(null);
+        try (final InputStream deletedSnapshotContent = repositoryClient.deleteContent(filePath, commitMessage, branch, userIdentity, userIdentity)) {
             final RegisteredFlowSnapshot deletedSnapshot = getSnapshot(deletedSnapshotContent);
             populateFlowAndSnapshotMetadata(deletedSnapshot, flowLocation);
             updateBucketReferences(repositoryClient, deletedSnapshot, flowLocation.getBucketId());
@@ -437,6 +441,8 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String originalFlowContentsGroupId = replaceGroupId(flowSnapshot.getFlowContents(), FLOW_CONTENTS_GROUP_ID);
         final Position originalFlowContentsPosition = replacePosition(flowSnapshot.getFlowContents(), new Position(0, 0));
 
+        final String userIdentity = context.getNiFiUserIdentity().orElse(null);
+
         final GitCreateContentRequest createContentRequest = GitCreateContentRequest.builder()
                 .branch(branch)
                 .path(filePath)
@@ -444,6 +450,8 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .message(commitMessage)
                 .existingContentSha(existingBlobSha)
                 .expectedCommitSha(expectedVersion)
+                .authorName(userIdentity)
+                .authorEmail(userIdentity)
                 .build();
 
         final String createContentCommitSha = repositoryClient.createContent(createContentRequest);
