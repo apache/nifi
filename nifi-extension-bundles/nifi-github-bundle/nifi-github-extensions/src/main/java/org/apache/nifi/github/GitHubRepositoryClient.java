@@ -29,11 +29,13 @@ import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
+import org.kohsuke.github.GHContentBuilder;
 import org.kohsuke.github.GHContentUpdateResponse;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubAbuseLimitHandler;
 import org.kohsuke.github.GitHubBuilder;
@@ -48,9 +50,10 @@ import org.kohsuke.github.extras.authorization.JWTTokenProvider;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.http.HttpClient;
 import java.security.PrivateKey;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -201,13 +204,20 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         logger.debug("Creating content at path [{}] on branch [{}] in repo [{}] ", resolvedPath, branch, repository.getName());
         return execute(() -> {
             try {
-                final GHContentUpdateResponse response = repository.createContent()
+                final GHContentBuilder contentBuilder = repository.createContent()
                         .branch(branch)
                         .path(resolvedPath)
                         .content(request.getContent())
                         .message(request.getMessage())
-                        .sha(request.getExistingContentSha())
-                        .commit();
+                        .sha(request.getExistingContentSha());
+
+                final String authorName = request.getAuthorName();
+                final String authorEmail = request.getAuthorEmail();
+                if (authorName != null && authorEmail != null) {
+                    setContentBuilderAuthor(contentBuilder, authorName, authorEmail);
+                }
+
+                final GHContentUpdateResponse response = contentBuilder.commit();
                 return response.getCommit().getSha();
             } catch (final FileNotFoundException fnf) {
                 throwPathOrBranchNotFound(fnf, resolvedPath, branch);
@@ -472,17 +482,37 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         throw new FlowRegistryException("Path [" + path + "] or Branch [" + branch + "] not found", fileNotFoundException);
     }
 
+    /**
+     * Sets the author on a GHContentBuilder using reflection because Hub4j does not yet expose an author() method.
+     * The internal Requester supports with(String, Map) which maps to the GitHub API's author JSON object.
+     * This workaround can be replaced with contentBuilder.author(name, email) once Hub4j adds that method.
+     */
+    private void setContentBuilderAuthor(final GHContentBuilder contentBuilder, final String authorName, final String authorEmail) {
+        try {
+            final Field reqField = GHContentBuilder.class.getDeclaredField("req");
+            reqField.setAccessible(true);
+            final Object requester = reqField.get(contentBuilder);
+            final Method withMethod = requester.getClass().getMethod("with", String.class, Map.class);
+            withMethod.setAccessible(true);
+            withMethod.invoke(requester, "author", Map.of("name", authorName, "email", authorEmail));
+        } catch (final ReflectiveOperationException e) {
+            logger.warn("Unable to set commit author via GHContentBuilder reflection; commit will use the authenticated service account as author", e);
+        }
+    }
+
     private GitCommit toGitCommit(final GHCommit ghCommit) throws IOException {
         GitCommit commit = commitCache.getIfPresent(ghCommit.getSHA1());
         if (commit != null) {
             return commit;
         } else {
             final GHCommit.ShortInfo shortInfo = ghCommit.getCommitShortInfo();
+            final GHUser ghUser = ghCommit.getAuthor();
+            final String author = ghUser != null ? ghUser.getLogin() : shortInfo.getAuthor().getName();
             commit = new GitCommit(
                     ghCommit.getSHA1(),
-                    ghCommit.getAuthor().getLogin(),
+                    author,
                     shortInfo.getMessage(),
-                    Instant.ofEpochMilli(shortInfo.getCommitDate().getTime()));
+                    shortInfo.getCommitDate());
             commitCache.put(ghCommit.getSHA1(), commit);
             return commit;
         }
