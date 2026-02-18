@@ -210,7 +210,6 @@ class ConsumeKinesisIT {
 
         // Verify millisBehindLatest gauge is recorded.
         final String shardId = flowFile.getAttribute("aws.kinesis.shard.id");
-
         final String gaugeName = ConsumeKinesis.makeMillisBehindLatestGaugeName(streamName, shardId);
         final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
         assertFalse(gaugeValues.isEmpty(), "Expected millisBehindLatest gauge to be recorded");

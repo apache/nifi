@@ -714,10 +714,6 @@ public class ConsumeKinesis extends AbstractProcessor {
 
             final String shardId = lease.shardId();
             final Long millisBehindLatest = result.millisBehindLatest();
-            if (millisBehindLatest != null) {
-                session.recordGauge(makeMillisBehindLatestGaugeName(streamName, shardId), millisBehindLatest, CommitTiming.SESSION_COMMITTED);
-            }
-
             if (records.isEmpty()) {
                 recordBuffer.returnBufferLease(lease);
                 return;
@@ -729,6 +725,9 @@ public class ConsumeKinesis extends AbstractProcessor {
                 case DEMARCATOR -> processRecordsAsDemarcated(session, shardId, result);
             }
 
+            if (millisBehindLatest != null) {
+                session.recordGauge(makeMillisBehindLatestGaugeName(streamName, shardId), millisBehindLatest, CommitTiming.SESSION_COMMITTED);
+            }
             session.adjustCounter("Records Processed", records.size(), false);
 
             session.commitAsync(
