@@ -619,7 +619,7 @@ class MemoryBoundRecordBufferTest {
         final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
 
         assertEquals(2, result.records().size());
-        assertEquals(300, result.millisBehindLatest());
+        assertEquals(300L, result.millisBehindLatest());
     }
 
     @ParameterizedTest

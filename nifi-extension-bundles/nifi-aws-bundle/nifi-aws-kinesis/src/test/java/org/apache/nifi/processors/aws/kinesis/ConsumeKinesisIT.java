@@ -245,8 +245,6 @@ class ConsumeKinesisIT {
         final String gaugeName = makeMillisBehindLatestGaugeName(streamName, shardId);
         final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
         assertFalse(gaugeValues.isEmpty(), "Expected millisBehindLatest gauge to be recorded");
-
-
     }
 
     @Test

@@ -67,6 +67,7 @@ import static org.apache.nifi.processors.aws.kinesis.JsonRecordAssert.assertFlow
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReaderRecordProcessorTest {
@@ -397,7 +398,7 @@ class ReaderRecordProcessorTest {
         assertEquals(1, result.successFlowFiles().size());
 
         final FlowFile successFlowFile = result.successFlowFiles().getFirst();
-        assertEquals(null, successFlowFile.getAttribute(MILLIS_BEHIND_LATEST));
+        assertNull(successFlowFile.getAttribute(MILLIS_BEHIND_LATEST));
     }
 
     private static ConsumeRecordsResult consumeResult(final List<KinesisClientRecord> records) {
