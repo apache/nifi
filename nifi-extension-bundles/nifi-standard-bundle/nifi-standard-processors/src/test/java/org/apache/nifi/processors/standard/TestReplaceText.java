@@ -1351,26 +1351,8 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        final String expectedContent = """
-                attribute header
-
-                abc.txt
-
-                data header
-
-                Hello
-
-                footer
-                attribute header
-
-                abc.txt
-
-                data header
-
-                World!
-
-                footer
-                """;
+        final String lineContent = "attribute header\n\nabc.txt\n\ndata header\n\n";
+        final String expectedContent = lineContent + "Hello\n\n\nfooter\n" + lineContent + "World!\n\nfooter\n";
         assertEquals(expectedContent, outContent);
     }
 
