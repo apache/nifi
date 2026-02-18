@@ -26,6 +26,8 @@ import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.status.ConnectorStatusDTO;
+import org.apache.nifi.web.api.dto.status.ConnectorStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.NodeConnectorStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.junit.jupiter.api.Test;
@@ -35,7 +37,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConnectorEntityMergerTest {
 
@@ -133,9 +138,12 @@ class ConnectorEntityMergerTest {
 
     @Test
     void testMergeConnectorStatusValidationStatusPriority() {
-        final ConnectorEntity clientEntity = createConnectorEntityWithStatus("connector1", "RUNNING", 1, "VALID");
-        final ConnectorEntity node1Entity = createConnectorEntityWithStatus("connector1", "RUNNING", 1, "VALIDATING");
-        final ConnectorEntity node2Entity = createConnectorEntityWithStatus("connector1", "RUNNING", 1, "VALID");
+        final ConnectorEntity clientEntity = createConnectorEntityWithStatus("connector1", "RUNNING", 1, "VALID",
+                5, 100L, 10, 200L, 50L, 75L, 10, 1000L, true, 5000L);
+        final ConnectorEntity node1Entity = createConnectorEntityWithStatus("connector1", "RUNNING", 1, "VALIDATING",
+                7, 150L, 12, 250L, 60L, 80L, 5, 500L, true, 3000L);
+        final ConnectorEntity node2Entity = createConnectorEntityWithStatus("connector1", "RUNNING", 1, "VALID",
+                3, 200L, 8, 300L, 70L, 85L, 8, 800L, false, null);
 
         final Map<NodeIdentifier, ConnectorEntity> entityMap = new HashMap<>();
         entityMap.put(getNodeIdentifier("client", 8000), clientEntity);
@@ -145,6 +153,118 @@ class ConnectorEntityMergerTest {
         ConnectorEntityMerger.merge(clientEntity, entityMap);
 
         assertEquals("VALIDATING", clientEntity.getStatus().getValidationStatus());
+    }
+
+    @Test
+    void testMergeStatusSnapshotsAggregated() {
+        final ConnectorEntity clientEntity = createConnectorEntityWithStatus("connector1", "RUNNING", 2, "VALID",
+                5, 100L, 10, 200L, 50L, 75L, 10, 1000L, true, 5000L);
+        final ConnectorEntity node1Entity = createConnectorEntityWithStatus("connector1", "RUNNING", 3, "VALID",
+                7, 150L, 12, 250L, 60L, 80L, 5, 500L, true, 3000L);
+
+        final Map<NodeIdentifier, ConnectorEntity> entityMap = new HashMap<>();
+        entityMap.put(getNodeIdentifier("client", 8000), clientEntity);
+        entityMap.put(getNodeIdentifier("node1", 8001), node1Entity);
+
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+
+        final ConnectorStatusDTO mergedStatus = clientEntity.getStatus();
+        assertNotNull(mergedStatus);
+        assertNotNull(mergedStatus.getAggregateSnapshot());
+        assertNotNull(mergedStatus.getNodeSnapshots());
+
+        // Verify node snapshots contain both nodes
+        assertEquals(2, mergedStatus.getNodeSnapshots().size());
+
+        // Verify aggregate snapshot has summed values
+        final ConnectorStatusSnapshotDTO aggregate = mergedStatus.getAggregateSnapshot();
+        assertEquals(Integer.valueOf(12), aggregate.getFlowFilesSent());    // 5 + 7
+        assertEquals(Long.valueOf(250L), aggregate.getBytesSent());         // 100 + 150
+        assertEquals(Integer.valueOf(22), aggregate.getFlowFilesReceived()); // 10 + 12
+        assertEquals(Long.valueOf(450L), aggregate.getBytesReceived());     // 200 + 250
+        assertEquals(Long.valueOf(110L), aggregate.getBytesRead());         // 50 + 60
+        assertEquals(Long.valueOf(155L), aggregate.getBytesWritten());      // 75 + 80
+        assertEquals(Integer.valueOf(15), aggregate.getFlowFilesQueued());  // 10 + 5
+        assertEquals(Long.valueOf(1500L), aggregate.getBytesQueued());      // 1000 + 500
+        assertEquals(Integer.valueOf(5), aggregate.getActiveThreadCount()); // 2 + 3
+
+        // Both nodes are idle, so aggregate should be idle with min duration
+        assertTrue(aggregate.getIdle());
+        assertEquals(Long.valueOf(3000L), aggregate.getIdleDurationMillis()); // min(5000, 3000)
+    }
+
+    @Test
+    void testMergeStatusSnapshotsIdleWhenOneNodeNotIdle() {
+        final ConnectorEntity clientEntity = createConnectorEntityWithStatus("connector1", "RUNNING", 2, "VALID",
+                5, 100L, 10, 200L, 50L, 75L, 10, 1000L, true, 5000L);
+        final ConnectorEntity node1Entity = createConnectorEntityWithStatus("connector1", "RUNNING", 3, "VALID",
+                7, 150L, 12, 250L, 60L, 80L, 5, 500L, false, null);
+
+        final Map<NodeIdentifier, ConnectorEntity> entityMap = new HashMap<>();
+        entityMap.put(getNodeIdentifier("client", 8000), clientEntity);
+        entityMap.put(getNodeIdentifier("node1", 8001), node1Entity);
+
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+
+        final ConnectorStatusSnapshotDTO aggregate = clientEntity.getStatus().getAggregateSnapshot();
+
+        // One node is not idle, so aggregate should not be idle
+        assertFalse(aggregate.getIdle());
+        assertNull(aggregate.getIdleDurationMillis());
+    }
+
+    @Test
+    void testMergeStatusNodeSnapshotsContainCorrectNodeInfo() {
+        final ConnectorEntity clientEntity = createConnectorEntityWithStatus("connector1", "RUNNING", 2, "VALID",
+                5, 100L, 10, 200L, 50L, 75L, 10, 1000L, false, null);
+        final ConnectorEntity node1Entity = createConnectorEntityWithStatus("connector1", "RUNNING", 3, "VALID",
+                7, 150L, 12, 250L, 60L, 80L, 5, 500L, false, null);
+
+        final NodeIdentifier clientNodeId = getNodeIdentifier("client", 8000);
+        final NodeIdentifier node1NodeId = getNodeIdentifier("node1", 8001);
+
+        final Map<NodeIdentifier, ConnectorEntity> entityMap = new HashMap<>();
+        entityMap.put(clientNodeId, clientEntity);
+        entityMap.put(node1NodeId, node1Entity);
+
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+
+        final List<NodeConnectorStatusSnapshotDTO> nodeSnapshots = clientEntity.getStatus().getNodeSnapshots();
+        assertEquals(2, nodeSnapshots.size());
+
+        // Find the client node snapshot
+        final NodeConnectorStatusSnapshotDTO clientSnapshot = nodeSnapshots.stream()
+                .filter(s -> s.getNodeId().equals(clientNodeId.getId()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(clientSnapshot);
+        assertEquals(clientNodeId.getApiAddress(), clientSnapshot.getAddress());
+        assertEquals(clientNodeId.getApiPort(), clientSnapshot.getApiPort());
+        assertEquals(Long.valueOf(100L), clientSnapshot.getStatusSnapshot().getBytesSent());
+
+        // Find the other node snapshot
+        final NodeConnectorStatusSnapshotDTO node1Snapshot = nodeSnapshots.stream()
+                .filter(s -> s.getNodeId().equals(node1NodeId.getId()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(node1Snapshot);
+        assertEquals(node1NodeId.getApiAddress(), node1Snapshot.getAddress());
+        assertEquals(node1NodeId.getApiPort(), node1Snapshot.getApiPort());
+        assertEquals(Long.valueOf(150L), node1Snapshot.getStatusSnapshot().getBytesSent());
+    }
+
+    @Test
+    void testMergeStatusWithNullStatus() {
+        final ConnectorEntity clientEntity = createConnectorEntity("connector1", "STOPPED");
+        final ConnectorEntity node1Entity = createConnectorEntity("connector1", "STOPPED");
+
+        final Map<NodeIdentifier, ConnectorEntity> entityMap = new HashMap<>();
+        entityMap.put(getNodeIdentifier("client", 8000), clientEntity);
+        entityMap.put(getNodeIdentifier("node1", 8001), node1Entity);
+
+        // Both have null status - should not throw
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+        assertNull(clientEntity.getStatus());
     }
 
     private NodeIdentifier getNodeIdentifier(final String id, final int port) {
@@ -170,14 +290,36 @@ class ConnectorEntityMergerTest {
         return entity;
     }
 
-    private ConnectorEntity createConnectorEntityWithStatus(final String id, final String state, final int activeThreadCount, final String validationStatus) {
+    private ConnectorEntity createConnectorEntityWithStatus(final String id, final String state, final int activeThreadCount, final String validationStatus,
+                                                            final Integer flowFilesSent, final Long bytesSent,
+                                                            final Integer flowFilesReceived, final Long bytesReceived,
+                                                            final Long bytesRead, final Long bytesWritten,
+                                                            final Integer flowFilesQueued, final Long bytesQueued,
+                                                            final Boolean idle, final Long idleDurationMillis) {
         final ConnectorEntity entity = createConnectorEntity(id, state);
+
+        final ConnectorStatusSnapshotDTO snapshot = new ConnectorStatusSnapshotDTO();
+        snapshot.setId(id);
+        snapshot.setName("Test Connector");
+        snapshot.setType("TestConnector");
+        snapshot.setRunStatus(state);
+        snapshot.setActiveThreadCount(activeThreadCount);
+        snapshot.setFlowFilesSent(flowFilesSent);
+        snapshot.setBytesSent(bytesSent);
+        snapshot.setFlowFilesReceived(flowFilesReceived);
+        snapshot.setBytesReceived(bytesReceived);
+        snapshot.setBytesRead(bytesRead);
+        snapshot.setBytesWritten(bytesWritten);
+        snapshot.setFlowFilesQueued(flowFilesQueued);
+        snapshot.setBytesQueued(bytesQueued);
+        snapshot.setIdle(idle);
+        snapshot.setIdleDurationMillis(idleDurationMillis);
 
         final ConnectorStatusDTO status = new ConnectorStatusDTO();
         status.setId(id);
         status.setRunStatus(state);
-        status.setActiveThreadCount(activeThreadCount);
         status.setValidationStatus(validationStatus);
+        status.setAggregateSnapshot(snapshot);
         entity.setStatus(status);
 
         return entity;
