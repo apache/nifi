@@ -118,7 +118,6 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         return clusterCoordinator;
     }
 
-
     /**
      * Fetches all of the latest heartbeats and updates the Cluster Coordinator
      * as appropriate, based on the heartbeats received.

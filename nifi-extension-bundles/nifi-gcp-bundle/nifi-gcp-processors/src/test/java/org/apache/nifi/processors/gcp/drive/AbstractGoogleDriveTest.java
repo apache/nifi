@@ -57,7 +57,6 @@ public class AbstractGoogleDriveTest {
     @Mock(answer = RETURNS_DEEP_STUBS)
     protected Drive mockDriverService;
 
-
     @BeforeEach
     protected void setUp() throws Exception {
         String gcpCredentialsControllerServiceId = "gcp_credentials_provider_service";

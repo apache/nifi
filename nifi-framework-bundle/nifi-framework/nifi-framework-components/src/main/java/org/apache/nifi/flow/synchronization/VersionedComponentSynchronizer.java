@@ -86,7 +86,6 @@ public interface VersionedComponentSynchronizer {
      */
     void verifyCanSynchronize(ProcessGroup group, VersionedProcessGroup proposed, boolean verifyConnectionRemoval);
 
-
     /**
      * Synchronizes the given Processor to match the proposed snapshot, or deletes the Processor if the proposed snapshot is <code>null</code>. If the given processor is <code>null</code>,
      * adds the processor to the given ProcessGroup
@@ -137,7 +136,6 @@ public interface VersionedComponentSynchronizer {
     void synchronize(Connection connection, VersionedConnection proposedConnection, ProcessGroup group, FlowSynchronizationOptions synchronizationOptions)
         throws FlowSynchronizationException, TimeoutException;
 
-
     /**
      * Synchronizes the given Port to match the proposed one, or deletes the Port if the proposed is <code>null</code>. If the given Port is <code>null</code>, creates it and adds it to the given
      * ProcessGroup
@@ -153,7 +151,6 @@ public interface VersionedComponentSynchronizer {
      */
     void synchronize(Port port, VersionedPort proposed, ProcessGroup group, FlowSynchronizationOptions synchronizationOptions) throws FlowSynchronizationException, TimeoutException,
         InterruptedException;
-
 
     /**
      * Synchronizes the given Funnel to match the proposed one, or deletes the Funnel if the proposed is <code>null</code>. If the given Funnel is <code>null</code>, creates it and adds it to the
@@ -228,12 +225,10 @@ public interface VersionedComponentSynchronizer {
     void synchronize(RemoteProcessGroup rpg, VersionedRemoteProcessGroup proposed, ProcessGroup group, FlowSynchronizationOptions synchronizationOptions)
         throws FlowSynchronizationException, TimeoutException, InterruptedException;
 
-
     void synchronize(ParameterContext parameterContext, VersionedParameterContext proposed, FlowSynchronizationOptions synchronizationOptions)
         throws FlowSynchronizationException, TimeoutException, InterruptedException;
 
     void synchronizeProcessGroupSettings(ProcessGroup processGroup, VersionedProcessGroup proposed, ProcessGroup parentGroup, FlowSynchronizationOptions synchronizationOptions)
         throws FlowSynchronizationException, TimeoutException, InterruptedException, ProcessorInstantiationException;
-
 
 }

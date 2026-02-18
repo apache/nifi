@@ -98,7 +98,6 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     private static final String TRANSACTION_THRESHOLD_DATA_SIZE = "nifi.stateless.transaction.thresholds.bytes";
     private static final String TRANSACTION_THRESHOLD_TIME = "nifi.stateless.transaction.thresholds.time";
 
-
     @Override
     public DataflowDefinition parseFlowDefinition(final File propertiesFile, final StatelessEngineConfiguration engineConfig, final List<ParameterOverride> parameterOverrides)
                         throws IOException, StatelessConfigurationException {
@@ -386,7 +385,6 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         }
     }
 
-
     private Set<String> getFailurePortNames(final Map<String, String> properties) {
         final Set<String> failurePortNames = new HashSet<>();
         for (final String portName : properties.getOrDefault(FAILURE_PORTS_KEY, "").split(",")) {
@@ -481,7 +479,6 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         final String envValue = System.getenv(envVariable);
         return envValue == null ? "" : envValue;
     }
-
 
     private VersionedFlowSnapshot fetchVersionedFlowSnapshot(final Map<String, String> properties, final SslContextDefinition sslContextDefinition)
         throws IOException, StatelessConfigurationException {

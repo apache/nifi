@@ -90,7 +90,6 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
                 reloadComponent, extensionManager, validationTrigger, false);
     }
 
-
     public AbstractFlowAnalysisRuleNode(final LoggableComponent<FlowAnalysisRule> flowAnalysisRule, final String id, final ControllerServiceProvider controllerServiceProvider,
                                         final ValidationContextFactory validationContextFactory, final RuleViolationsManager ruleViolationsManager,
                                         final String componentType, final String componentCanonicalClass, final ReloadComponent reloadComponent,

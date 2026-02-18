@@ -376,7 +376,6 @@ public final class SnippetUtils {
         }
     }
 
-
     private static void findAllVersionControlInfo(final ProcessGroupDTO dto, final List<VersionControlInformationDTO> found) {
         final VersionControlInformationDTO vci = dto.getVersionControlInformation();
         if (vci != null) {

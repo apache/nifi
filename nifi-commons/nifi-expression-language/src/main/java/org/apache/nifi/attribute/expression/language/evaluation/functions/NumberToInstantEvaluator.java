@@ -48,5 +48,4 @@ public class NumberToInstantEvaluator extends InstantEvaluator {
         return subject;
     }
 
-
 }

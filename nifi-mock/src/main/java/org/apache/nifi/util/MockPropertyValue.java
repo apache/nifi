@@ -81,7 +81,6 @@ public class MockPropertyValue implements PropertyValue {
         this(rawValue, serviceLookup, propertyDescriptor, alreadyEvaluated, environmentVariables, ParameterLookup.EMPTY);
     }
 
-
     protected MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor,
             final boolean alreadyEvaluated, final Map<String, String> environmentVariables, ParameterLookup parameterLookup) {
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), propertyDescriptor);
@@ -117,7 +116,6 @@ public class MockPropertyValue implements PropertyValue {
                     + " proper scope should be set in the property descriptor using"
                     + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
         }
-
 
         // we check if the input requirement is INPUT_FORBIDDEN
         // in that case, we don't care if attributes are not available even though scope is FLOWFILE_ATTRIBUTES

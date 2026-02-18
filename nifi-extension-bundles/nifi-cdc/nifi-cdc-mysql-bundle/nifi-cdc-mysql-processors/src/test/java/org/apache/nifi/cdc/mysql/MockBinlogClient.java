@@ -63,7 +63,6 @@ public class MockBinlogClient extends BinaryLogClient {
         connected = false;
     }
 
-
     @Override
     public void registerEventListener(BinaryLogClient.EventListener eventListener) {
         if (!eventListeners.contains(eventListener)) {

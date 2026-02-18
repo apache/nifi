@@ -45,7 +45,6 @@ public class RedisStateMap implements StateMap {
         Objects.requireNonNull(stateValues, "State Values must be non-null");
     }
 
-
     @Override
     public Optional<String> getStateVersion() {
         final String stateVersion;

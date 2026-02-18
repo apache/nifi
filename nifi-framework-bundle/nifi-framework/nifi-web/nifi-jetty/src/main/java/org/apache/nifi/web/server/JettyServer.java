@@ -934,7 +934,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         return statusHistoryDumpFactory;
     }
 
-
     private void performInjectionForComponentUis(final Collection<WebAppContext> componentUiExtensionWebContexts,
                                                  final NiFiWebConfigurationContext configurationContext, final FilterHolder securityFilter) {
         for (final WebAppContext customUiContext : componentUiExtensionWebContexts) {

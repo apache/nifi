@@ -53,7 +53,6 @@ public class MigrateDefunctIndex implements Runnable {
 
     private long successCount = 0L;
 
-
     public MigrateDefunctIndex(final File indexDirectory, final IndexManager indexManager, final IndexDirectoryManager directoryManager, final long minTimestamp, final long maxTimestamp,
                                final EventStore eventStore, final EventReporter eventReporter, final ConvertEventToLuceneDocument eventConverter, final AtomicInteger rebuildCount,
                                final int totalCount) {
@@ -95,7 +94,6 @@ public class MigrateDefunctIndex implements Runnable {
         }
     }
 
-
     private boolean verifyPreconditions(final File tempIndexDir, final File migratedIndexDir) {
         // If the temp directory exists, delete it or fail.
         if (tempIndexDir.exists()) {
@@ -121,7 +119,6 @@ public class MigrateDefunctIndex implements Runnable {
 
         return true;
     }
-
 
     private void rebuildIndex(final File tempIndexDir, final File migratedIndexDir) throws IOException {
         final EventIndexWriter writer = indexManager.borrowIndexWriter(tempIndexDir);

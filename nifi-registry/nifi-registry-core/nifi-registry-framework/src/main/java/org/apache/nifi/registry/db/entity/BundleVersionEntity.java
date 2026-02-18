@@ -64,7 +64,6 @@ public class BundleVersionEntity {
     private Date built;
     private String builtBy;
 
-
     public String getId() {
         return id;
     }

@@ -44,7 +44,6 @@ public class RemoteProcessGroupIT extends NiFiSystemIT {
         testRPGBackToSelf(SiteToSiteTransportProtocol.RAW, "RawIn");
     }
 
-
     protected void testRPGBackToSelf(final SiteToSiteTransportProtocol protocol, final String portName) throws NiFiClientException, IOException, InterruptedException {
         final NiFiClientUtil util = getClientUtil();
 

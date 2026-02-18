@@ -104,7 +104,6 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
         }
     }
 
-
     void setEventId(final long eventId) {
         this.eventId = eventId;
     }
@@ -547,7 +546,6 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
             return copy;
         }
 
-
         @Override
         public Builder setFlowFileEntryDate(final long entryDate) {
             this.entryDate = entryDate;
@@ -628,7 +626,6 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
             this.parentUuids.add(parentFlowFile.getAttribute(CoreAttributes.UUID.key()));
             return this;
         }
-
 
         @Override
         public Builder removeParentFlowFile(final FlowFile parentFlowFile) {

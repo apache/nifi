@@ -64,5 +64,4 @@ public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnal
 
     }
 
-
 }

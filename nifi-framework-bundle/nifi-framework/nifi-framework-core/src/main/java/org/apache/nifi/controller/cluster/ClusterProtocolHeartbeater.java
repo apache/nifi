@@ -64,7 +64,6 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
         return clusterCoordinator.orElseThrow(() -> new ProtocolException("Unable to send heartbeat: Cluster Coordinator not found"));
     }
 
-
     @Override
     public synchronized void send(final HeartbeatMessage heartbeatMessage) throws IOException {
         final long sendStart = System.nanoTime();
@@ -94,7 +93,6 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
                 }
             }
         }
-
 
         final long sendNanos = System.nanoTime() - sendStart;
         final long sendMillis = TimeUnit.NANOSECONDS.toMillis(sendNanos);

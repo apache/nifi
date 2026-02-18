@@ -89,7 +89,6 @@ public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> 
         return properties;
     }
 
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
@@ -193,7 +192,6 @@ public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> 
         session.transfer(flowFile, REL_ORIGINAL);
     }
 
-
     /**
      * Create mapping of each Relationship to all FlowFiles that go to that Relationship.
      * This gives us a way to efficiently transfer FlowFiles and allows us to ensure that we are able
@@ -287,7 +285,6 @@ public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> 
         destinationTuple.writer().write(transformed);
     }
 
-
     private Record createRecordFromJson(final RecordTransformResult transformResult) throws IOException, MalformedRecordException {
         final String json = transformResult.getRecordJson();
         final byte[] jsonBytes = json.getBytes(StandardCharsets.UTF_8);
@@ -316,7 +313,6 @@ public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> 
             return schemaInference.inferSchema(recordSource);
         }
     }
-
 
     /**
      * A tuple representing the name of a Relationship to which a Record should be transferred and an optional Partition that may distinguish

@@ -56,7 +56,6 @@ public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
         return createPythonicInstanceFactory();
     }
 
-
     @Test
     @Timeout(value = 120, unit = TimeUnit.SECONDS)
     public void testForceDeleteNarDuringProcessorInitialization() throws NiFiClientException, IOException, InterruptedException {

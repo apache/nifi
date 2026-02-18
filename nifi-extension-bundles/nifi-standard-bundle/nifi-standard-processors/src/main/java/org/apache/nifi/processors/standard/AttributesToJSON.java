@@ -96,7 +96,6 @@ public class AttributesToJSON extends AbstractProcessor {
     public static final String DESTINATION_CONTENT = "flowfile-content";
     public static final String APPLICATION_JSON = "application/json";
 
-
     public static final PropertyDescriptor ATTRIBUTES_LIST = new PropertyDescriptor.Builder()
             .name("Attributes List")
             .description("Comma separated list of attributes to be included in the resulting JSON. If this value " +
@@ -106,7 +105,6 @@ public class AttributesToJSON extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
 
     public static final PropertyDescriptor ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
             .name("Attributes Regular Expression")

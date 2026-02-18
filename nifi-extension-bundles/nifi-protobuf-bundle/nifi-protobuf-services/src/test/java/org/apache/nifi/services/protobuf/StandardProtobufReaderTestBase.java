@@ -77,7 +77,6 @@ public abstract class StandardProtobufReaderTestBase {
     protected MockSchemaReferenceReader mockSchemaReferenceReader;
     protected MockMessageNameResolver mockMessageNameResolver;
 
-
     @BeforeEach
     void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
@@ -167,7 +166,6 @@ public abstract class StandardProtobufReaderTestBase {
         final Object[] nestedMessage2Value = nestedMessage.getAsArray("nestedMessage2");
         assertNotNull(nestedMessage2Value);
 
-
         assertEquals(1, nestedMessage2Value.length);
         final Record nestedMessage2 = (Record) nestedMessage2Value[0];
         assertNotNull(nestedMessage2);
@@ -182,7 +180,6 @@ public abstract class StandardProtobufReaderTestBase {
 
         assertNull(recordReader.nextRecord());
     }
-
 
     /**
      * Mock implementation of SchemaRegistry for testing purposes.

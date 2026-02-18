@@ -729,7 +729,6 @@ public class FlowResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
-
     // ---------------
     // parameter-providers
     // ---------------
@@ -1109,7 +1108,6 @@ public class FlowResource extends ApplicationResource {
                 }
         );
     }
-
 
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
@@ -2527,7 +2525,6 @@ public class FlowResource extends ApplicationResource {
         return generateOkResponse(flowRegistryBranchesEntity).build();
     }
 
-
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
@@ -3617,7 +3614,6 @@ public class FlowResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
-
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
@@ -3652,7 +3648,6 @@ public class FlowResource extends ApplicationResource {
         // generate the response
         return generateOkResponse(entity).build();
     }
-
 
     // -------
     // history

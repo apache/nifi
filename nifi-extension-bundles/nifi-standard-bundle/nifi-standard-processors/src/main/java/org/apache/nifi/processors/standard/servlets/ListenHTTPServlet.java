@@ -352,7 +352,6 @@ public class ListenHTTPServlet extends HttpServlet {
                 }
             }
 
-
             final long transferNanos = System.nanoTime() - startNanos;
             final long transferMillis = TimeUnit.MILLISECONDS.convert(transferNanos, TimeUnit.NANOSECONDS);
 
@@ -476,8 +475,6 @@ public class ListenHTTPServlet extends HttpServlet {
             }
         }
     }
-
-
 
     private void putAttribute(final Map<String, String> map, final String key, final Object value) {
         if (value == null) {

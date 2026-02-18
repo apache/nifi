@@ -344,7 +344,6 @@ class TestFilterAttribute {
         }
     }
 
-
     @Test
     void supportMultiThreadedExecution() {
         runner.setThreadCount(5);

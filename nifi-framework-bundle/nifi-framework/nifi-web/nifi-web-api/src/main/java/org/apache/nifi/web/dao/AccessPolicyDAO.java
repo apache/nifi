@@ -92,5 +92,4 @@ public interface AccessPolicyDAO {
      */
     AccessPolicy deleteAccessPolicy(String accessPolicyId);
 
-
 }

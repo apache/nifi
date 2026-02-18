@@ -25,7 +25,6 @@ public enum BucketItemEntityType {
 
     BUNDLE(Values.BUNDLE);
 
-
     private final String value;
 
     BucketItemEntityType(final String value) {

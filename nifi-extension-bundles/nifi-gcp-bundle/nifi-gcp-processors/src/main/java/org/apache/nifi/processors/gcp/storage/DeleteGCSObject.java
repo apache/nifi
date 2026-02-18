@@ -110,7 +110,6 @@ public class DeleteGCSObject extends AbstractGCSProcessor {
                 .evaluateAttributeExpressions(flowFile)
                 .asLong();
 
-
         final Storage storage = getCloudService();
 
         // Deletes a key on Google Cloud

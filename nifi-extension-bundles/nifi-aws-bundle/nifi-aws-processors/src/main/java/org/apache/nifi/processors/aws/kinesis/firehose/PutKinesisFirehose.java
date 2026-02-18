@@ -114,7 +114,6 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
         return FirehoseClient.builder();
     }
 
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
 

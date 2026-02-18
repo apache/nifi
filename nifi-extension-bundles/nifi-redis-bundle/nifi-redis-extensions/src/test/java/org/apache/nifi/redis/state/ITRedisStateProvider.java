@@ -162,7 +162,6 @@ public class ITRedisStateProvider {
         assertTrue(stateMap.getStateVersion().isPresent());
     }
 
-
     @Test
     public void testToMap() throws IOException {
         final String key = "testKeySet";
@@ -319,7 +318,6 @@ public class ITRedisStateProvider {
         // version should be not present because the state has been removed entirely.
         assertFalse(stateMapAfterRemoval.getStateVersion().isPresent());
     }
-
 
     private void initializeProvider(final RedisStateProvider provider, final Map<PropertyDescriptor, String> properties) {
         provider.initialize(new StateProviderInitializationContext() {

@@ -168,7 +168,6 @@ public interface FlowManager extends ParameterProviderLookup {
 
     void onProcessGroupRemoved(ProcessGroup group);
 
-
     /**
      * Finds the Connectable with the given ID, or null if no such Connectable exists
      * @param id the ID of the Connectable
@@ -188,7 +187,6 @@ public interface FlowManager extends ParameterProviderLookup {
     void onProcessorRemoved(ProcessorNode processor);
 
     Set<ProcessorNode> findAllProcessors(Predicate<ProcessorNode> processorNode);
-
 
     /**
      * <p>
@@ -241,8 +239,6 @@ public interface FlowManager extends ParameterProviderLookup {
     ProcessorNode createProcessor(String type, String id, BundleCoordinate coordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean registerLogObserver,
                                   String classloaderIsolationKey);
 
-
-
     Label createLabel(String id, String text);
 
     Funnel createFunnel(String id);
@@ -252,8 +248,6 @@ public interface FlowManager extends ParameterProviderLookup {
     Port createLocalOutputPort(String id, String name);
 
     ProcessGroup createProcessGroup(String id);
-
-
 
     void onConnectionAdded(Connection connection);
 
@@ -278,15 +272,11 @@ public interface FlowManager extends ParameterProviderLookup {
      */
     Connection createConnection(final String id, final String name, final Connectable source, final Connectable destination, final Collection<String> relationshipNames);
 
-
-
     void onInputPortAdded(Port inputPort);
 
     void onInputPortRemoved(Port inputPort);
 
     Port getInputPort(String id);
-
-
 
     void onOutputPortAdded(Port outputPort);
 
@@ -294,15 +284,11 @@ public interface FlowManager extends ParameterProviderLookup {
 
     Port getOutputPort(String id);
 
-
-
     void onFunnelAdded(Funnel funnel);
 
     void onFunnelRemoved(Funnel funnel);
 
     Funnel getFunnel(String id);
-
-
 
     ReportingTaskNode createReportingTask(String type, BundleCoordinate bundleCoordinate);
 

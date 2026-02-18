@@ -165,7 +165,6 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         }
     }
 
-
     protected QueuedIngestClient createKustoQueuedIngestClient(final String clusterUrl,
                                                                final String appId,
                                                                final String appKey,

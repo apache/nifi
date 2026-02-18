@@ -61,7 +61,6 @@ public class TransformFactory {
         }
     }
 
-
     protected static List<JoltTransform> getChainrJoltTransformations(final ClassLoader classLoader, final Object specJson) throws Exception {
         if (!(specJson instanceof List)) {
             throw new SpecException("JOLT Chainr expects a JSON array of objects - Malformed spec.");

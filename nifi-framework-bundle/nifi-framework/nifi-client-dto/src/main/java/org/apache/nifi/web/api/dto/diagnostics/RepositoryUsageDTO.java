@@ -31,7 +31,6 @@ public class RepositoryUsageDTO implements Cloneable {
     private Long totalSpaceBytes;
     private String utilization;
 
-
     @Schema(description = "The name of the repository")
     public String getName() {
         return name;

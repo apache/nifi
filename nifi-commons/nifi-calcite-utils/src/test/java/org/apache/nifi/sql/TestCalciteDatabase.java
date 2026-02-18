@@ -183,7 +183,6 @@ public class TestCalciteDatabase {
         return database;
     }
 
-
     private static class ListDataSource implements ResettableDataSource {
         private final NiFiTableSchema schema;
         private final List<Object[]> rows;

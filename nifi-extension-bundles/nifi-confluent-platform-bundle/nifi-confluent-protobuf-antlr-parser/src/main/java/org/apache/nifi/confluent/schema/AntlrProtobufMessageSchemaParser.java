@@ -121,7 +121,6 @@ public class AntlrProtobufMessageSchemaParser implements ProtobufMessageSchemaPa
         Optional<String> packageName,
         List<ProtobufMessageSchema> innerMessages) implements ProtobufMessageSchema {
 
-
         @Override
         public String getName() {
             return name;

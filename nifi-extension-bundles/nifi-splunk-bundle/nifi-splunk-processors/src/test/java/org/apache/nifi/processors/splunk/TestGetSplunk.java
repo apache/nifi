@@ -351,7 +351,6 @@ public class TestGetSplunk {
         assertNotNull(actualArgs.get("index_latest"));
     }
 
-
     /**
      * Testable implementation of GetSplunk to return a Mock Splunk Service.
      */

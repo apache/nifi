@@ -104,7 +104,6 @@ public class TweetStreamService {
         client.setTwitterCredentials(bearer);
         api = new TwitterApi(client);
 
-
         final String basePath = context.getProperty(ConsumeTwitter.BASE_PATH).getValue();
         api.getApiClient().setBasePath(basePath);
 

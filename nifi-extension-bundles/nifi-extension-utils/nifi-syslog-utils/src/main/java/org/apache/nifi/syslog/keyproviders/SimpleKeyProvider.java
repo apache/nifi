@@ -56,7 +56,6 @@ public class SimpleKeyProvider implements KeyProvider {
         return SyslogAttributes.SEVERITY.key();
     }
 
-
     @Override
     public String getHeaderProcessId() {
         return Syslog5424Attributes.PROCID.key();

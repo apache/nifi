@@ -268,7 +268,6 @@ public class TestPeerDescriptionModifier {
         props.put("nifi.remote.input.socket.port", "");
         props.put("nifi.remote.input.http.enabled", "true");
 
-
         final NiFiProperties properties = new NiFiProperties(props);
         final PeerDescriptionModifier modifier = new PeerDescriptionModifier(properties);
 

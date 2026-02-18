@@ -1318,7 +1318,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return createConnectionResponse(request, resolvedNodeIdentifier, dataFlow);
     }
 
-
     private ConnectionResponseMessage createConnectionResponse(final ConnectionRequest request, final NodeIdentifier resolvedNodeIdentifier, final DataFlow clusterDataFlow) {
         if (clusterDataFlow == null) {
             final ConnectionResponseMessage responseMessage = new ConnectionResponseMessage();
@@ -1344,7 +1343,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         responseMessage.setConnectionResponse(response);
         return responseMessage;
     }
-
 
     private NodeIdentifier addNodeIdentities(final NodeIdentifier nodeId, final Set<String> nodeIdentities) {
         return new NodeIdentifier(nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort(),

@@ -102,7 +102,6 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
     private LoadingCache<String, Schema> compiledAvroSchemaCache;
     private volatile BlockingQueue<BinaryEncoder> encoderPool;
 
-
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();

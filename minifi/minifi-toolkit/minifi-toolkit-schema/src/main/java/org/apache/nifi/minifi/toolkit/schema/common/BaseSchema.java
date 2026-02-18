@@ -111,7 +111,6 @@ public abstract class BaseSchema implements Schema {
         return null;
     }
 
-
     public <T> T getMapAsType(Map valueMap, String key, Class<T> targetClass, String wrapperName, boolean required) {
         Object obj = valueMap.get(key);
         return interpretValueAsType(obj, key, targetClass, wrapperName, required, true);

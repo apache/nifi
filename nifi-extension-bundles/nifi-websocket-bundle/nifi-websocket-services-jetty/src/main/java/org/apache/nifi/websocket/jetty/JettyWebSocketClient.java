@@ -167,7 +167,6 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .sensitive(true)
             .build();
 
-
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
             .name("HTTP Proxy Host")
             .description("The host name of the HTTP Proxy.")
@@ -213,7 +212,6 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private volatile ScheduledExecutorService sessionMaintenanceScheduler;
     private ConfigurationContext configurationContext;
     protected String authorizationHeader;
-
 
     @Override
     public void migrateProperties(final PropertyConfiguration propertyConfiguration) {

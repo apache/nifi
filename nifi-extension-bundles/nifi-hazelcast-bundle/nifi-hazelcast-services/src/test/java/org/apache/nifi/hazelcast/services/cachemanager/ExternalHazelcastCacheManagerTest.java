@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
     private HazelcastInstance hazelcastInstance;
 
-
     @Override
     @BeforeEach
     public void setUp() {

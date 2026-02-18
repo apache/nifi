@@ -109,7 +109,6 @@ public class IndexDirectoryManager {
         }
     }
 
-
     public synchronized void removeDirectory(final File directory) {
         final Iterator<Map.Entry<Long, List<IndexLocation>>> itr = indexLocationByTimestamp.entrySet().iterator();
         while (itr.hasNext()) {
@@ -338,7 +337,6 @@ public class IndexDirectoryManager {
 
         return Optional.of(indexLocation.getIndexDirectory());
     }
-
 
     private long getSize(final File indexDir) {
         if (!indexDir.exists()) {

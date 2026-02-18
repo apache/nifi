@@ -33,7 +33,6 @@ public class ComponentDetails {
     private final String destinationName;
     private final String targetUri;
 
-
     public ComponentDetails(final String id, final String groupId, final String componentName, final String componentType,
                             final String sourceName, final String destinationName, final String remoteUri) {
         this.componentId = id;

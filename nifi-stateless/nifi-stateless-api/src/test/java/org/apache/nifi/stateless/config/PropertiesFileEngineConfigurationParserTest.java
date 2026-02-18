@@ -138,7 +138,6 @@ public class PropertiesFileEngineConfigurationParserTest {
         assertEquals("", statusTaskInterval);
     }
 
-
     private Properties getRequiredProperties() {
         final Properties properties = new Properties();
 

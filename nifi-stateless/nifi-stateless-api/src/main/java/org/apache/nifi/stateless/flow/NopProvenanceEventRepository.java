@@ -60,8 +60,6 @@ class NopProvenanceEventRepository implements ProvenanceEventRepository {
     public void close() {
     }
 
-
-
     private static class EventBuilder implements ProvenanceEventBuilder {
 
         @Override

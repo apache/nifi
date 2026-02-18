@@ -72,7 +72,6 @@ class StandardX509ExtendedTrustManagerTest {
         verify(extendedTrustManager).checkClientTrusted(eq(certificates), eq(AUTH_TYPE), eq(socket));
     }
 
-
     @Test
     void testCheckClientTrustedEngine() throws CertificateException {
         manager.checkClientTrusted(certificates, AUTH_TYPE, sslEngine);
@@ -93,7 +92,6 @@ class StandardX509ExtendedTrustManagerTest {
 
         verify(extendedTrustManager).checkServerTrusted(eq(certificates), eq(AUTH_TYPE), eq(socket));
     }
-
 
     @Test
     void testCheckServerTrustedEngine() throws CertificateException {

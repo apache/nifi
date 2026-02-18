@@ -199,7 +199,6 @@ public class PutMongoIT extends MongoWriteTestBase {
         updateOneTests(runner, document);
     }
 
-
     @Test
     public void testUpdateManyWithOperatorBySimpleKey() throws Exception {
         TestRunner runner = init(PutMongo.class);

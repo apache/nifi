@@ -295,7 +295,6 @@ class TestQueryNiFiReportingTask {
 
         reportingTask.onTrigger(context);
 
-
         List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
         assertEquals(1, sameRows.size());
     }

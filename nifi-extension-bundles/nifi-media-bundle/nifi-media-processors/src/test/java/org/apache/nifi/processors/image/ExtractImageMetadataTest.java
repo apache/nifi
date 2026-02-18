@@ -127,7 +127,6 @@ public class ExtractImageMetadataTest {
         assertEquals("1", attributes.get(BMP_HEADER + "Planes"));
         assertEquals("40", attributes.get(BMP_HEADER + "Header Size"));
 
-
         assertNull(attributes.get(BMP_HEADER + "Compression"));
         assertNull(attributes.get(BMP_HEADER + "X Pixels per Meter"));
         assertNull(attributes.get(BMP_HEADER + "Y Pixels per Meter"));
@@ -144,7 +143,6 @@ public class ExtractImageMetadataTest {
 
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(rel, 1);
-
 
         MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(rel).get(0);
         testRunner.assertQueueEmpty();

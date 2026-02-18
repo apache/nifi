@@ -131,7 +131,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         .required(false)
         .build();
 
-
     public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
     public static final String HADOOP_FILE_URL_ATTRIBUTE = "hadoop.file.url";
 

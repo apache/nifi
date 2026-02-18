@@ -205,7 +205,6 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
         return (int) (connectionIndex.getAndIncrement() % Math.max(1, numIncomingConnections));
     }
 
-
     /**
      * A Relationship is said to be Available if and only if all Connections for that Relationship are either self-loops or have non-full queues.
      *

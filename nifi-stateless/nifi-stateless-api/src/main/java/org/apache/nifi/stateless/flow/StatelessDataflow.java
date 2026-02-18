@@ -49,8 +49,6 @@ public interface StatelessDataflow {
      */
     DataflowTrigger trigger(DataflowTriggerContext triggerContext);
 
-
-
     /**
      * <p>
      * Performs initialization necessary for triggering dataflows. These activities include, but are not limited to:

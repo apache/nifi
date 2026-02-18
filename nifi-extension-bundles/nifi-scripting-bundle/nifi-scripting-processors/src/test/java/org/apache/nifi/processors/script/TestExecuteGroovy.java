@@ -178,7 +178,6 @@ public class TestExecuteGroovy extends BaseScriptTest {
         resultFile.assertContentEquals("Marlene Shaw\nTodd Graham\n");
     }
 
-
     /**
      * Tests a script that has provides the body of an onTrigger() function.
      *

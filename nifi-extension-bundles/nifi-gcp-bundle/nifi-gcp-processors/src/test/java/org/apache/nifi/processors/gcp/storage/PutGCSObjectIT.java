@@ -132,7 +132,6 @@ public class PutGCSObjectIT extends AbstractGCSIT {
 
     }
 
-
     @Test
     public void testPutWithNoOverwrite() throws Exception {
         final TestRunner runner = buildNewRunner(new PutGCSObject());

@@ -69,7 +69,6 @@ public class StorageAttributes {
     public static final String CREATE_TIME_ATTR = "gcs.create.time";
     public static final String CREATE_TIME_DESC = "The creation time of the object (milliseconds)";
 
-
     public static final String UPDATE_TIME_ATTR = "gcs.update.time";
     public static final String UPDATE_TIME_DESC = "The last modification time of the object (milliseconds)";
 

@@ -129,7 +129,6 @@ public class StandardProcessorTestRunner implements TestRunner {
         this(processor, processorName, logger, null);
     }
 
-
     StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger, KerberosContext kerberosContext) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
@@ -510,7 +509,6 @@ public class StandardProcessorTestRunner implements TestRunner {
     public MockFlowFile enqueue(final String data, final Map<String, String> attributes) {
         return enqueue(data.getBytes(StandardCharsets.UTF_8), attributes);
     }
-
 
     @Override
     public MockFlowFile enqueue(final InputStream data) {
@@ -1120,7 +1118,6 @@ public class StandardProcessorTestRunner implements TestRunner {
             }
         }
     }
-
 
     /**
      * Set the Run Schedule parameter (in milliseconds). If set, this will be the duration

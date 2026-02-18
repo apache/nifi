@@ -166,7 +166,6 @@ public class TestSplitRecord {
         out.assertContentEquals("header\nJohn Doe,48\nJane Doe,47\nJimmy Doe,14\n");
     }
 
-
     @Test
     public void testReadFailure() throws InitializationException {
         final MockRecordParser readerService = new MockRecordParser(2);

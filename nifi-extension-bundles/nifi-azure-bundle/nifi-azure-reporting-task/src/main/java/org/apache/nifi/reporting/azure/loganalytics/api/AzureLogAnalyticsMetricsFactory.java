@@ -50,7 +50,6 @@ public class AzureLogAnalyticsMetricsFactory {
         return builder.build();
     }
 
-
     public static List<Metric> getConnectionStatusMetrics(ConnectionStatus status, String instanceId, String groupName) {
 
         final String groupId = status.getGroupId();

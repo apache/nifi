@@ -136,7 +136,6 @@ public class PrimaryNodeChangeNotificationIT extends NiFiSystemIT {
         waitFor(() -> processorClient.getProcessor(processor.getId()).getStatus().getAggregateSnapshot().getActiveThreadCount() == 0);
     }
 
-
     private NodeDTO getNode(final String roleName, final boolean invert) throws InterruptedException, NiFiClientException, IOException {
         while (true) {
             final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();

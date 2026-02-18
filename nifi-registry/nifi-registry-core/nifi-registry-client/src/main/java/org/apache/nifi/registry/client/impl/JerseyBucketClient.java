@@ -39,7 +39,6 @@ public class JerseyBucketClient extends AbstractJerseyClient implements BucketCl
 
     private final WebTarget bucketsTarget;
 
-
     public JerseyBucketClient(final WebTarget baseTarget) {
         this(baseTarget, null);
     }

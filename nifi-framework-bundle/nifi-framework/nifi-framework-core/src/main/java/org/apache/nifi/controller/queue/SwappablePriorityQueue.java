@@ -129,7 +129,6 @@ public class SwappablePriorityQueue {
         }
     }
 
-
     public LocalQueuePartitionDiagnostics getQueueDiagnostics() {
         readLock.lock();
         try {
@@ -466,7 +465,6 @@ public class SwappablePriorityQueue {
         directlyIncrementUnacknowledgedQueueSize(-flowFiles.size(), -totalSize);
     }
 
-
     public void put(final FlowFileRecord flowFile) {
         writeLock.lock();
         try {
@@ -537,7 +535,6 @@ public class SwappablePriorityQueue {
             writeLock.unlock("poll(Set)");
         }
     }
-
 
     private FlowFileRecord doPoll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
         FlowFileRecord flowFile;
@@ -709,7 +706,6 @@ public class SwappablePriorityQueue {
         }
     }
 
-
     protected boolean isExpired(final FlowFile flowFile, final long expirationMillis) {
         return isLaterThan(getExpirationDate(flowFile, expirationMillis));
     }
@@ -735,7 +731,6 @@ public class SwappablePriorityQueue {
         }
     }
 
-
     private long drainQueue(final Queue<FlowFileRecord> sourceQueue, final List<FlowFileRecord> destination,
                             int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis,
                             final PollStrategy pollStrategy) {
@@ -760,7 +755,6 @@ public class SwappablePriorityQueue {
         return drainedSize;
     }
 
-
     public FlowFileRecord getFlowFile(final String flowFileUuid) {
         if (flowFileUuid == null) {
             return null;
@@ -780,7 +774,6 @@ public class SwappablePriorityQueue {
 
         return null;
     }
-
 
     public void dropFlowFiles(final DropFlowFileRequest dropRequest, final String requestor) {
         final String requestIdentifier = dropRequest.getRequestIdentifier();
@@ -900,8 +893,6 @@ public class SwappablePriorityQueue {
             writeLock.unlock("Drop FlowFiles");
         }
     }
-
-
 
     public SwapSummary recoverSwappedFlowFiles() {
         int swapFlowFileCount = 0;
@@ -1128,7 +1119,6 @@ public class SwappablePriorityQueue {
             logger.error("Updated Size of Queue {} from {} to {}", counterName, original, newSize, new RuntimeException("Cannot create negative queue size"));
         }
     }
-
 
     protected boolean updateSize(final FlowFileQueueSize expected, final FlowFileQueueSize updated) {
         return size.compareAndSet(expected, updated);

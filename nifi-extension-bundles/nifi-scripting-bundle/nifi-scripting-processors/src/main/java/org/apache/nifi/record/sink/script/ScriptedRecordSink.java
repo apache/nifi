@@ -150,7 +150,6 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
                 // evaluate the script
                 scriptRunner.run(scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE));
 
-
                 // get configured processor from the script (if it exists)
                 final Object obj = scriptRunner.getScriptEngine().get("recordSink");
                 if (obj != null) {

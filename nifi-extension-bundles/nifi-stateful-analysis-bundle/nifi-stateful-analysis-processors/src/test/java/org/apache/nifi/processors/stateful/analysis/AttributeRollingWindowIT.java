@@ -54,10 +54,8 @@ public class AttributeRollingWindowIT {
         runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
         runner.setProperty(AttributeRollingWindow.TIME_WINDOW, "3 sec");
 
-
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("value", "bad");
-
 
         runner.enqueue("1".getBytes(), attributes);
         runner.run(1);
@@ -117,10 +115,8 @@ public class AttributeRollingWindowIT {
         runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
         runner.setProperty(AttributeRollingWindow.TIME_WINDOW, "300 ms");
 
-
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("value", "1");
-
 
         runner.enqueue("1".getBytes(), attributes);
         runner.run(1);
@@ -258,7 +254,6 @@ public class AttributeRollingWindowIT {
         runner.setProperty(AttributeRollingWindow.SUB_WINDOW_LENGTH, "500 ms");
         runner.setProperty(AttributeRollingWindow.TIME_WINDOW, "1 sec");
 
-
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("value", "2");
 
@@ -281,7 +276,6 @@ public class AttributeRollingWindowIT {
         flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, "4.0");
         flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, "2");
         flowFile.assertAttributeEquals(ROLLING_WINDOW_MEAN_KEY, "2.0");
-
 
         Thread.sleep(300L);
 

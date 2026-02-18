@@ -23,7 +23,6 @@ import java.util.List;
 public class ExpressionLanguageAwareParameterParser extends AbstractParameterParser implements ParameterParser {
     private static final char DOLLAR_SIGN = '$';
 
-
     @Override
     public ParameterTokenList parseTokens(final String input) {
         if (input == null || input.isEmpty()) {

@@ -97,7 +97,6 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
         }
     }
 
-
     @Override
     public FlowRegistryClientNode getFlowRegistryClient(final String registryId) {
         final FlowRegistryClientNode registry = flowController.getFlowManager().getFlowRegistryClient(registryId);

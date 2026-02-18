@@ -40,7 +40,6 @@ public class DynamicClassPathModificationIT extends NiFiSystemIT {
     private ConnectionEntity successConnection;
     private ConnectionEntity failureConnection;
 
-
     @Test
     public void testLoadsClassOnBaseClasspath() throws NiFiClientException, IOException, InterruptedException {
         createFlow();
@@ -120,7 +119,6 @@ public class DynamicClassPathModificationIT extends NiFiSystemIT {
         // We now expect 2 FlowFiles to be in the success route
         waitForQueueCount(successConnection.getId(), 2);
     }
-
 
     @Test
     public void testSuccessAfterTerminate() throws NiFiClientException, IOException, InterruptedException {

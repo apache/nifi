@@ -799,7 +799,6 @@ public class TestGetHDFSFileInfo {
         return new FsPermission(p);
     }
 
-
     private static class GetHDFSFileInfoWithMockedFileSystem extends GetHDFSFileInfo {
         private final MockFileSystem fileSystem = new MockFileSystem();
 

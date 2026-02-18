@@ -31,7 +31,6 @@ public class ReplaceWithNewerResolutionStrategyTest {
 
     private final ReplaceWithNewerResolutionStrategy testSubject = new ReplaceWithNewerResolutionStrategy();
 
-
     @Test
     public void testEmptyFolder() throws IOException {
         // given

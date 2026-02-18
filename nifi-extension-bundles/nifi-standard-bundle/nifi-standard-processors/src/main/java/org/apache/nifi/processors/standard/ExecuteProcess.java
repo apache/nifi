@@ -197,8 +197,6 @@ public class ExecuteProcess extends AbstractProcessor {
         .build();
     }
 
-
-
     @OnScheduled
     public void setupExecutor(final ProcessContext context) {
         executor = Executors.newFixedThreadPool(context.getMaxConcurrentTasks() * 2, new ThreadFactory() {
@@ -430,7 +428,6 @@ public class ExecuteProcess extends AbstractProcessor {
 
         return future;
     }
-
 
     /**
      * Output stream that is used to wrap another output stream in a way that the underlying output stream can be swapped out for a different one when needed

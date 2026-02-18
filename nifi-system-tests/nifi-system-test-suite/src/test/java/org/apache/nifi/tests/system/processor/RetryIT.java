@@ -99,7 +99,6 @@ public class RetryIT extends NiFiSystemIT {
         //Create a connection between PassThrough and CountEvents processors
         final ConnectionEntity passThroughAndCountEventsConnection = getClientUtil().createConnection(passThrough, countEvents, "success");
 
-
         // Wait for processors to be valid
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
         getClientUtil().waitForValidProcessor(passThrough.getId());
@@ -192,7 +191,6 @@ public class RetryIT extends NiFiSystemIT {
         final ConnectionEntity splitTextByLineAndCountEventsSplitsConnection = getClientUtil().createConnection(splitTextByLine, countEvents, "splits");
         final ConnectionEntity splitTextByLineAndCountEventsFailureConnection = getClientUtil().createConnection(splitTextByLine, countEvents, "failure");
 
-
         // Wait for processors to be valid
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
         getClientUtil().waitForValidProcessor(splitTextByLine.getId());
@@ -253,7 +251,6 @@ public class RetryIT extends NiFiSystemIT {
         final ConnectionEntity splitTextByLineAndCountEventsSplitsConnection = getClientUtil().createConnection(splitTextByLine, countEvents, "splits");
         final ConnectionEntity splitTextByLineAndCountEventsFailureConnection = getClientUtil().createConnection(splitTextByLine, countEvents, "failure");
 
-
         // Wait for processors to be valid
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
         getClientUtil().waitForValidProcessor(splitTextByLine.getId());
@@ -313,7 +310,6 @@ public class RetryIT extends NiFiSystemIT {
         final ConnectionEntity splitTextByLineAndCountEventsOriginalConnection = getClientUtil().createConnection(splitTextByLine, countEvents, "original");
         final ConnectionEntity splitTextByLineAndCountEventsSplitsConnection = getClientUtil().createConnection(splitTextByLine, countEvents, "splits");
         final ConnectionEntity splitTextByLineAndCountEventsFailureConnection = getClientUtil().createConnection(splitTextByLine, countEvents, "failure");
-
 
         // Wait for processors to be valid
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());

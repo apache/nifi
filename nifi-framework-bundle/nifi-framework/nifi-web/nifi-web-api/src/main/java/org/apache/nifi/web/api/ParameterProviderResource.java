@@ -1424,7 +1424,6 @@ public class ParameterProviderResource extends AbstractParameterResource {
         return entity;
     }
 
-
     private Response retrieveApplyParametersRequest(final String requestType, final String parameterProviderId, final String requestId) {
         if (requestId == null) {
             throw new IllegalArgumentException("Request ID must be specified.");

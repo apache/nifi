@@ -58,7 +58,6 @@ public class SchemaUtils {
         }
     }
 
-
     static ObjectMapper setObjectMapper() {
         return new ObjectMapper();
     }

@@ -282,7 +282,6 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     private BiFunction<FunctionContext, ErrorTypes, ErrorTypes.Result> adjustError;
     private ExceptionHandler<FunctionContext> exceptionHandler;
 
-
     private final FetchFlowFiles<FunctionContext> fetchFlowFiles = (c, s, fc, r) -> {
         final FlowFilePoll poll = pollFlowFiles(c, s, fc, r);
         if (poll == null) {
@@ -310,7 +309,6 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         }
         return connection;
     };
-
 
     @FunctionalInterface
     private interface GroupingFunction {
@@ -770,7 +768,6 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         return new FlowFilePoll(validFlowFiles, fragmentedTransaction);
     }
 
-
     /**
      * Returns the key that was generated from the given statement, or <code>null</code> if no key
      * was generated or it could not be determined.
@@ -1007,7 +1004,6 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         }
     }
 
-
     /**
      * A simple, immutable data structure to hold a List of FlowFiles and an indicator as to whether
      * or not those FlowFiles represent a "fragmented transaction" - that is, a collection of FlowFiles
@@ -1032,7 +1028,6 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             return fragmentedTransaction;
         }
     }
-
 
     private static class FragmentedEnclosure extends StatementFlowFileEnclosure {
 

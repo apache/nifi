@@ -59,7 +59,6 @@ class SNMPTrapReceiverTest {
 
     private static final SNMPConfigurationFactory snmpV1ConfigurationFactory = new SNMPV1V2cConfigurationFactory(SnmpConstants.version1);
 
-
     @BeforeEach
     public void init() {
         mockProcessSessionFactory = mock(ProcessSessionFactory.class);

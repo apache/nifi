@@ -99,7 +99,6 @@ class TestRecordExtender {
                 "testRecordField2", "testRecordValue2"
         ));
 
-
         MapRecord expectedRecord = new MapRecord(EXPECTED_EXTENDED_SCHEMA, Map.of(
                 "attributes", new MapRecord(ATTRIBUTES_RECORD_SCHEMA, Map.of("type", objectType, "referenceId", referenceId)),
                 "testRecordField1", "testRecordValue1",

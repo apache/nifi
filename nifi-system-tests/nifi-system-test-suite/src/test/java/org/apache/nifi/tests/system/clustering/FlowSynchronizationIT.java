@@ -78,7 +78,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         return createTwoNodeInstanceFactory();
     }
 
-
     @Test
     public void testParameterUpdateWhileNodeDisconnected() throws NiFiClientException, IOException, InterruptedException {
         // Add Parameter context with Param1 = 1
@@ -158,7 +157,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         // Reconnect node and wait for it to fully connect
         reconnectNode(2);
         waitForAllNodesConnected();
-
 
         // Make sure all processors on Node 2 have a sensitive value set
         switchClientToNode(2);
@@ -308,7 +306,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         assertEquals("good-bye", node2ParamValue);
     }
 
-
     @Test
     public void testReconnectionWithUpdatedConnection() throws NiFiClientException, IOException, InterruptedException {
         // Create connection between two processors
@@ -351,7 +348,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         });
     }
 
-
     @Test
     public void testCannotRemoveComponentsWhileNodeDisconnected() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
@@ -377,7 +373,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         getNifiClient().getProcessorClient().deleteProcessor(generate);
         getNifiClient().getProcessorClient().deleteProcessor(terminate);
     }
-
 
     @Test
     public void testComponentStatesRestoredOnReconnect() throws NiFiClientException, IOException, InterruptedException {
@@ -415,7 +410,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
             return "STOPPED".equalsIgnoreCase(latestGenerate.getComponent().getState());
         });
     }
-
 
     @Test
     public void testComponentsRecreatedOnRestart() throws NiFiClientException, IOException, InterruptedException {
@@ -534,7 +528,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
             return updatedNode2ReportingTask.getComponent().getState().equals(RUNNING_STATE);
         });
     }
-
 
     @Test
     public void testReconnectAddsProcessor() throws NiFiClientException, IOException, InterruptedException {
@@ -693,7 +686,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         });
     }
 
-
     @Test
     public void testUnnecessaryProcessorsAndConnectionsRemoved() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
@@ -769,7 +761,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         });
     }
 
-
     @Test
     public void testReconnectWithRunningProcessorUnchanged() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generateFlowFile = getClientUtil().createProcessor("GenerateFlowFile");
@@ -808,7 +799,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         reconnectNode(2);
         waitForAllNodesConnected();
     }
-
 
     private VersionedDataflow getNode2Flow() throws IOException {
         final File instanceDir = getNiFiInstance().getNodeInstance(2).getInstanceDirectory();

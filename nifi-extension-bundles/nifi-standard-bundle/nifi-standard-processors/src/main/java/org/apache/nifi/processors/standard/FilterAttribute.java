@@ -130,7 +130,6 @@ public class FilterAttribute extends AbstractProcessor {
         return PROPERTY_DESCRIPTORS;
     }
 
-
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final MatchingStrategy matchingStrategy = getMatchingStrategy(context);

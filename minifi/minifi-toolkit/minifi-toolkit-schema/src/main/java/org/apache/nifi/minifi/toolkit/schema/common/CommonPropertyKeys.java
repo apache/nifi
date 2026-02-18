@@ -41,7 +41,6 @@ public class CommonPropertyKeys {
     public static final String PROVENANCE_REPO_KEY = "Provenance Repository";
     public static final String NIFI_PROPERTIES_OVERRIDES_KEY = "NiFi Properties Overrides";
 
-
     public static final String NAME_KEY = "name";
     public static final String COMMENT_KEY = "comment";
     public static final String ALWAYS_SYNC_KEY = "always sync";

@@ -34,7 +34,6 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
     private String state;
     private List<T> updateSteps;
 
-
     @Schema(description = "The ID of the request", accessMode = Schema.AccessMode.READ_ONLY)
     public String getRequestId() {
         return requestId;

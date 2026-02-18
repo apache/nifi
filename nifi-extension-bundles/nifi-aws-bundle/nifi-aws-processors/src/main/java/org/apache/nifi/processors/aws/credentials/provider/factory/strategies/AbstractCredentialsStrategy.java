@@ -82,7 +82,6 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
         return name;
     }
 
-
     @Override
     public boolean canCreateDerivedCredential(final PropertyContext propertyContext) {
         return false;

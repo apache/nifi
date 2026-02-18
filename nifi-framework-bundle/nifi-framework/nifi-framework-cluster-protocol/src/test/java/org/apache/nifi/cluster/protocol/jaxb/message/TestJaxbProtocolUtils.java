@@ -98,7 +98,6 @@ public class TestJaxbProtocolUtils {
         assertInstanceOf(NodeConnectionStatusRequestMessage.class, unmarshalled);
     }
 
-
     @Test
     public void testRoundTripConnectionStatusResponse() throws JAXBException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();

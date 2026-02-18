@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.security.identity;
 
-
 public interface IdentityMapper {
 
     /**

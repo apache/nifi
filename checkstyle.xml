@@ -21,6 +21,10 @@
         <property name="eachLine" value="true"/>
     </module>
     <module name="NewlineAtEndOfFile"/>
+    <module name="RegexpMultiline">
+        <property name="format" value="\n{3,}"/>
+        <property name="message" value="Multiple consecutive blank lines are not allowed."/>
+    </module>
     <module name="LineLength">
         <!-- needs extra, because Eclipse formatter
             ignores the ending left brace -->

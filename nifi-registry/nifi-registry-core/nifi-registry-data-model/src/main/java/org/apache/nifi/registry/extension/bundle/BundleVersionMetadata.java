@@ -72,7 +72,6 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
     @NotNull
     private BuildInfo buildInfo;
 
-
     @Schema(description = "The id of this version of the extension bundle")
     public String getId() {
         return id;

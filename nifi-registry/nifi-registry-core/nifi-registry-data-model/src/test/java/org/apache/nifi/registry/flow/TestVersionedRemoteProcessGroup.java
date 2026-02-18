@@ -28,7 +28,6 @@ public class TestVersionedRemoteProcessGroup {
 
         VersionedRemoteProcessGroup vRPG = new VersionedRemoteProcessGroup();
 
-
         /* targetUri is null, targetUris varies */
 
         vRPG.setTargetUris(null);
@@ -43,7 +42,6 @@ public class TestVersionedRemoteProcessGroup {
         vRPG.setTargetUris("uri-2,uri-3");
         assertEquals("uri-2,uri-3", vRPG.getTargetUris());
 
-
         /* targetUri is empty, targetUris varies */
 
         vRPG.setTargetUris(null);
@@ -57,7 +55,6 @@ public class TestVersionedRemoteProcessGroup {
 
         vRPG.setTargetUris("uri-2,uri-3");
         assertEquals("uri-2,uri-3", vRPG.getTargetUris());
-
 
         /* targetUri is set, targetUris varies */
 
@@ -74,6 +71,5 @@ public class TestVersionedRemoteProcessGroup {
         assertEquals("uri-2,uri-3", vRPG.getTargetUris());
 
     }
-
 
 }

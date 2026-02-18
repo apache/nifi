@@ -64,8 +64,6 @@ public class DefaultedDynamicallyModifyClasspath extends AbstractProcessor {
             .description("FlowFiles are routed to this relationship if the specified class cannot be loaded")
             .build();
 
-
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Arrays.asList(URLS, CLASS_TO_LOAD);
@@ -75,7 +73,6 @@ public class DefaultedDynamicallyModifyClasspath extends AbstractProcessor {
     public Set<Relationship> getRelationships() {
         return new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE));
     }
-
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {

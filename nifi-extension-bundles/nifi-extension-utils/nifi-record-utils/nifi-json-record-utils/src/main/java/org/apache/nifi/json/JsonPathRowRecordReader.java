@@ -130,7 +130,6 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
         return new MapRecord(schema, values);
     }
 
-
     @SuppressWarnings("unchecked")
     protected Object convert(final Object value, final DataType dataType, final String fieldName) {
         if (value == null) {

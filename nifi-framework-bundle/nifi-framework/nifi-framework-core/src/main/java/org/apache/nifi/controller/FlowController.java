@@ -823,7 +823,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             loadBalanceServer = new ConnectionLoadBalanceServer(loadBalanceAddress.getHostName(), loadBalanceAddress.getPort(), sslContext,
                     numThreads, loadBalanceProtocol, eventReporter, timeoutMillis);
 
-
             final int connectionsPerNode = nifiProperties.getIntegerProperty(NiFiProperties.LOAD_BALANCE_CONNECTIONS_PER_NODE, NiFiProperties.DEFAULT_LOAD_BALANCE_CONNECTIONS_PER_NODE);
             final NioAsyncLoadBalanceClientFactory asyncClientFactory = new NioAsyncLoadBalanceClientFactory(sslContext, timeoutMillis, new ContentRepositoryFlowFileAccess(contentRepository),
                     eventReporter, new StandardLoadBalanceFlowFileCodec(), clusterCoordinator);
@@ -877,7 +876,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             throw new RuntimeException(e);
         }
     }
-
 
     private PythonBridge createPythonBridge(final NiFiProperties nifiProperties, final ControllerServiceProvider serviceProvider) {
         final String pythonCommand = nifiProperties.getProperty(NiFiProperties.PYTHON_COMMAND);
@@ -963,7 +961,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             throw new RuntimeException("Python Bridge initialization failed", e);
         }
     }
-
 
     public FlowFileSwapManager createSwapManager() {
         final String implementationClassName = nifiProperties.getProperty(NiFiProperties.FLOWFILE_SWAP_MANAGER_IMPLEMENTATION, DEFAULT_SWAP_MANAGER_IMPLEMENTATION);
@@ -1493,7 +1490,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return new KerberosConfig(principal, keytabFile, kerberosConfigFile);
     }
 
-
     public ValidationTrigger getValidationTrigger() {
         return validationTrigger;
     }
@@ -1545,7 +1541,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public Authorizer getAuthorizer() {
         return authorizer;
     }
-
 
     /**
      * @return <code>true</code> if the scheduling engine for this controller
@@ -1974,7 +1969,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
     }
 
-
     private void verifyProcessorsInVersionedFlow(final VersionedProcessGroup versionedFlow, final Map<String, Set<BundleCoordinate>> supportedTypes) {
         if (versionedFlow.getProcessors() != null) {
             versionedFlow.getProcessors().forEach(processor -> {
@@ -1996,7 +1990,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             });
         }
     }
-
 
     private void verifyControllerServicesInVersionedFlow(final VersionedProcessGroup versionedFlow, final Map<String, Set<BundleCoordinate>> supportedTypes) {
         if (versionedFlow.getControllerServices() != null) {
@@ -2075,7 +2068,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     // Processor access
     //
 
-
     /**
      * Returns the ProcessGroup with the given ID
      *
@@ -2089,7 +2081,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
         return group;
     }
-
 
     public List<GarbageCollectionStatus> getGarbageCollectionStatus() {
         final List<GarbageCollectionStatus> statuses = new ArrayList<>();
@@ -2109,7 +2100,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public GarbageCollectionHistory getGarbageCollectionHistory() {
         return statusHistoryRepository.getGarbageCollectionHistory(new Date(0L), new Date());
     }
-
 
     public ReloadComponent getReloadComponent() {
         return reloadComponent;
@@ -2275,7 +2265,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         startGroupsAfterInitialization.remove(group);
     }
 
-
     @Override
     public void startReportingTask(final ReportingTaskNode reportingTaskNode) {
         if (isTerminated()) {
@@ -2389,7 +2378,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         return connection;
     }
-
 
     @Override
     public ReportingTaskNode getReportingTaskNode(final String identifier) {
@@ -2541,7 +2529,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public int getActiveThreadCount() {
         return timerDrivenEngineRef.get().getActiveCount();
     }
-
 
     //
     // Clustering methods

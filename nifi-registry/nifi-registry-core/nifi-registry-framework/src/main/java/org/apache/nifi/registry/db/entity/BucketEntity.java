@@ -33,7 +33,6 @@ public class BucketEntity {
 
     private boolean allowPublicRead;
 
-
     public String getId() {
         return id;
     }

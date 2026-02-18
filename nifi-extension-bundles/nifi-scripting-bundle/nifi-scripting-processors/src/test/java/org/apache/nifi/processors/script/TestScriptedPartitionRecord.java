@@ -162,7 +162,6 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
         assertEquals(String.valueOf(index), resultFlowFile.getAttribute("fragment.index"));
         assertEquals(String.valueOf(count), resultFlowFile.getAttribute("fragment.count"));
 
-
     }
 
     @Override

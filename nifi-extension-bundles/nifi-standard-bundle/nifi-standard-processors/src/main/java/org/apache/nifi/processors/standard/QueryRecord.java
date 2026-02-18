@@ -445,7 +445,6 @@ public class QueryRecord extends AbstractProcessor {
         session.adjustCounter("Records Read", recordsRead, false);
     }
 
-
     private synchronized CachedStatement getStatement(final String sql, final RecordSchema schema, final Supplier<CachedStatement> statementBuilder) {
         final Tuple<String, RecordSchema> tuple = new Tuple<>(sql, schema);
         final BlockingQueue<CachedStatement> statementQueue = statementQueues.get(tuple, key -> new LinkedBlockingQueue<>());
@@ -472,7 +471,6 @@ public class QueryRecord extends AbstractProcessor {
             throw new ProcessException(e);
         }
     }
-
 
     private QueryResult query(final ProcessSession session, final FlowFile flowFile, final RecordSchema schema, final String sql, final RecordReaderFactory recordReaderFactory)
                 throws SQLException {

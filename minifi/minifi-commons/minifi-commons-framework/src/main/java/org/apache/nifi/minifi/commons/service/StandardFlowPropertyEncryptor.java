@@ -159,5 +159,4 @@ public class StandardFlowPropertyEncryptor implements FlowPropertyEncryptor {
         return String.format(ENCRYPTED_FORMAT, propertyEncryptor.encrypt(parameter));
     }
 
-
 }

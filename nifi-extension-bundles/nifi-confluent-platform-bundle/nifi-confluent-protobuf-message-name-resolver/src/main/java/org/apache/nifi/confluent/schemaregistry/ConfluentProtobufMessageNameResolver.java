@@ -72,7 +72,6 @@ public class ConfluentProtobufMessageNameResolver extends AbstractControllerServ
         }
     }
 
-
     @Override
     public MessageName getMessageName(final Map<String, String> variables, final SchemaDefinition schemaDefinition, final InputStream inputStream) throws IOException {
         final ComponentLog logger = getLogger();
@@ -189,5 +188,4 @@ public class ConfluentProtobufMessageNameResolver extends AbstractControllerServ
     private record FindMessageNameArguments(SchemaDefinition schemaDefinition, List<Integer> messageIndexes) {
     }
 }
-
 

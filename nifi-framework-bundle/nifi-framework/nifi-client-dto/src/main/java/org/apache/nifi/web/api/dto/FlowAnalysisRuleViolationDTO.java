@@ -128,7 +128,6 @@ public class FlowAnalysisRuleViolationDTO {
         this.violationMessage = violationMessage;
     }
 
-
     /**
      * @return the type of the subject that violated the rule
      */

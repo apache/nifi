@@ -63,7 +63,6 @@ public class ComponentMetrics {
         }
     }
 
-
     public static StatusSnapshot createSnapshot(final ProcessorStatus status, final Date timestamp) {
         if (isEmpty(status)) {
             return null;
@@ -104,7 +103,6 @@ public class ComponentMetrics {
 
         return true;
     }
-
 
     public static StatusSnapshot createSnapshot(final ConnectionStatus status,  final Date timestamp) {
         if (isEmpty(status)) {

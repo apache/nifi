@@ -61,7 +61,6 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
     private volatile PythonProcessorAdapter currentAdapter;
     private volatile ProcessContext currentProcessContext;
 
-
     protected static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")
         .description("The original FlowFile will be routed to this relationship when it has been successfully transformed")
@@ -115,7 +114,6 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
             bridge.initialize(initContext);
         }
     }
-
 
     protected synchronized T getTransform() {
         final PythonProcessorBridge bridge = getBridge().orElseThrow(() -> new IllegalStateException(this + " is not finished initializing"));
@@ -227,7 +225,6 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
         }
     }
 
-
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         if (!isSupportsDynamicPropertyDescriptor()) {
@@ -289,7 +286,6 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
         this.cachedDynamicDescriptors = dynamicDescriptors;
     }
 
-
     @Override
     public Set<Relationship> getRelationships() {
         final Set<Relationship> cached = cachedRelationships;
@@ -318,7 +314,6 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
         processorRelationships.addAll(getImplicitRelationships());
         return processorRelationships;
     }
-
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {

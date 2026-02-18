@@ -66,7 +66,6 @@ public class TestLimitedInputStream {
         }
     }
 
-
     @Test
     public void testSkip() throws Exception {
         final LimitedInputStream lis = new LimitedInputStream(bais, 4);

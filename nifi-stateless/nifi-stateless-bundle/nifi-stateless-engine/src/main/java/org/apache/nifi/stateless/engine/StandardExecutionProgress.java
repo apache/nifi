@@ -126,7 +126,6 @@ public class StandardExecutionProgress implements ExecutionProgress {
         createdSessions.clear();
     }
 
-
     @Override
     public boolean isCanceled() {
         if (canceled) {

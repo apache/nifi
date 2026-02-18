@@ -196,7 +196,6 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         final String deletePolicyGroupsSql = "DELETE FROM APP_POLICY_GROUP WHERE POLICY_IDENTIFIER = ?";
         jdbcTemplate.update(deletePolicyGroupsSql, accessPolicy.getIdentifier());
 
-
         // re-create the associations
         createPolicyUserAndGroups(accessPolicy);
 

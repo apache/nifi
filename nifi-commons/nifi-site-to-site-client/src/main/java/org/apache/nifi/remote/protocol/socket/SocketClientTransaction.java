@@ -32,7 +32,6 @@ import java.io.IOException;
 
 public class SocketClientTransaction extends AbstractTransaction {
 
-
     private final DataInputStream dis;
     private final DataOutputStream dos;
 

@@ -22,5 +22,4 @@ public class InvalidAuthProtocolException extends SNMPException {
         super(errorMessage);
     }
 
-
 }

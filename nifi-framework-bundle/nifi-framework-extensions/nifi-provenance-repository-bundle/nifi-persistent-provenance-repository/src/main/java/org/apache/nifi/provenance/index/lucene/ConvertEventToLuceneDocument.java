@@ -54,7 +54,6 @@ public class ConvertEventToLuceneDocument {
         doc.add(new StringField(field.getSearchableFieldName(), value.toLowerCase(), Store.NO));
     }
 
-
     public Document convert(final ProvenanceEventRecord record, final StorageSummary persistedEvent) {
         return convert(record, persistedEvent.getEventId());
     }

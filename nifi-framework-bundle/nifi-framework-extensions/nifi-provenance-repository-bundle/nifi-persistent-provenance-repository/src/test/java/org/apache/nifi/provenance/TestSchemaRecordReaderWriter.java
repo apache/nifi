@@ -123,7 +123,6 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
         assertEquals(id, event.getEventId());
     }
 
-
     @Test
     public void testFieldAddedToSchema() throws IOException {
         final RecordField unitTestField = new SimpleRecordField("Unit Test Field", FieldType.STRING, Repetition.EXACTLY_ONE);
@@ -238,7 +237,6 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
             assertNull(secondEvent);
         }
     }
-
 
     /**
      * Creates a SchemaRecordWriter that uses a modified schema
@@ -363,7 +361,6 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
         final long megaBytesPerSecond = bytesPerSecond / 1024 / 1024;
         logger.info("Took {} millis to read {} events or {} MB/sec", millis, numEvents, megaBytesPerSecond);
     }
-
 
     @Override
     protected RecordWriter createWriter(File file, TocWriter tocWriter, boolean compressed, int uncompressedBlockSize) throws IOException {

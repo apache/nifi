@@ -29,7 +29,6 @@ public class FlowSnapshotMetadata {
 
     private Long created;
 
-
     public Integer getVersion() {
         return version;
     }

@@ -54,7 +54,6 @@ public class ExtensionEntity {
     private String systemApiVersion;
     private BundleType bundleType;
 
-
     public String getId() {
         return id;
     }
@@ -142,7 +141,6 @@ public class ExtensionEntity {
     public void setRestrictions(Set<ExtensionRestrictionEntity> restrictions) {
         this.restrictions = restrictions;
     }
-
 
     public String getBucketId() {
         return bucketId;

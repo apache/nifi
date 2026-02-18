@@ -75,7 +75,6 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
     private NiFiServiceFacade serviceFacade;
     private DtoFactory dtoFactory;
 
-
     @Override
     public Set<AffectedComponentEntity> scheduleComponents(final URI exampleUri, final String groupId, final Set<AffectedComponentEntity> components,
             final ScheduledState desiredState, final Pause pause, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
@@ -163,7 +162,6 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             .collect(Collectors.toSet());
         return updatedEntities;
     }
-
 
     private ReplicationTarget getReplicationTarget() {
         return clusterCoordinator.isActiveClusterCoordinator() ? ReplicationTarget.CLUSTER_NODES : ReplicationTarget.CLUSTER_COORDINATOR;
@@ -464,7 +462,6 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         return clientResponse.readEntity(clazz);
     }
 
-
     private void updateAffectedProcessors(final Collection<ProcessorRunStatusDetailsEntity> runStatusDetailsEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
         // update the affected processors
         runStatusDetailsEntities.stream()
@@ -487,7 +484,6 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 }
             });
     }
-
 
     private boolean isProcessorActionComplete(final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity, final Map<String, AffectedComponentEntity> affectedComponents,
                                               final ScheduledState desiredState, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
@@ -552,7 +548,6 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
         return true;
     }
-
 
     @Override
     public Set<AffectedComponentEntity> activateControllerServices(final URI originalUri, final String groupId, final Set<AffectedComponentEntity> affectedServices,
@@ -803,7 +798,6 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
         return false;
     }
-
 
     /**
      * Updates the affected controller services in the specified updateRequest with the serviceEntities.

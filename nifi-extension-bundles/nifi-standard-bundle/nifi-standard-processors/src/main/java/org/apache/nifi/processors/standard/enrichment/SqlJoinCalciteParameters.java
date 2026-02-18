@@ -48,7 +48,6 @@ public class SqlJoinCalciteParameters implements AutoCloseable {
         return preparedStatement;
     }
 
-
     @Override
     public void close() {
         closeQuietly(preparedStatement, "Calcite Prepared Statement");

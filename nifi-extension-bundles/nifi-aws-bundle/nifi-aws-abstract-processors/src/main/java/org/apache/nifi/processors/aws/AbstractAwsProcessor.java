@@ -96,7 +96,6 @@ public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsCli
     private static final String AUTH_SERVICE_CREDENTIALS_FILE = "Credentials File";
     private static final String AUTH_SERVICE_ANONYMOUS_CREDENTIALS = "anonymous-credentials";
 
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles are routed to success relationship")
@@ -145,7 +144,6 @@ public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsCli
         .build();
 
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP, ProxySpec.HTTP_AUTH);
-
 
     protected static final String DEFAULT_USER_AGENT = "NiFi";
 
@@ -327,7 +325,6 @@ public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsCli
             }
         }
     }
-
 
     /**
      * Get credentials provider using the {@link AwsCredentialsProvider}

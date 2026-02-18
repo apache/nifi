@@ -86,8 +86,6 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         assertEquals(ProvenanceEventType.CREATE.name(), firstEvent.getEventType());
     }
 
-
-
     // If we add some events for Component ABC and then they age off, we should be able to query and get back 0 results.
     // If we then add some more events for Component ABC and query, we should see those new events. Even if we have aged off
     // 1000+ events (1000 = max results of the provenance query). This should be true whether NiFi is restarted in between or not.
@@ -136,7 +134,6 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         // Wait for those 25 events to be emitted
         waitForEventCountAtLeast(generateSearchTerms, 25);
     }
-
 
     // If we add some events for Component ABC and then they age off, we should be able to query and get back 0 results.
     // If we then add some more events for Component ABC and query, we should see those new events. Even if we have aged off

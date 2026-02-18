@@ -52,7 +52,6 @@ public class JsonFlowEncryptorTest {
 
     private FlowEncryptor flowEncryptor;
 
-
     @BeforeEach
     public void setEncryptors() {
         inputEncryptor = getPropertyEncryptor(INPUT_KEY, PropertyEncryptionMethod.NIFI_PBKDF2_AES_GCM_256.name());

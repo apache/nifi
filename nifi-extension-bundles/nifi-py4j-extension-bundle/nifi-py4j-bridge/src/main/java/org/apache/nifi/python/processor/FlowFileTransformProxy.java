@@ -33,11 +33,9 @@ import java.util.function.Supplier;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class FlowFileTransformProxy extends PythonProcessorProxy<FlowFileTransform> {
 
-
     public FlowFileTransformProxy(final String processorType, final Supplier<PythonProcessorBridge> bridgeFactory, final boolean initialize) {
         super(processorType, bridgeFactory, initialize);
     }
-
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {

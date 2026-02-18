@@ -822,7 +822,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         boolean isCheckpoint();
     }
 
-
     static class RecordBlobWriter implements BlobWriter {
         private static final RecordSchema RECORD_SCHEMA;
 
@@ -876,7 +875,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
             RECORD_SCHEMA = new SimpleRecordSchema(fields);
         }
-
 
         private final ProcessSession session;
         private final RecordSetWriterFactory writerFactory;

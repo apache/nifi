@@ -32,7 +32,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITDeleteSQS extends AbstractSQSIT {
 
-
     @Test
     public void testSimpleDelete() {
         final SendMessageRequest request = SendMessageRequest.builder()

@@ -84,7 +84,6 @@ public class GetSmbFileTest {
         when(connection.authenticate(any(AuthenticationContext.class))).thenReturn(session);
         when(session.connectShare(SHARE)).thenReturn(diskShare);
 
-
         testRunner.setProperty(GetSmbFile.HOSTNAME, HOSTNAME);
         testRunner.setProperty(GetSmbFile.SHARE, SHARE);
         testRunner.setProperty(GetSmbFile.DIRECTORY, DIRECTORY);
@@ -229,7 +228,6 @@ public class GetSmbFileTest {
             )
         );
 
-
         testRunner.run();
         verifyOpenFile(DIRECTORY, "file1.txt", 1);
         verifyOpenFile(DIRECTORY, "file2.txt", 1);
@@ -249,7 +247,6 @@ public class GetSmbFileTest {
                 mockDir(subdir2, List.of(mockFile(subdir2, "file2.txt", "abc"))),
                 mockDir(subdir3, List.of(mockFile(subdir3, "file3.txt", "abc")))
         ));
-
 
         testRunner.run();
         verifyOpenFile(subdir1, "file1.txt", 1);

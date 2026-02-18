@@ -72,7 +72,6 @@ public class TestParquetProcessor extends AbstractProcessor {
         session.transfer(flowFile, SUCCESS);
     }
 
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return singletonList(READER);

@@ -22,7 +22,6 @@ public interface InvocationResult {
 
     String getYieldExplanation();
 
-
     InvocationResult DO_NOT_YIELD = new InvocationResult() {
         @Override
         public boolean isYield() {

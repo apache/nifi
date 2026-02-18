@@ -76,7 +76,6 @@ public class LdapIdentityProvider extends BasicAuthIdentityProvider implements I
             throw new SecurityProviderCreationException("The Authentication Expiration must be specified.");
         }
 
-
         try {
             expiration = Math.round(FormatUtils.getPreciseTimeDuration(rawExpiration, TimeUnit.MILLISECONDS));
         } catch (final IllegalArgumentException iae) {

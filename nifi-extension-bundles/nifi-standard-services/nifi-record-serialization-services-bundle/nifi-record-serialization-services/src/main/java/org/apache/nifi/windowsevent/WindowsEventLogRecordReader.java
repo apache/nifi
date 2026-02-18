@@ -130,7 +130,6 @@ public class WindowsEventLogRecordReader implements RecordReader {
         SYSTEM_SCHEMA.setSchemaName("System");
     }
 
-
     public WindowsEventLogRecordReader(InputStream in, final String dateFormat, final String timeFormat, final String timestampFormat, ComponentLog logger)
             throws IOException, MalformedRecordException {
 

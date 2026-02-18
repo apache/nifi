@@ -75,5 +75,4 @@ public class LiveSerializedRepositoryRecord implements SerializedRepositoryRecor
             + ", flowFileUuid=" + record.getCurrent().getAttribute(CoreAttributes.UUID.key()) + ", attributesChanged=" + isAttributesChanged() + "]";
     }
 
-
 }

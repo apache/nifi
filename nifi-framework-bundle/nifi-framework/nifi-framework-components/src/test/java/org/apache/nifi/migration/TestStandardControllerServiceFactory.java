@@ -142,7 +142,6 @@ public class TestStandardControllerServiceFactory {
         assertEquals(4, Set.of(initialServiceId, secondGroupId, thirdId, fourthId).size());
     }
 
-
     private BundleCoordinate createCoordinate(final String artifactId, final String version) {
         return new BundleCoordinate(GROUP_ID, artifactId, version);
     }

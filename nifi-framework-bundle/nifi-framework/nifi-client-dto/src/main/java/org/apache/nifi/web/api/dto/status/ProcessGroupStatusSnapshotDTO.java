@@ -271,7 +271,6 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return received;
     }
 
-
     /**
      * The sent stats for this process group. This represents the count/size of flowfiles sent.
      *
@@ -281,7 +280,6 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     public String getSent() {
         return sent;
     }
-
 
     /**
      * The queued count for this process group.
@@ -293,7 +291,6 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return queuedCount;
     }
 
-
     /**
      * The queued size for this process group.
      *
@@ -303,7 +300,6 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     public String getQueuedSize() {
         return queuedSize;
     }
-
 
     /**
      * The queued stats for this process group.
@@ -315,7 +311,6 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return queued;
     }
 
-
     /**
      * The read stats for this process group.
      *
@@ -325,7 +320,6 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     public String getRead() {
         return read;
     }
-
 
     /**
      * The written stats for this process group.
@@ -337,7 +331,6 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return written;
     }
 
-
     /**
      * The input stats for this process group.
      *
@@ -347,7 +340,6 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
     public String getInput() {
         return input;
     }
-
 
     @Schema(description = "The number of FlowFiles that have come into this ProcessGroup in the last 5 minutes")
     public Integer getFlowFilesIn() {
@@ -608,7 +600,6 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
             }
             other.setProcessGroupStatusSnapshots(childGroups);
         }
-
 
         other.setProcessingPerformanceStatus(getProcessingPerformanceStatus());
 

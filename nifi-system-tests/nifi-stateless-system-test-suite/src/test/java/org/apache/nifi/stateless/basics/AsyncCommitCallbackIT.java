@@ -234,7 +234,6 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
         testAsyncCallbackNotCalledOnFailure(dataflow, inputFile, replacementFile);
     }
 
-
     @Test
     public void testAsyncCallbackNotCalledIfRoutedToFailurePort() throws IOException, StatelessConfigurationException, InterruptedException {
         testCleanupNotCalledIfRoutedToFailurePort("asynchronous");

@@ -125,7 +125,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
     private final boolean isSiteToSiteSecure;
 
-
     public StandardFlowManager(final NiFiProperties nifiProperties, final SSLContext sslContext, final FlowController flowController,
                                final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager) {
         super(flowFileEventRepository, parameterContextManager, flowController::isInitialized);

@@ -351,7 +351,6 @@ public class TinkerpopClientService extends AbstractControllerService implements
         return builder;
     }
 
-
     public void loadClasses(ConfigurationContext context) {
         String path = context.getProperty(EXTRA_RESOURCE).getValue();
         String classList = context.getProperty(EXTENSION_CLASSES).getValue();
@@ -370,7 +369,6 @@ public class TinkerpopClientService extends AbstractControllerService implements
             }
         }
     }
-
 
     protected Cluster buildCluster(ConfigurationContext context) {
 
@@ -526,7 +524,6 @@ public class TinkerpopClientService extends AbstractControllerService implements
         } catch (Exception e) {
             throw new ProcessException(e);
         }
-
 
         return traversal;
     }

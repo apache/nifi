@@ -50,7 +50,6 @@ import static org.mockito.Mockito.when;
 
 public class TestConnectableTask {
 
-
     private ConnectableTask createTask(final Connectable connectable) {
         final FlowController flowController = Mockito.mock(FlowController.class);
         Mockito.when(flowController.getStateManagerProvider()).thenReturn(Mockito.mock(StateManagerProvider.class));

@@ -139,7 +139,6 @@ public class TestSocketClientTransaction {
         ResponseCode.FINISH_TRANSACTION.writeResponse(serverResponse);
         ResponseCode.CONFIRM_TRANSACTION.writeResponse(serverResponse, "Checksum has been verified at server.");
 
-
         ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
@@ -172,7 +171,6 @@ public class TestSocketClientTransaction {
         ResponseCode.FINISH_TRANSACTION.writeResponse(serverResponse);
         ResponseCode.BAD_CHECKSUM.writeResponse(serverResponse);
 
-
         ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
@@ -188,7 +186,6 @@ public class TestSocketClientTransaction {
         assertEquals("2969091230", confirmResponse.getMessage(), "Checksum should be calculated at client");
         assertEquals(-1, sentByClient.read());
     }
-
 
     @Test
     public void testSendZeroFlowFile() throws IOException {
@@ -295,7 +292,6 @@ public class TestSocketClientTransaction {
         assertEquals(ResponseCode.BAD_CHECKSUM, confirmResponse.getCode());
         assertEquals(-1, sentByClient.read());
     }
-
 
     @Test
     public void testSendButDestinationFull() throws IOException {

@@ -120,7 +120,6 @@ public class DownloadQueue {
         return new File(narLibDirectory, filename);
     }
 
-
     private class DownloadTask implements Runnable {
         private final BlockingQueue<BundleCoordinate> downloadQueue;
         private final CompletableFuture<Void> completableFuture;

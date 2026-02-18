@@ -76,7 +76,6 @@ public class BatchFlowBetweenGroupsIT extends NiFiSystemIT {
         processGroupA.getComponent().setFlowfileOutboundPolicy(FlowFileOutboundPolicy.BATCH_OUTPUT.name());
         getNifiClient().getProcessGroupClient().updateProcessGroup(processGroupA);
 
-
         //
         // Build Process Group B
         //

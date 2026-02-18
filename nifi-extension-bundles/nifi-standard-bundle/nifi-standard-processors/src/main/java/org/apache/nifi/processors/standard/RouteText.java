@@ -535,7 +535,6 @@ public class RouteText extends AbstractProcessor {
         session.transfer(flowFile, REL_ORIGINAL);
     }
 
-
     private Group getGroup(final String line, final Pattern groupPattern) {
         if (groupPattern == null) {
             return EMPTY_GROUP;
@@ -567,7 +566,6 @@ public class RouteText extends AbstractProcessor {
 
         groupToFlowFileMap.put(group, flowFile);
     }
-
 
     protected static boolean lineMatches(final String line, final Object comparison, final String matchingStrategy, final boolean ignoreCase,
         final FlowFile flowFile, final Map<String, String> variables) {
@@ -608,7 +606,6 @@ public class RouteText extends AbstractProcessor {
 
         return false;
     }
-
 
     private static class Group {
         private final List<String> capturedValues;

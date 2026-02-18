@@ -45,7 +45,6 @@ public interface LogRepository {
      */
     void setObservationLevel(LogLevel level);
 
-
     /**
      * Removes all LogObservers from this Repository
      */

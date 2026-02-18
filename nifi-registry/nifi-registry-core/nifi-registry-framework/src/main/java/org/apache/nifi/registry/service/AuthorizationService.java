@@ -99,7 +99,6 @@ public class AuthorizationService {
         this.userGroupProvider = accessPolicyProvider.getUserGroupProvider();
     }
 
-
     // ---------------------- Authorization methods -------------------------------------
 
     public AuthorizableLookup getAuthorizableLookup() {
@@ -340,7 +339,6 @@ public class AuthorizationService {
         return userGroupToDTO(group);
     }
 
-
     // ---------------------- Access Policy methods ----------------------------------------
 
     public AccessPolicy createAccessPolicy(final AccessPolicy accessPolicy) {
@@ -459,7 +457,6 @@ public class AuthorizationService {
         configurableAccessPolicyProvider().deleteAccessPolicy(accessPolicy);
         return accessPolicyToDTO(accessPolicy);
     }
-
 
     // ---------------------- Resource Lookup methods --------------------------------------
 

@@ -106,7 +106,6 @@ public class SelectiveRecordReaderEventIterator implements EventIterator {
         }
     }
 
-
     @Override
     public Optional<ProvenanceEventRecord> nextEvent() throws IOException {
         if (closed) {

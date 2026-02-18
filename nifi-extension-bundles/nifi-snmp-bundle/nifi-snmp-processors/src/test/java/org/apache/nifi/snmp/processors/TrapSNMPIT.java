@@ -66,7 +66,6 @@ class TrapSNMPIT {
         assertEquals(String.valueOf(v1TrapConfiguration.getGenericTrapType()), successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "genericTrapType"));
         assertEquals(String.valueOf(v1TrapConfiguration.getSpecificTrapType()), successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "specificTrapType"));
 
-
         assertEquals(SYSTEM_DESCRIPTION_OID_VALUE, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + SYSTEM_DESCRIPTION_OID
                 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
 

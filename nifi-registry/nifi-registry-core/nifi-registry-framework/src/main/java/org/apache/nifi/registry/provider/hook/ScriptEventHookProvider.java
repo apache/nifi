@@ -44,7 +44,6 @@ public class ScriptEventHookProvider
     private File scriptFile;
     private File workDirFile;
 
-
     @Override
     public void handle(final Event event) {
         List<String> command = new ArrayList<>();

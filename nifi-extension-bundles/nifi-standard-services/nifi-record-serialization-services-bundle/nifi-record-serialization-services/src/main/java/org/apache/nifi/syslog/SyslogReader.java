@@ -92,7 +92,6 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
         return properties;
     }
 
-
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final String charsetName = context.getProperty(CHARSET).getValue();

@@ -145,7 +145,6 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
         Objects.requireNonNull(environment.getProperty(propertyName), propertyName + " is required with an https URI");
     }
 
-
     public KeyValueBackend getKeyValueBackend() {
         return keyValueBackend;
     }

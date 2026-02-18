@@ -248,7 +248,6 @@ public class GetSmbFile extends AbstractProcessor {
         REL_SUCCESS
     );
 
-
     private final BlockingQueue<String> fileQueue = new LinkedBlockingQueue<>();
     private final Set<String> inProcess = new HashSet<>();    // guarded by queueLock
     private final Set<String> recentlyProcessed = new HashSet<>();    // guarded by queueLock
@@ -404,7 +403,6 @@ public class GetSmbFile extends AbstractProcessor {
         } else {
             ac = AuthenticationContext.anonymous();
         }
-
 
         try (Connection connection = smbClient.connect(hostname);
             Session smbSession = connection.authenticate(ac);

@@ -41,7 +41,6 @@ public class CurrentUserEndpointMerger extends AbstractSingleEntityEndpoint<Curr
         return CurrentUserEntity.class;
     }
 
-
     @Override
     protected void mergeResponses(final CurrentUserEntity clientEntity, final Map<NodeIdentifier, CurrentUserEntity> entityMap,
                                   final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {

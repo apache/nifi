@@ -29,7 +29,6 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
 
     private DropFlowFileState state = DropFlowFileState.WAITING_FOR_LOCK;
 
-
     public DropFlowFileRequest(final String identifier) {
         this.identifier = identifier;
     }

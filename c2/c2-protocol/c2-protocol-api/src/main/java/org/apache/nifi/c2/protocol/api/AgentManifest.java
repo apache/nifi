@@ -69,7 +69,6 @@ public class AgentManifest extends RuntimeManifest {
         return Objects.hash(super.hashCode(), supportedOperations);
     }
 
-
     @Override
     public String toString() {
         return "AgentManifest{" +

@@ -63,7 +63,6 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
             .flatMap(VersionedComponent::getVersionedComponentId)
             .orElse(null);
 
-
         final ProcessGroup rootGroup = flowManager.getRootGroup();
         final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(group -> group.referencesParameterContext(parameterContext));
 

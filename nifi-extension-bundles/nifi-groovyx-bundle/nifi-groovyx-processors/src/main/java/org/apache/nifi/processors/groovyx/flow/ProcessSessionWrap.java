@@ -723,7 +723,6 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         return session.read(flowFile);
     }
 
-
     /**
      * Combines the content of all given source FlowFiles into a single given
      * destination FlowFile.

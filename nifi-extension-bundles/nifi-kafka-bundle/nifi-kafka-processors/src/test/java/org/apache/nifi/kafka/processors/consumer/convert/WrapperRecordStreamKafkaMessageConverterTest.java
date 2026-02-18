@@ -58,7 +58,6 @@ class WrapperRecordStreamKafkaMessageConverterTest {
 
     private final OffsetTracker offsetTracker = new OffsetTracker();
 
-
     @Test
     void testGroupingOfMessagesByTopicAndPartition() {
         // Initialize MockRecordParser
@@ -94,7 +93,6 @@ class WrapperRecordStreamKafkaMessageConverterTest {
         final ByteRecord group2Record1 = new ByteRecord("topic1", 1, 1, 0L, List.of(), null, "value2".getBytes(), 0L);
 
         final ByteRecord group3Record1 = new ByteRecord("topic2", 0, 2, 0L, List.of(), null, "value3".getBytes(), 0L);
-
 
         final Iterator<ByteRecord> consumerRecords = List.of(group1Record1, group2Record1, group3Record1, group1Record2).iterator();
         // Mock the session.create() and session.write() methods

@@ -113,7 +113,6 @@ public class TestQuery {
         assertValid("${attr:padRight(10)}");
     }
 
-
     @Test
     public void testPrepareWithEscapeChar() {
         final Map<String, String> variables = Collections.singletonMap("foo", "bar");
@@ -1401,7 +1400,6 @@ public class TestQuery {
         assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
                 "first argument type: 'double', second argument type:  'long'", expected.getMessage());
 
-
         // Can only verify that it runs. ToNumber() will verify that it produced a number greater than or equal to 0.0 and less than 1.0
         verifyEquals("${math('random'):toNumber()}", attributes, 0L);
 
@@ -2663,7 +2661,6 @@ public class TestQuery {
             return sb.toString();
         }
     }
-
 
     private static class MapParameterLookup implements ParameterLookup {
         private final Map<String, String> parameters;

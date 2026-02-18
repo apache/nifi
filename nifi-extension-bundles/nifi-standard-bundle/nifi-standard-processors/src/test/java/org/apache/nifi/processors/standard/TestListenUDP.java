@@ -54,7 +54,6 @@ public class TestListenUDP {
 
     private static final String LOCALHOST = "localhost";
 
-
     private TestRunner runner;
 
     @Mock

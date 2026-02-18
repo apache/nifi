@@ -40,7 +40,6 @@ import static org.apache.nifi.web.api.request.FlowMetricsReportingStrategy.ALL_P
 
 public class PrometheusMetricsUtil {
 
-
     protected static final String DEFAULT_LABEL_STRING = "";
     private static final double MAXIMUM_BACKPRESSURE = 1.0;
     private static final double UNDEFINED_BACKPRESSURE = -1.0;
@@ -297,7 +296,6 @@ public class PrometheusMetricsUtil {
             final String destinationId = StringUtils.isEmpty(destId) ? DEFAULT_LABEL_STRING : destId;
             final String destinationName = StringUtils.isEmpty(destName) ? DEFAULT_LABEL_STRING : destName;
             final String parentId = StringUtils.isEmpty(pgId) ? DEFAULT_LABEL_STRING : pgId;
-
 
             Map<String, Long> predictions = statusAnalytics.getPredictions();
             connectionAnalyticsMetricsRegistry.setDataPoint(predictions.get("timeToBytesBackpressureMillis"),

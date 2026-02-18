@@ -516,7 +516,6 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
         final String elasticsearchPutError = runner.getFlowFilesForRelationship(AbstractPutElasticsearch.REL_FAILURE).getFirst().getAttribute("elasticsearch.put.error");
         assertTrue(elasticsearchPutError.contains("exceeds the maximum allowed"));
 
-
         // increase Jackson's Max String Length reader settings
         runner.clearTransferState();
         runner.setProperty(ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH, "10KB");

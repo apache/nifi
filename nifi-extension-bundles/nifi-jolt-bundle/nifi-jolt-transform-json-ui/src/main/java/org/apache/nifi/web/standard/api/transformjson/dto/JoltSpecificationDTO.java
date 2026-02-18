@@ -22,7 +22,6 @@ import java.util.Map;
 
 public class JoltSpecificationDTO implements Serializable {
 
-
     private String transform;
     private String specification;
     private String input;

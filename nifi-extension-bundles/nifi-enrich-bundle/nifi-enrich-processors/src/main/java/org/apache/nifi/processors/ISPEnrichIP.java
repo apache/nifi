@@ -108,8 +108,6 @@ public class ISPEnrichIP extends AbstractEnrichIP {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(new StringBuilder(ipAttributeName).append(".isp.lookup.micros").toString(), String.valueOf(stopWatch.getDuration(TimeUnit.MICROSECONDS)));
 
-
-
         // During test I observed behavior where null values in ASN data could trigger NPEs. Instead of relying on the
         // underlying database to be free from Nulls wrapping ensure equality to null without assigning a variable
         // seem like good option to "final int asn ..." as with the other returned data.

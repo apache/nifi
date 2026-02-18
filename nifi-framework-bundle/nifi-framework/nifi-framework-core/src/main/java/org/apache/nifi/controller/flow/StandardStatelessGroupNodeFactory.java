@@ -99,7 +99,6 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
     private final AtomicReference<FlowEngine> statelessComponentMonitoringThreadPool = new AtomicReference<>();
     private final AtomicReference<FlowEngine> statelessFrameworkTaskThreadPool = new AtomicReference<>();
 
-
     public StandardStatelessGroupNodeFactory(final FlowController flowController, final SSLContext sslContext, final KerberosConfig kerberosConfig) {
         this.flowController = flowController;
         this.sslContext = sslContext;
@@ -206,7 +205,6 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
         return versionedExternalFlow;
     }
 
-
     private ProcessGroup createStatelessProcessGroup(final ProcessGroup group, final VersionedExternalFlow versionedExternalFlow, final RepositoryContextFactory statelessRepositoryContextFactory,
                                                      final FlowMappingOptions flowMappingOptions) {
 
@@ -303,7 +301,6 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
 
         return child;
     }
-
 
     private FlowEngine lazyInitializeThreadPool(final AtomicReference<FlowEngine> reference, final Supplier<FlowEngine> factory) {
         FlowEngine threadPool = reference.get();

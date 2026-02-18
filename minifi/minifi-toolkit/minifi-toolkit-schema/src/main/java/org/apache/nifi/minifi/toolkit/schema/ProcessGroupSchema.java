@@ -81,7 +81,6 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         Set<String> portIds = getPortIds();
         connections.stream().filter(c -> portIds.contains(c.getSourceId())).forEachOrdered(c -> c.setNeedsSourceRelationships(false));
 
-
         Set<String> funnelIds = new HashSet<>(funnels.stream().map(FunnelSchema::getId).collect(Collectors.toList()));
         connections.stream().filter(c -> funnelIds.contains(c.getSourceId())).forEachOrdered(c -> c.setNeedsSourceRelationships(false));
 

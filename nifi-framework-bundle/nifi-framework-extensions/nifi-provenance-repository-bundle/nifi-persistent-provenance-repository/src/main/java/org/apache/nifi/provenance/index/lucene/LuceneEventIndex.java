@@ -489,7 +489,6 @@ public class LuceneEventIndex implements EventIndex {
         }
     }
 
-
     @Override
     public ComputeLineageSubmission submitLineageComputation(final long eventId, final NiFiUser user, final EventAuthorizer eventAuthorizer) {
         final Optional<ProvenanceEventRecord> eventOption;
@@ -513,7 +512,6 @@ public class LuceneEventIndex implements EventIndex {
         return submitLineageComputation(Collections.singleton(event.getFlowFileUuid()), user, eventAuthorizer, LineageComputationType.FLOWFILE_LINEAGE,
             eventId, event.getLineageStartDate(), Long.MAX_VALUE);
     }
-
 
     private ComputeLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final NiFiUser user, final EventAuthorizer eventAuthorizer,
         final LineageComputationType computationType, final Long eventId, final long startTimestamp, final long endTimestamp) {

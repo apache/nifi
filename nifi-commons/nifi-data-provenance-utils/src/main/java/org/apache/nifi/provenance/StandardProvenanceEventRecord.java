@@ -582,7 +582,6 @@ public class StandardProvenanceEventRecord implements ProvenanceEventRecord {
             return copy;
         }
 
-
         @Override
         public Builder setFlowFileEntryDate(final long entryDate) {
             this.entryDate = entryDate;

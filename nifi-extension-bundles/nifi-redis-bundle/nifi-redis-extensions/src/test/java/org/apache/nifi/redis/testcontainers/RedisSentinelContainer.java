@@ -88,7 +88,6 @@ public class RedisSentinelContainer extends RedisContainer {
         this.parallelSyncs = parallelSyncs;
     }
 
-
     @Override
     protected void adjustConfiguration() {
         addConfigurationOption("port " + port);
@@ -121,7 +120,6 @@ public class RedisSentinelContainer extends RedisContainer {
     @Override
     protected void configure() {
         super.configure();
-
 
         List<String> commandParts = new ArrayList<>(Arrays.asList(getCommandParts()));
         commandParts.add("--sentinel");

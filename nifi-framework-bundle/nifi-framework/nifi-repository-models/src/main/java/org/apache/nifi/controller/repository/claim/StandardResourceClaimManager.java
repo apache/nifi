@@ -214,7 +214,6 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
         }
     }
 
-
     private static final class ClaimCount {
         private final ResourceClaim claim;
         private final AtomicInteger count;

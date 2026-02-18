@@ -57,7 +57,6 @@ public class StandardReloadComponent implements ReloadComponent {
         this.flowController = flowController;
     }
 
-
     @Override
     public void reload(final ProcessorNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls) {
         if (existingNode == null) {
@@ -128,7 +127,6 @@ public class StandardReloadComponent implements ReloadComponent {
         existingNode.resetValidationState();
         flowController.getValidationTrigger().trigger(existingNode);
     }
-
 
     @Override
     public void reload(final ControllerServiceNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls)

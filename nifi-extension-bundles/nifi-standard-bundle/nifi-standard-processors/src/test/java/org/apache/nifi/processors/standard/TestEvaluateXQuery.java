@@ -287,7 +287,6 @@ public class TestEvaluateXQuery {
         doXqueryTest(XML_SNIPPET, "string-join((for $y in (for $x in //fruit let $d := string-join(($x/color/text() , $x/name/text()), ' ')  return $d) return $y), ', ')",
                 Collections.singletonList("red apple, green apple, yellow banana, orange orange, blue blueberry, red raspberry, none"));
 
-
         /* Query for attribute */
         doXqueryTest(XML_SNIPPET, "string(//fruit[1]/@taste)", Collections.singletonList("crisp"));
 
@@ -663,7 +662,6 @@ public class TestEvaluateXQuery {
 
         testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_FAILURE, 1);
     }
-
 
     @Test
     public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws IOException {

@@ -476,7 +476,6 @@ public class FTPTransfer implements FileTransfer {
         return fullPath;
     }
 
-
     @Override
     public void rename(final FlowFile flowFile, final String source, final String target) throws IOException {
         final FTPClient client = getClient(flowFile);

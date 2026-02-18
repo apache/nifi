@@ -82,7 +82,6 @@ public class ParameterContextIT extends StatelessSystemIT {
         result.acknowledge();
     }
 
-
     @Test
     public void testInvalidParameterValueProvider() {
         final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
@@ -107,7 +106,6 @@ public class ParameterContextIT extends StatelessSystemIT {
 
         assertThrows(IllegalStateException.class, () -> loadDataflow(flowSnapshot, Collections.emptyList(), parameterValueProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE));
     }
-
 
     @Test
     public void testParameterValueProviderWithRequiredPropertyNotSet() {
@@ -208,7 +206,6 @@ public class ParameterContextIT extends StatelessSystemIT {
         assertEquals(7, optionalOutputFlowFiles.size());
         optionalResult.acknowledge();
     }
-
 
     @Test
     public void testMultipleParameterContexts() throws IOException, StatelessConfigurationException, InterruptedException {

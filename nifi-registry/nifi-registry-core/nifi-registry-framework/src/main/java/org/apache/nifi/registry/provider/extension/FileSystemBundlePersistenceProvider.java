@@ -233,7 +233,6 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         final String version = versionCoordinate.getVersion();
         final BundleVersionType bundleType = versionCoordinate.getType();
 
-
         final String bundleFileExtension = getBundleFileExtension(bundleType);
         final String bundleFilename = sanitize(artifactId) + "-" + sanitize(version) + bundleFileExtension;
         return getChildLocation(parentDir, Paths.get(bundleFilename));

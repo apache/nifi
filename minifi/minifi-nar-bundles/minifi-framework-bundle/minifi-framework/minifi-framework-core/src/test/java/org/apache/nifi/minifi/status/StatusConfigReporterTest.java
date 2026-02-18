@@ -172,7 +172,6 @@ public class StatusConfigReporterTest {
         assertEquals(expected, status);
     }
 
-
     @Test
     public void connectionStatusAll() throws Exception {
         populateConnection();
@@ -220,7 +219,6 @@ public class StatusConfigReporterTest {
 
         assertEquals(expected, actual);
     }
-
 
     @Test
     public void provenanceReportingTaskStatusBulletins() throws Exception {
@@ -326,7 +324,6 @@ public class StatusConfigReporterTest {
 
         assertEquals(expected, actual);
     }
-
 
     @Test
     public void systemDiagnosticAll() throws Exception {
@@ -523,7 +520,6 @@ public class StatusConfigReporterTest {
         assertEquals(expected, actual);
     }
 
-
     @Test
     public void remoteProcessGroupStatusAll() throws Exception {
         populateRemoteProcessGroup(true, true);
@@ -570,7 +566,6 @@ public class StatusConfigReporterTest {
 
         assertEquals(expected, actual);
     }
-
 
     /***************************
      * Populator methods
@@ -749,7 +744,6 @@ public class StatusConfigReporterTest {
         }
         when(rootGroupStatus.getRemoteProcessGroupStatus()).thenReturn(Collections.singletonList(remoteProcessGroupStatus));
     }
-
 
     private void setRootGroupStatusVariables() {
         when(rootGroupStatus.getQueuedContentSize()).thenReturn(1L);

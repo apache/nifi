@@ -280,7 +280,6 @@ public class MockFlowFile implements FlowFile {
         assertContentEquals(data, Charset.forName(charset), false);
     }
 
-
     public void assertContentEquals(final String data, final Charset charset) {
         assertContentEquals(data, charset, false);
     }

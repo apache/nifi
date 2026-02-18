@@ -97,5 +97,4 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
         return connectionFactory.getConnection();
     }
 
-
 }

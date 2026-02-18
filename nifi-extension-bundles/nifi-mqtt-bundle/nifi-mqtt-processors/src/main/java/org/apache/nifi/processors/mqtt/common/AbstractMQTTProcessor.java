@@ -333,7 +333,6 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         return mqttClientFactory.create();
     }
 
-
     @Override
     public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         if (processSessionFactory == null) {

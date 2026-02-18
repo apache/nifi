@@ -30,7 +30,6 @@ public class FlowMappingOptions {
     private final boolean mapFlowRegistryClientId;
     private final boolean mapAssetReferences;
 
-
     private FlowMappingOptions(final Builder builder) {
         encryptor = builder.encryptor;
         stateLookup = builder.stateLookup;

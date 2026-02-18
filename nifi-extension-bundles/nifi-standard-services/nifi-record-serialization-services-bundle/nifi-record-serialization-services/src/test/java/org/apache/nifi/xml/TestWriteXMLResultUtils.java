@@ -165,8 +165,6 @@ public class TestWriteXMLResultUtils {
         return new SimpleRecordSchema(Collections.emptyList(), SCHEMA_IDENTIFIER_PERSON);
     }
 
-
-
     /*
     Simple nested records
      */
@@ -368,8 +366,6 @@ public class TestWriteXMLResultUtils {
         return new ListRecordSet(schema, records);
     }
 
-
-
     /*
     Maps
      */
@@ -415,7 +411,6 @@ public class TestWriteXMLResultUtils {
 
         return new ListRecordSet(schema, records);
     }
-
 
     /*
     Choice

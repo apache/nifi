@@ -135,7 +135,6 @@ public class ConsumeAMQPTest {
             final MockFlowFile helloFF = runner.getFlowFilesForRelationship(ConsumeAMQP.REL_SUCCESS).getFirst();
             helloFF.assertContentEquals("hello");
 
-
             // A single cumulative ack should be used
             assertTrue(((TestChannel) connection.createChannel()).isAck(0));
 
@@ -350,7 +349,6 @@ public class ConsumeAMQPTest {
 
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
-
 
         final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 

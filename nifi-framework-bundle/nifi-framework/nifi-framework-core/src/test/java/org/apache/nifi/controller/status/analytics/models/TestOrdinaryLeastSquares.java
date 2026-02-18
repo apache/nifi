@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestOrdinaryLeastSquares {
 
-
     @Test
     public void testConstantPrediction() {
 

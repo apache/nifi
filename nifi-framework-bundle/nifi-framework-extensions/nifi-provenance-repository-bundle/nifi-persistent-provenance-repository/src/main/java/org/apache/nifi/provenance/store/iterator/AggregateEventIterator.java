@@ -37,7 +37,6 @@ public class AggregateEventIterator implements EventIterator {
         }
     }
 
-
     @Override
     public Optional<ProvenanceEventRecord> nextEvent() throws IOException {
         while (true) {

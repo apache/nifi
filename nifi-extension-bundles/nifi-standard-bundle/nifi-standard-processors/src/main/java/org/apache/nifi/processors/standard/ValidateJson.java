@@ -165,7 +165,6 @@ public class ValidateJson extends AbstractProcessor {
             .dependsOn(SCHEMA_ACCESS_STRATEGY, JsonSchemaStrategy.SCHEMA_CONTENT_PROPERTY)
             .build();
 
-
     public static final PropertyDescriptor MAX_STRING_LENGTH = new PropertyDescriptor.Builder()
             .name("Max String Length")
             .description("The maximum allowed length of a string value when parsing the JSON document")

@@ -101,7 +101,6 @@ public class PythonProcessConfig {
         private String debugHost = "localhost";
         private int debugPort = 5678;
 
-
         public Builder pythonCommand(final String command) {
             this.pythonCommand = command;
             return this;

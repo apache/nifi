@@ -147,7 +147,6 @@ public class PublishGCPubSubTest {
         runner.assertAllFlowFilesTransferred(PublishGCPubSub.REL_RETRY, 1);
     }
 
-
     @Test
     void testSendOneFailureFlowFileStrategy() throws InitializationException {
         runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));

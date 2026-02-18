@@ -57,7 +57,6 @@ public class MiNiFi {
 
     private static final String FRAMEWORK_NAR_ID = "minifi-framework-nar";
 
-
     public MiNiFi(final NiFiProperties properties)
             throws ClassNotFoundException, IOException, IllegalArgumentException {
         this(properties, ClassLoader.getSystemClassLoader());

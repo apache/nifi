@@ -32,7 +32,6 @@ public class DirectoryUtils {
     public static final Comparator<File> OLDEST_INDEX_FIRST = (a, b) -> Long.compare(getIndexTimestamp(a), getIndexTimestamp(b));
     public static final Comparator<File> NEWEST_INDEX_FIRST = OLDEST_INDEX_FIRST.reversed();
 
-
     public static long getMinId(final File file) {
         final String filename = file.getName();
         final int firstDotIndex = filename.indexOf(".");

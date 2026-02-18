@@ -45,8 +45,6 @@ public class JerseyItemsClient extends AbstractJerseyClient implements ItemsClie
         this.itemsTarget = baseTarget.path("/items");
     }
 
-
-
     @Override
     public List<BucketItem> getAll() throws NiFiRegistryException, IOException {
         return executeAction("", () -> {

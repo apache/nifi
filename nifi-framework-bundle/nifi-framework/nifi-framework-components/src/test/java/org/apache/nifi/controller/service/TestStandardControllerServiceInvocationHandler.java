@@ -86,7 +86,6 @@ public class TestStandardControllerServiceInvocationHandler {
         }
     }
 
-
     @Test
     public void testObjectsUsedWithinProxyNotProxied() {
         final BaseControllerService proxiedService = createProxyService();
@@ -111,7 +110,6 @@ public class TestStandardControllerServiceInvocationHandler {
         proxiedService.assertNotProxied(nextLevel);
     }
 
-
     private BaseControllerService createProxyService() {
         final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
         final TestService testService = new TestService();
@@ -125,7 +123,6 @@ public class TestStandardControllerServiceInvocationHandler {
 
         return (BaseControllerService) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[] {BaseControllerService.class}, handler);
     }
-
 
     public interface BaseControllerService extends ControllerService {
         BaseControllerService getNextLevel();

@@ -180,7 +180,6 @@ public class PropertiesFileEngineConfigurationParser {
         };
     }
 
-
     private List<File> getReadOnlyExtensionsDirectories(final Properties properties) {
         return properties.keySet().stream()
             .map(Object::toString)

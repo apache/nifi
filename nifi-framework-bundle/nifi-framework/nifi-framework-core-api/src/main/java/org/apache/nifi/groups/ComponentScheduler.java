@@ -45,7 +45,6 @@ public interface ComponentScheduler {
 
     void stopStatelessGroup(ProcessGroup group);
 
-
     ComponentScheduler NOP_SCHEDULER = new ComponentScheduler() {
         @Override
         public void startComponent(final Connectable component) {

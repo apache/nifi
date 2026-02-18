@@ -52,7 +52,6 @@ public class ConcatenateRangeOfFlowFiles extends BinFiles {
         return relationships;
     }
 
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();

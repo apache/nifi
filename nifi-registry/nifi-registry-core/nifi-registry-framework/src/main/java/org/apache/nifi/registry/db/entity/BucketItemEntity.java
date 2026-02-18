@@ -38,7 +38,6 @@ public class BucketItemEntity {
 
     private String bucketName;
 
-
     public String getId() {
         return id;
     }

@@ -20,7 +20,6 @@ import org.apache.nifi.processors.standard.db.NameNormalizer;
 
 public class RemoveUnderscoreAndSpaceNormalizer implements NameNormalizer {
 
-
     @Override
     public String getNormalizedName(String colName) {
         return colName.replace("_", "").replace(" ", "");

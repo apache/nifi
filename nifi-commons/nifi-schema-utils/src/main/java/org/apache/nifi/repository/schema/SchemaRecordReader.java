@@ -135,8 +135,6 @@ public class SchemaRecordReader {
         return recordIterator;
     }
 
-
-
     private Object readField(final InputStream in, final RecordField field) throws IOException {
         switch (field.getRepetition()) {
             case ZERO_OR_MORE: {
@@ -179,7 +177,6 @@ public class SchemaRecordReader {
             throw new IOException("Failed to read field '" + field.getFieldName() + "'", ioe);
         }
     }
-
 
     private Object readFieldValue(final InputStream in, final FieldType fieldType, final String fieldName, final List<RecordField> subFields) throws IOException {
         switch (fieldType) {

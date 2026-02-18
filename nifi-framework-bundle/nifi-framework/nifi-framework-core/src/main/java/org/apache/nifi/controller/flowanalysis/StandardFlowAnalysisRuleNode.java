@@ -60,7 +60,6 @@ public class StandardFlowAnalysisRuleNode extends AbstractFlowAnalysisRuleNode i
         this.flowController = controller;
     }
 
-
     @Override
     public Authorizable getParentAuthorizable() {
         return flowController;

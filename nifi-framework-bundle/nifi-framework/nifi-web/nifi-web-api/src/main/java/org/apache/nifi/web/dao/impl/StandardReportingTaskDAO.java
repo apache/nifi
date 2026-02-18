@@ -287,7 +287,6 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         return dto;
     }
 
-
     private void verifyUpdate(final ReportingTaskNode reportingTask, final ReportingTaskDTO reportingTaskDTO) {
         // ensure the state, if specified, is valid
         if (isNotNull(reportingTaskDTO.getState())) {

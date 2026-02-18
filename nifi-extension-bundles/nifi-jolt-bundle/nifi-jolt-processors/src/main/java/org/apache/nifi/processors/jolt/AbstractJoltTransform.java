@@ -210,7 +210,6 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
         return results;
     }
 
-
     JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) {
         final Optional<String> specString;
         if (context.getProperty(JOLT_SPEC).isSet()) {

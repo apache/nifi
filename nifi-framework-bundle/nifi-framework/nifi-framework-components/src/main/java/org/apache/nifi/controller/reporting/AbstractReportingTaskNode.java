@@ -97,7 +97,6 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
                 reloadComponent, extensionManager, validationTrigger, false);
     }
 
-
     public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final ControllerServiceProvider controllerServiceProvider,
                                      final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
                                      final String componentType, final String componentCanonicalClass, final ReloadComponent reloadComponent,

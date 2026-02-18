@@ -33,7 +33,6 @@ public class StandardProvenanceAuthorizableFactory implements ProvenanceAuthoriz
         this.flowController = flowController;
     }
 
-
     @Override
     public Authorizable createLocalDataAuthorizable(final String componentId) {
         final FlowManager flowManager = flowController.getFlowManager();
@@ -66,8 +65,6 @@ public class StandardProvenanceAuthorizableFactory implements ProvenanceAuthoriz
 
         return authorizable;
     }
-
-
 
     @Override
     public Authorizable createRemoteDataAuthorizable(String remoteGroupPortId) {

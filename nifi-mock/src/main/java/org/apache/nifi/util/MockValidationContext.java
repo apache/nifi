@@ -69,7 +69,6 @@ public class MockValidationContext extends MockControllerServiceLookup implement
         }
     }
 
-
     public void setValidateExpressions(final boolean validate) {
         this.validateExpressions = validate;
     }

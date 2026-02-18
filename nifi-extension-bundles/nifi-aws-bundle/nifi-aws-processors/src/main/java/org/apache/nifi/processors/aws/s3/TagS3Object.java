@@ -120,7 +120,6 @@ public class TagS3Object extends AbstractS3Processor {
         return PROPERTY_DESCRIPTORS;
     }
 
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();

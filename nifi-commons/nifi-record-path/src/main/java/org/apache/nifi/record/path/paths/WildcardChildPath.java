@@ -32,7 +32,6 @@ public class WildcardChildPath extends RecordPathSegment {
         super("/*", parent, absolute);
     }
 
-
     @Override
     public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         return getParentPath().evaluate(context)

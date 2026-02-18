@@ -47,7 +47,6 @@ public interface ResourceClaimManager {
      */
     ResourceClaim getResourceClaim(String container, String section, String id);
 
-
     /**
      * @param claim to obtain reference count for
      * @return the number of FlowFiles that hold a claim to a particular piece

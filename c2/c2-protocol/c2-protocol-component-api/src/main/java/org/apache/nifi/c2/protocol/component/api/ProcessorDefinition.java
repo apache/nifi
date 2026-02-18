@@ -54,7 +54,6 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
     private List<UseCase> useCases;
     private List<MultiProcessorUseCase> multiProcessorUseCases;
 
-
     @Schema(description = "Any input requirements this processor has.")
     public InputRequirement.Requirement getInputRequirement() {
         return inputRequirement;

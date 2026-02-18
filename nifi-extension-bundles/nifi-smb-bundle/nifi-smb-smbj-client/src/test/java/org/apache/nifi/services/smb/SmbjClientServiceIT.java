@@ -148,7 +148,6 @@ public class SmbjClientServiceIT {
                     assertTrue(actual.contains("testDirectory/directory2/file"));
                     assertTrue(actual.contains("testDirectory/directory2/nested_directory/file"));
 
-
                 } catch (Exception e) {
                     if (iteration == 50) {
                         try {

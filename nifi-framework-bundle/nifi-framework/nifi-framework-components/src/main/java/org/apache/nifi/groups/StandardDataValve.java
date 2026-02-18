@@ -51,14 +51,12 @@ public class StandardDataValve implements DataValve {
 
     private boolean leftOpenDueToDataQueued = false;
 
-
     public StandardDataValve(final ProcessGroup processGroup, final StateManager stateManager) {
         this.processGroup = processGroup;
         this.stateManager = stateManager;
 
         recoverState();
     }
-
 
     @Override
     public synchronized boolean tryOpenFlowIntoGroup(final ProcessGroup destinationGroup) {

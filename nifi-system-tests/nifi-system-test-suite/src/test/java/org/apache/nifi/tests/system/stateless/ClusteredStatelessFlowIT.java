@@ -49,12 +49,10 @@ public class ClusteredStatelessFlowIT extends NiFiSystemIT {
     private ConnectionEntity generateToInput;
     private ProcessGroupEntity statelessGroup;
 
-
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
         return createTwoNodeInstanceFactory();
     }
-
 
     @Test
     public void testChangeStatelessFlowWhileNotDisconnected() throws NiFiClientException, IOException, InterruptedException {

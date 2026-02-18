@@ -263,7 +263,6 @@ public class TestPeerChannel {
         return sslEngine;
     }
 
-
     private void setPipelineHandlers(final ChannelPipeline pipeline, final SSLEngine sslEngine) {
         pipeline.addLast(new SslHandler(sslEngine));
     }

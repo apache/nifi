@@ -234,7 +234,6 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
         eventAuthorizable.authorize(authorizer, RequestAction.READ, user);
     }
 
-
     @Override
     public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords, final NiFiUser user) throws IOException {
         final List<ProvenanceEventRecord> events = getEvents(firstRecordId, maxRecords);

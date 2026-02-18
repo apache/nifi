@@ -49,7 +49,6 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     private final FlowFileSwapManager swapManager;
     private final TimedLock writeLock;
 
-
     public StandardFlowFileQueue(final String identifier, final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo,
                                  final ProcessScheduler scheduler, final FlowFileSwapManager swapManager, final EventReporter eventReporter,
                                  final int swapThreshold, final String expirationPeriod, final long defaultBackPressureObjectThreshold, final String defaultBackPressureDataSizeThreshold) {
@@ -116,7 +115,6 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
         queue.putAll(files);
     }
 
-
     @Override
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         // First check if we have any records Pre-Fetched.
@@ -124,13 +122,10 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
         return queue.poll(expiredRecords, expirationMillis, pollStrategy);
     }
 
-
     @Override
     public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         return queue.poll(maxResults, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS), pollStrategy);
     }
-
-
 
     @Override
     public void acknowledge(final FlowFileRecord flowFile) {
@@ -198,18 +193,15 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
         return "FlowFileQueue[id=" + getIdentifier() + "]";
     }
 
-
     @Override
     public FlowFileRecord getFlowFile(final String flowFileUuid) throws IOException {
         return queue.getFlowFile(flowFileUuid);
     }
 
-
     @Override
     protected void dropFlowFiles(final DropFlowFileRequest dropRequest, final String requestor) {
         queue.dropFlowFiles(dropRequest, requestor);
     }
-
 
     /**
      * Lock the queue so that other threads are unable to interact with the queue

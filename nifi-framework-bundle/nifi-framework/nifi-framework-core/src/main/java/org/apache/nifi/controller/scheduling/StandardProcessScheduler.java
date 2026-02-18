@@ -310,7 +310,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             + "ReportingTask and will attempt to schedule it again after {}",
                             reportingTask, e.toString(), administrativeYieldDuration, e);
 
-
                     try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, taskNode.getConfigurationContext());
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, taskNode.getConfigurationContext());
@@ -576,7 +575,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(groupNode, false, false);
         return groupNode.stop(this, this.componentLifeCycleThreadPool, getSchedulingAgent(groupNode), lifecycleState);
     }
-
 
     @Override
     public synchronized void terminateProcessor(final ProcessorNode procNode) {

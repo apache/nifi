@@ -182,7 +182,6 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
         return clone;
     }
 
-
     @Override
     public long importFrom(final Path content, final ContentClaim claim) throws IOException {
         try (final InputStream in = Files.newInputStream(content, StandardOpenOption.READ)) {
@@ -345,7 +344,6 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
     public boolean isAccessible(final ContentClaim contentClaim) {
         return false;
     }
-
 
     private class ContentOutputStream extends FilterOutputStream {
         private final StandardContentClaim scc;

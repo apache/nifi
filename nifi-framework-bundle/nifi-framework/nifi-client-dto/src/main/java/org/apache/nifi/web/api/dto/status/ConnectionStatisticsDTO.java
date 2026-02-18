@@ -80,7 +80,6 @@ public class ConnectionStatisticsDTO implements Cloneable {
         other.setId(getId());
         other.setAggregateSnapshot(getAggregateSnapshot().clone());
 
-
         final List<NodeConnectionStatisticsSnapshotDTO> nodeStatuses = getNodeSnapshots();
         final List<NodeConnectionStatisticsSnapshotDTO> nodeStatusClones = new ArrayList<>(nodeStatuses.size());
         for (final NodeConnectionStatisticsSnapshotDTO nodeStatus : nodeStatuses) {

@@ -911,7 +911,6 @@ public abstract class ApplicationResource {
         return clusterCoordinator.isActiveClusterCoordinator() ? ReplicationTarget.CLUSTER_NODES : ReplicationTarget.CLUSTER_COORDINATOR;
     }
 
-
     protected Response replicate(final String method, final NodeIdentifier targetNode) {
         return replicate(method, targetNode, getRequestParameters());
     }
@@ -1000,7 +999,6 @@ public abstract class ApplicationResource {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + getAbsolutePath() + " was interrupted").type("text/plain").build();
         }
     }
-
 
     protected NodeResponse replicateNodeResponse(final String method, final Object entity, final Map<String, String> headersToOverride) throws InterruptedException {
         final URI path = getAbsolutePath();

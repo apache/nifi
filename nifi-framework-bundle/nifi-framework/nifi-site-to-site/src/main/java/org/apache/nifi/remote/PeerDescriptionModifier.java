@@ -85,7 +85,6 @@ public class PeerDescriptionModifier {
 
     private Map<SiteToSiteTransportProtocol, List<Route>> routes;
 
-
     private static final String PROPERTY_PREFIX = "nifi.remote.route.";
     private static final Pattern PROPERTY_REGEX = Pattern.compile("^nifi\\.remote\\.route\\.(raw|http)\\.([^.]+)\\.(when|hostname|port|secure)$");
 

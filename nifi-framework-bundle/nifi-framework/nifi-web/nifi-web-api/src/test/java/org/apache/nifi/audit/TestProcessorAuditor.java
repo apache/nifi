@@ -155,7 +155,6 @@ class TestProcessorAuditor {
         when(extensionManager.getBundle(any(BundleCoordinate.class))).thenReturn(bundle);
         when(extensionManager.getBundles(anyString())).thenReturn(Collections.singletonList(bundle));
 
-
         when(mockStateManagerProvider.getStateManager(anyString(), any())).thenReturn(mockStateManager);
 
         final ProcessorNode processor = processorDao.createProcessor(GROUP_ID, processorDto);

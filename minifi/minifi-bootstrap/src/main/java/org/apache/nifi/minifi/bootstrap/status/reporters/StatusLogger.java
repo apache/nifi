@@ -55,7 +55,6 @@ public class StatusLogger extends PeriodicStatusReporter {
             throw new IllegalStateException(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey() + " is not a valid number.", e);
         }
 
-
         String loglevelString = properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey());
         if (loglevelString == null) {
             throw new IllegalStateException(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey() + " is null but it is required. Please configure it.");
@@ -78,7 +77,6 @@ public class StatusLogger extends PeriodicStatusReporter {
 
         reportRunner = new ReportStatusRunner();
     }
-
 
     private class ReportStatusRunner implements Runnable {
 

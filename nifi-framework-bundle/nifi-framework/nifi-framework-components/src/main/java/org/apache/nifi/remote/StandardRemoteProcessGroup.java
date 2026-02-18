@@ -121,7 +121,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private InetAddress localAddress;
     private ValidationResult nicValidationResult;
 
-
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
@@ -690,7 +689,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             writeLock.unlock();
         }
     }
-
 
     /**
      * Adds an Output Port to this Remote Process Group that is described by

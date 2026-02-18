@@ -126,7 +126,6 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         assertEquals(5, collection.countDocuments());
         //assertEquals(doc, collection.find().first());
 
-
         runner.clearTransferState();
 
         /*

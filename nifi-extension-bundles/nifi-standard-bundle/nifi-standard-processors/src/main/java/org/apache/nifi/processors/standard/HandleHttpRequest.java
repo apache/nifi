@@ -460,7 +460,6 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
         final String pathRegex = context.getProperty(PATH_REGEX).getValue();
         final Pattern pathPattern = (pathRegex == null) ? null : Pattern.compile(pathRegex);
 
-
         final HttpServlet standardServlet = new HttpServlet() {
             @Override
             protected void service(final HttpServletRequest request, final HttpServletResponse response) {
@@ -837,7 +836,6 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
         session.transfer(flowFile, REL_SUCCESS);
         getLogger().debug("Transferred {} to [{}] Remote Address [{}] ", flowFile, REL_SUCCESS, request.getRemoteAddr());
     }
-
 
     private boolean registerRequest(final ProcessContext context, final ProcessSession session,
                                     final HttpRequestContainer container, final FlowFile flowFile) {

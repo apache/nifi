@@ -90,7 +90,6 @@ public class Query {
         return expressions;
     }
 
-
     public static List<Range> extractExpressionRanges(final String value) throws AttributeExpressionLanguageParsingException {
         return extractExpressionRanges(value, false);
     }
@@ -243,7 +242,6 @@ public class Query {
         return prepare(rawValue).evaluateExpressions(new StandardEvaluationContext(valueLookup, Collections.emptyMap(), parameterLookup), decorator);
     }
 
-
     /**
      * Un-escapes ${...} patterns that were escaped
      *
@@ -294,7 +292,6 @@ public class Query {
         final int newLength = value.length() - charsToRemove;
         return value.substring(0, newLength);
     }
-
 
     public static PreparedQuery prepareWithParametersPreEvaluated(final String query) throws AttributeExpressionLanguageParsingException {
         return prepare(query, true);
@@ -460,7 +457,6 @@ public class Query {
         return evaluator.evaluate(evaluationContext);
     }
 
-
     Tree getTree() {
         return this.tree;
     }
@@ -469,8 +465,6 @@ public class Query {
     public String toString() {
         return "Query [" + query + "]";
     }
-
-
 
     public static class Range {
 

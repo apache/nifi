@@ -39,7 +39,6 @@ public class JavaObjectBindings {
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-
     public JavaObjectBindings() {
         bind(Protocol.DEFAULT_JVM_OBJECT_ID, new JVMView("default", Protocol.DEFAULT_JVM_OBJECT_ID), 1);
     }
@@ -94,7 +93,6 @@ public class JavaObjectBindings {
             writeLock.unlock();
         }
     }
-
 
     public Map<String, Integer> getCountsPerClass() {
         final Map<String, Integer> counts = new HashMap<>();

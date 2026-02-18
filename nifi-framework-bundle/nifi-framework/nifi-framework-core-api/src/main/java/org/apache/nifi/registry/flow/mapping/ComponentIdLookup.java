@@ -55,8 +55,6 @@ public interface ComponentIdLookup {
         }
     };
 
-
-
     /**
      * Always uses the Component ID
      */

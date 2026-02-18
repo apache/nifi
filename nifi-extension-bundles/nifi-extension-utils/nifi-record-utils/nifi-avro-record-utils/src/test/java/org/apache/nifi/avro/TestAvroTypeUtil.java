@@ -539,8 +539,6 @@ public class TestAvroTypeUtil {
         assertEquals(48, map.get("favoriteNumber"));
     }
 
-
-
     @Test
     public void testToDecimalConversion() {
         final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(26, 8);

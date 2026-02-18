@@ -255,7 +255,6 @@ public class ExecuteGroovyScriptTest {
         resultFile.assertContentEquals("Test");
     }
 
-
     @Test
     public void test_good_script() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, " def ff = session.get(); if(!ff)return; REL_SUCCESS << ff ");

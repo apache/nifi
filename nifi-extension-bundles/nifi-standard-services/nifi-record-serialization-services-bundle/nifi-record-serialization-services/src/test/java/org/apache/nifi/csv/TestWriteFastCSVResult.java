@@ -54,7 +54,6 @@ public class TestWriteFastCSVResult {
         .setRecordSeparator("\n")
         .get();
 
-
     @Test
     public void testDataTypes() throws IOException {
         final CSVFormat csvFormat = CSVFormat.RFC4180.builder().setQuoteMode(QuoteMode.NON_NUMERIC).setRecordSeparator("\n").get();
@@ -235,7 +234,6 @@ public class TestWriteFastCSVResult {
         assertEquals("id,name\n1,\n", output);
     }
 
-
     @Test
     public void testMissingAndExtraFieldWriteRecord() throws IOException {
         final List<RecordField> fields = new ArrayList<>();
@@ -368,7 +366,6 @@ public class TestWriteFastCSVResult {
 
         assertEquals("id,name\n", output);
     }
-
 
     private DateTimeFormatter getFormatter(final String format) {
         return DateTimeFormatter.ofPattern(format);

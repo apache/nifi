@@ -158,7 +158,6 @@ public final class MockCsvRecordWriter extends MockRecordWriter {
             return this;
         }
 
-
         /**
          * Constructs a new {@link MockCsvRecordWriter} instance using the configured parameters.
          *

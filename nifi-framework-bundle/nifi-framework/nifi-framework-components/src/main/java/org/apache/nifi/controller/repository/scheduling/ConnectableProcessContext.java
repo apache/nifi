@@ -291,7 +291,6 @@ public class ConnectableProcessContext implements ProcessContext {
         throw new UnsupportedOperationException();
     }
 
-
     @Override
     public boolean isRelationshipRetried(Relationship relationship) {
         return false;

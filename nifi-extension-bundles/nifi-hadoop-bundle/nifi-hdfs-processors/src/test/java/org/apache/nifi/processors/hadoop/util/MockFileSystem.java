@@ -314,7 +314,6 @@ public class MockFileSystem extends FileSystem {
         return 1;
     }
 
-
     private static FsPermission perms(short p) {
         return new FsPermission(p);
     }

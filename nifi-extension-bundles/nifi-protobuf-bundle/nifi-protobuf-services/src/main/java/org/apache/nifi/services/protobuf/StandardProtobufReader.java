@@ -128,7 +128,6 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
     private volatile PropertyValue schemaBranchName;
     private volatile PropertyValue schemaVersion;
 
-
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         super.storeSchemaAccessStrategy(context);

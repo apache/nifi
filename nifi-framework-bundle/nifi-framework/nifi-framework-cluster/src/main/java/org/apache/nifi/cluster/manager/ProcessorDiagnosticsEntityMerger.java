@@ -55,7 +55,6 @@ public class ProcessorDiagnosticsEntityMerger implements ComponentEntityMerger<P
         mergeConnectionDiagnostics(clientEntity, entityMap, entity -> entity.getComponent().getIncomingConnections());
         mergeConnectionDiagnostics(clientEntity, entityMap, entity -> entity.getComponent().getOutgoingConnections());
 
-
         // Merge the Processor Statuses and create a separate NodeJVMDiagnosticsSnapshotDTO for each. We do both of these
         // together simply because we are already iterating over the entityMap and we have to create the Node-specific JVM diagnostics
         // before we start merging the values, in the second iteration over the map.
@@ -162,8 +161,6 @@ public class ProcessorDiagnosticsEntityMerger implements ComponentEntityMerger<P
             dto.setAggregateSnapshot(mergeConnectionSnapshots(snapshots));
         }
     }
-
-
 
     private ConnectionDiagnosticsSnapshotDTO mergeConnectionSnapshots(final List<ConnectionDiagnosticsSnapshotDTO> snapshots) {
         final ConnectionDiagnosticsSnapshotDTO aggregate = new ConnectionDiagnosticsSnapshotDTO();

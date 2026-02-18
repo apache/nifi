@@ -139,7 +139,6 @@ public class IMapBasedHazelcastCacheTest {
         assertFalse(result);
     }
 
-
     @Test
     public void testRemoveAll() {
         // given

@@ -308,7 +308,6 @@ public class PartitionRecord extends AbstractProcessor {
                 session.remove(valueMap.getFlowFile());
             }
 
-
             getLogger().error("Failed to partition {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;

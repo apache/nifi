@@ -734,7 +734,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             .collect(Collectors.toSet());
     }
 
-
     @Override
     public Set<ComponentNode> enableReferencingServices(final ControllerServiceNode serviceNode) {
         final List<ControllerServiceNode> recursiveReferences = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);

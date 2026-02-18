@@ -42,7 +42,6 @@ public class DescendantFieldPath extends RecordPathSegment {
         this.descendantName = descendantName;
     }
 
-
     @Override
     public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         final Stream<FieldValue> parentResult = getParentPath().evaluate(context);

@@ -49,7 +49,6 @@ public enum BundleType {
         throw new IllegalArgumentException("Unknown BundleType: " + value);
     }
 
-
     @Override
     public String toString() {
         return displayName;

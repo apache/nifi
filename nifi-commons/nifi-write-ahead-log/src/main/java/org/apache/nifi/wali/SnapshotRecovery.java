@@ -31,7 +31,6 @@ public interface SnapshotRecovery<T> {
 
     File getRecoveryFile();
 
-
     static <T> SnapshotRecovery<T> emptyRecovery() {
         return new SnapshotRecovery<>() {
             @Override

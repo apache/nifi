@@ -75,7 +75,6 @@ public class TestEventFileManager {
         assertTrue(nanos > TimeUnit.MILLISECONDS.toNanos(300L));
     }
 
-
     @Test
     public void testTwoReadLocks() throws InterruptedException {
         final EventFileManager fileManager = new EventFileManager();
@@ -122,7 +121,6 @@ public class TestEventFileManager {
         assertTrue(nanos < TimeUnit.MILLISECONDS.toNanos(500L));
     }
 
-
     @Test
     public void testWriteThenRead() throws InterruptedException {
         final EventFileManager fileManager = new EventFileManager();
@@ -168,7 +166,6 @@ public class TestEventFileManager {
         final long nanos = System.nanoTime() - start;
         assertTrue(nanos > TimeUnit.MILLISECONDS.toNanos(300L));
     }
-
 
     @Test
     public void testReadThenWrite() throws InterruptedException {

@@ -201,7 +201,6 @@ public class LoadBalanceSession {
         return true;
     }
 
-
     private boolean verifyChecksum() throws IOException {
         logger.debug("Verifying Checksum for Peer {}", peerDescription);
 
@@ -233,8 +232,6 @@ public class LoadBalanceSession {
         return true;
     }
 
-
-
     private ByteBuffer getDataFrame() throws IOException {
         return switch (phase) {
             case RECOMMEND_PROTOCOL_VERSION -> recommendProtocolVersion();
@@ -251,7 +248,6 @@ public class LoadBalanceSession {
             }
         };
     }
-
 
     private ByteBuffer getTransactionComplete() {
         logger.debug("Sending Transaction Complete Indicator to Peer {}", peerDescription);
@@ -405,7 +401,6 @@ public class LoadBalanceSession {
         return buffer;
     }
 
-
     private ByteBuffer recommendProtocolVersion() {
         logger.debug("Recommending to Peer {} that Protocol Version {} be used", peerDescription, protocolVersion);
 
@@ -542,7 +537,6 @@ public class LoadBalanceSession {
         return buffer;
     }
 
-
     private boolean receiveSpaceAvailableResponse() throws IOException {
         logger.debug("Receiving response from Peer {} to determine whether or not space is available in queue {}", peerDescription, connectionId);
 
@@ -579,8 +573,6 @@ public class LoadBalanceSession {
         return true;
     }
 
-
-
     private enum TransactionPhase {
         RECOMMEND_PROTOCOL_VERSION(SelectionKey.OP_WRITE),
 
@@ -609,7 +601,6 @@ public class LoadBalanceSession {
         SEND_TRANSACTION_COMPLETE(SelectionKey.OP_WRITE),
 
         CONFIRM_TRANSACTION_COMPLETE(SelectionKey.OP_READ);
-
 
         private final int requiredSelectionKey;
 

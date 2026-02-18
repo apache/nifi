@@ -71,7 +71,6 @@ public class TestContentRepositoryFlowFileAccess {
         assertArrayEquals("hello".getBytes(), buffer);
     }
 
-
     @Test
     public void testContentNotFoundPropagated() throws IOException {
         final ContentRepository contentRepo = mock(ContentRepository.class);

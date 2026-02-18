@@ -115,7 +115,6 @@ public class StatelessFlowTask {
         }
     }
 
-
     private boolean isAllowBatch(final ProcessGroup group) {
         // We allow batch only if there are no processors that use @TriggerSerially.
         // If any Processor does require being triggered serially, it may indicate that it is not allowed
@@ -173,7 +172,6 @@ public class StatelessFlowTask {
         final long abortTime = shutdownTime + GRACEFUL_STOP_DURATION.toNanos();
         return System.nanoTime() >= abortTime;
     }
-
 
     public synchronized void trigger() {
         final long startTime = System.currentTimeMillis();
@@ -238,7 +236,6 @@ public class StatelessFlowTask {
         }
     }
 
-
     private void fail(final List<Invocation> invocations, final ProvenanceEventRepository statelessProvRepo, final Throwable cause) {
         invocations.forEach(invocation -> fail(invocation, statelessProvRepo, cause));
     }
@@ -298,7 +295,6 @@ public class StatelessFlowTask {
             throw new RuntimeException(e);
         }
     }
-
 
     private void completeInvocations(final List<Invocation> invocations, final ProvenanceEventRepository statelessProvRepo) throws IOException {
         logger.debug("Completing transactions from {} invocations", invocations.size());
@@ -456,7 +452,6 @@ public class StatelessFlowTask {
             outputRepositoryRecords.add(repoRecord);
         }
     }
-
 
     List<RepositoryRecord> getOutputRepositoryRecords() {
         return outputRepositoryRecords;
@@ -623,7 +618,6 @@ public class StatelessFlowTask {
         }
     }
 
-
     private void expireRecords(final FlowFileQueue sourceQueue, final Set<FlowFileRecord> expiredRecords) throws IOException {
         if (expiredRecords.isEmpty()) {
             return;
@@ -706,7 +700,6 @@ public class StatelessFlowTask {
     public String toString() {
         return "StatelessFlowTask[Group=" + statelessGroupNode.getProcessGroup() + "]";
     }
-
 
     static class PolledFlowFile {
         private final FlowFileRecord inputFlowFile;
@@ -825,7 +818,6 @@ public class StatelessFlowTask {
         }
     }
 
-
     /**
      * A FlowFileSupplier that bridges between the running NiFi instance and the Stateless Engine.
      */
@@ -843,7 +835,6 @@ public class StatelessFlowTask {
             portsByName = inputPorts.stream()
                 .collect(Collectors.toMap(Port::getName, port -> port));
         }
-
 
         @Override
         public Optional<FlowFile> getFlowFile(final String portName) {

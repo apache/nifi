@@ -93,7 +93,6 @@ public class UpdateBoxFileMetadataInstance extends AbstractBoxProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
             .description("The Record Reader to use for parsing the incoming data")

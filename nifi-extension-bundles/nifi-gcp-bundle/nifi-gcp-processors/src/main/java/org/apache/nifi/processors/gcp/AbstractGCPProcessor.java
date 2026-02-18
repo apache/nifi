@@ -84,7 +84,6 @@ public abstract class AbstractGCPProcessor<
         return cloudService;
     }
 
-
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
         ProxyServiceMigration.migrateProxyProperties(config, PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, OBSOLETE_PROXY_USERNAME, OBSOLETE_PROXY_PASSWORD);

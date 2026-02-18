@@ -175,7 +175,6 @@ public class TestOracle12DatabaseAdapter {
         assertEquals(expectedStatement, actualStatement);
     }
 
-
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
             testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String) null);

@@ -76,7 +76,6 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
         return "Could not match any part of the pattern";
     }
 
-
     public static class Compiler {
         private final List<String> patterns = new ArrayList<>();
 
@@ -187,7 +186,6 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
             final Pattern pattern = Pattern.compile(regex);
             return new RegexDateTimeMatcher(pattern, patterns, range.getMinLength(), range.getMaxLength());
         }
-
 
         private static LengthRange lengthRange(final String[] values) {
             return new LengthRange(minLength(values), maxLength(values));
@@ -504,7 +502,6 @@ public class RegexDateTimeMatcher implements DateTimeMatcher {
             patterns.add("(?:Z|(?:[-+](?:\\d{2}|\\d{4}|\\d{2}\\:\\d{2})))");
             range = range.plus(1, 6);
         }
-
 
         private static class LengthRange {
             private final int min;

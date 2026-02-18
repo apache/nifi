@@ -104,7 +104,6 @@ public class InputOutputIT extends StatelessSystemIT {
         assertEquals("bar", output2.getAttribute("foo"));
     }
 
-
     private VersionedFlowSnapshot createFlow() {
         final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
         final VersionedPort inPort = flowBuilder.createInputPort("In");

@@ -157,7 +157,6 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             .defaultValue(LOGIN_SERVICE_HASH.getValue())
             .build();
 
-
     public static final PropertyDescriptor USERS_PROPERTIES_FILE = new PropertyDescriptor.Builder()
             .name("Users Properties File")
             .description("Specify a property file containing users for Basic Authentication using HashLoginService. "
@@ -202,7 +201,6 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         return PROPERTY_DESCRIPTORS;
     }
 
-
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
 
@@ -243,7 +241,6 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         @Override
         public Object createWebSocket(JettyServerUpgradeRequest servletUpgradeRequest, JettyServerUpgradeResponse servletUpgradeResponse) {
             final URI requestURI = servletUpgradeRequest.getRequestURI();
-
 
             final int port = getPort(servletUpgradeRequest);
             final JettyWebSocketServer service = portToControllerService.get(port);

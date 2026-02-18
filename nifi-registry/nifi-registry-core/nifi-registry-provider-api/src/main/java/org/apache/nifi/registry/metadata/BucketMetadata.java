@@ -31,7 +31,6 @@ public class BucketMetadata {
 
     private List<FlowMetadata> flowMetadata;
 
-
     public String getIdentifier() {
         return identifier;
     }

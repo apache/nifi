@@ -104,7 +104,6 @@ public class StandardFlowComparator implements FlowComparator {
         return new StandardFlowComparison(flowA, flowB, differences);
     }
 
-
     private Set<FlowDifference> compare(final VersionedProcessGroup groupA, final VersionedProcessGroup groupB) {
         final Set<FlowDifference> differences = new HashSet<>();
         // Note that we do not compare the names, because when we import a Flow into NiFi, we may well give it a new name.
@@ -137,7 +136,6 @@ public class StandardFlowComparator implements FlowComparator {
 
         return differences;
     }
-
 
     private boolean compareComponents(final VersionedComponent componentA, final VersionedComponent componentB, final Set<FlowDifference> differences) {
         return compareComponents(componentA, componentB, differences, true, true, true);
@@ -475,7 +473,6 @@ public class StandardFlowComparator implements FlowComparator {
         });
     }
 
-
     private boolean isParameterReference(final String propertyValue) {
         return PARAMETER_REFERENCE_PATTERN.matcher(propertyValue).matches();
     }
@@ -537,7 +534,6 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.CONCURRENT_TASKS_CHANGED, portA, portB, VersionedRemoteGroupPort::getConcurrentlySchedulableTaskCount);
         addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, portA, portB, VersionedRemoteGroupPort::getScheduledState);
     }
-
 
     private void compare(final VersionedProcessGroup groupA, final VersionedProcessGroup groupB, final Set<FlowDifference> differences, final boolean compareNamePos) {
         if (compareComponents(groupA, groupB, differences, compareNamePos, compareNamePos, true)) {
@@ -646,7 +642,6 @@ public class StandardFlowComparator implements FlowComparator {
                 || !group.getRemoteProcessGroups().isEmpty();
     }
 
-
     private void compareFlowCoordinates(final VersionedProcessGroup groupA, final VersionedProcessGroup groupB, final Set<FlowDifference> differences) {
         final VersionedFlowCoordinates coordinatesA = groupA.getVersionedFlowCoordinates();
         final VersionedFlowCoordinates coordinatesB = groupB.getVersionedFlowCoordinates();
@@ -707,7 +702,6 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.LOAD_BALANCE_COMPRESSION_CHANGED, connectionA, connectionB,
             conn -> conn.getLoadBalanceCompression() == null ? DEFAULT_LOAD_BALANCE_COMPRESSION : conn.getLoadBalanceCompression());
     }
-
 
     private <T extends VersionedComponent> Map<String, T> byId(final Set<T> components) {
         return components.stream().collect(Collectors.toMap(idLookup::apply, Function.identity()));
@@ -783,7 +777,6 @@ public class StandardFlowComparator implements FlowComparator {
         final String description = differenceDescriptor.describeDifference(type, flowA.getName(), flowB.getName(), componentA, componentB, prettyPrintFieldName, valueA, valueB);
         return new StandardFlowDifference(type, componentA, componentB, fieldName, valueA, valueB, description);
     }
-
 
     private interface ComponentComparator<T extends VersionedComponent> {
         void compare(T componentA, T componentB, Set<FlowDifference> differences);

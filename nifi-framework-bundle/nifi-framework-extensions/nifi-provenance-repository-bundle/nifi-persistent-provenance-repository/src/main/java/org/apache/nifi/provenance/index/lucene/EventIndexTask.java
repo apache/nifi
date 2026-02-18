@@ -124,7 +124,6 @@ public class EventIndexTask implements Runnable {
         }
     }
 
-
     /**
      * Re-indexes the documents given. The IndexableDocument's provided are required to have the IndexDirectory provided.
      */
@@ -167,7 +166,6 @@ public class EventIndexTask implements Runnable {
             }
         }
     }
-
 
     private void index(final List<StoredDocument> toIndex, final String partitionName) throws IOException {
         if (toIndex.isEmpty()) {
@@ -246,7 +244,6 @@ public class EventIndexTask implements Runnable {
             indexManager.returnIndexWriter(indexWriter, requestCommit, requestClose);
         }
     }
-
 
     protected void commit(final EventIndexWriter indexWriter) throws IOException {
         final long start = System.nanoTime();

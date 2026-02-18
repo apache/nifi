@@ -320,7 +320,6 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
     }
 
-
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         return lookup(coordinates, null);
@@ -529,7 +528,6 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ConfigurationContext context) {
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).evaluateAttributeExpressions().getValue());
         this.basicUser = authUser;
-
 
         isDigest = context.getProperty(PROP_DIGEST_AUTH).asBoolean();
         final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).evaluateAttributeExpressions().getValue());

@@ -45,7 +45,6 @@ public class CountFlowFiles extends AbstractProcessor {
         .name("success")
         .build();
 
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Collections.singletonList(COUNT_SERVICE);

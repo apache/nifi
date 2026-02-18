@@ -86,7 +86,6 @@ public class TestFreeFormTextRecordSetWriterProcessor extends AbstractProcessor 
                 writer.write(recordSet);
                 writer.flush();
 
-
             } catch (Exception e) {
                 throw new ProcessException(e.getMessage());
             }

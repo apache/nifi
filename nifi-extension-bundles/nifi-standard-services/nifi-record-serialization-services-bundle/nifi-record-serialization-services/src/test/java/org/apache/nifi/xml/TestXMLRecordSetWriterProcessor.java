@@ -74,10 +74,8 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
 
                 final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, flowFileRef);
 
-
                 writer.write(recordSet);
                 writer.flush();
-
 
             } catch (Exception e) {
                 throw new ProcessException(e.getMessage());
@@ -116,7 +114,5 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
 
         return new ListRecordSet(emptySchema, records);
     }
-
-
 
 }

@@ -878,7 +878,6 @@ public class ReportingTaskResource extends ApplicationResource {
         return generateOkResponse(updateRequestEntity).build();
     }
 
-
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
@@ -940,7 +939,6 @@ public class ReportingTaskResource extends ApplicationResource {
             throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
         }
     }
-
 
     public Response performAsyncConfigVerification(final VerifyConfigRequestEntity configRequest, final NiFiUser user) {
         // Create an asynchronous request that will occur in the background, because this request may take an indeterminate amount of time.

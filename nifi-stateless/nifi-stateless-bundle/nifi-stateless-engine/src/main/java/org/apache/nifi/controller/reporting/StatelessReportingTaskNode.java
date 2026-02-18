@@ -107,5 +107,4 @@ public class StatelessReportingTaskNode extends AbstractReportingTaskNode implem
         return null;
     }
 
-
 }

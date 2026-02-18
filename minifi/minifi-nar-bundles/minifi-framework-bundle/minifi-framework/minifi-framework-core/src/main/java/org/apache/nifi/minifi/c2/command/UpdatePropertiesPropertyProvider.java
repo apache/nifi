@@ -75,6 +75,4 @@ public class UpdatePropertiesPropertyProvider implements OperandPropertiesProvid
             .collect(Collectors.toMap(entry -> (String) entry.getKey(), entry -> (String) entry.getValue()));
     }
 
-
-
 }

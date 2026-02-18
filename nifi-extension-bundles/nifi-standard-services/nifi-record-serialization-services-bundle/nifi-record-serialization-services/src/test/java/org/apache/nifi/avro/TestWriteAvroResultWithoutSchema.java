@@ -95,7 +95,6 @@ public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
         new Schema.Parser().parse(schemaText);
     }
 
-
     @Test
     @EnabledIfSystemProperty(
             named = "nifi.test.performance",

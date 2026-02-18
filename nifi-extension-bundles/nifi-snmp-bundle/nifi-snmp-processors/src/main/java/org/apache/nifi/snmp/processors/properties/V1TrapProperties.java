@@ -69,7 +69,6 @@ public class V1TrapProperties {
     public static final String OLD_GENERIC_TRAP_TYPE_PROPERTY_NAME = "snmp-trap-generic-type";
     public static final String OLD_SPECIFIC_TRAP_TYPE_PROPERTY_NAME = "snmp-trap-specific-type";
 
-
     public static final PropertyDescriptor ENTERPRISE_OID = new PropertyDescriptor.Builder()
             .name("Enterprise OID")
             .description("Enterprise is the vendor identification (OID) for the network management sub-system that generated the trap.")

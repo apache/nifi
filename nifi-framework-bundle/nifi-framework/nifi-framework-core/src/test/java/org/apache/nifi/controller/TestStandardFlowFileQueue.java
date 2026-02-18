@@ -467,7 +467,6 @@ public class TestStandardFlowFileQueue {
         assertEquals(2, swapManager.swapInCalledCount);
     }
 
-
     @Test
     @Timeout(5)
     public void testListFlowFilesOnlyActiveQueue() throws InterruptedException {
@@ -487,7 +486,6 @@ public class TestStandardFlowFileQueue {
         assertEquals(100, status.getCompletionPercentage());
         assertNull(status.getFailureReason());
     }
-
 
     @Test
     @Timeout(5)
@@ -532,7 +530,6 @@ public class TestStandardFlowFileQueue {
         assertEquals(100, status.getCompletionPercentage());
         assertNull(status.getFailureReason());
     }
-
 
     @Test
     public void testOOMEFollowedBySuccessfulSwapIn() {

@@ -121,7 +121,6 @@ public class AbstractJerseyClient {
         }
     }
 
-
     /**
      * An action to execute with the given return type.
      *

@@ -216,7 +216,6 @@ public class LoadBalancedQueueIT {
         return contentClaim;
     }
 
-
     private NioAsyncLoadBalanceClientFactory createClientFactory(final SSLContext sslContext) {
         final FlowFileContentAccess flowFileContentAccess = flowFile -> clientContentRepo.read(flowFile.getContentClaim());
         return new NioAsyncLoadBalanceClientFactory(sslContext, 30000, flowFileContentAccess, eventReporter, new StandardLoadBalanceFlowFileCodec(), clusterCoordinator);
@@ -264,7 +263,6 @@ public class LoadBalancedQueueIT {
                 // Create the Load Balanced FlowFile Queue
                 final NodeIdentifier nodeId = new NodeIdentifier("unit-test-" + i, "localhost", 8090 + i, "localhost", 8090, "localhost", loadBalancePort, null, null, null, false, null);
                 nodeIdentifiers.add(nodeId);
-
 
                 clusterEventListeners.forEach(listener -> listener.onNodeAdded(nodeId));
 
@@ -338,7 +336,6 @@ public class LoadBalancedQueueIT {
             final NodeIdentifier inaccessibleNodeId = new NodeIdentifier("unit-test-invalid-host-does-not-exist", "invalid-host-does-not-exist", 8090, "invalid-host-does-not-exist", 8090,
                     "invalid-host-does-not-exist", loadBalancePort, null, null, null, false, null);
             nodeIdentifiers.add(inaccessibleNodeId);
-
 
             final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
             clientRegistry.start();
@@ -415,7 +412,6 @@ public class LoadBalancedQueueIT {
             server.stop();
         }
     }
-
 
     @Test
     @Timeout(20)
@@ -505,7 +501,6 @@ public class LoadBalancedQueueIT {
         }
     }
 
-
     @Test
     @Timeout(20)
     public void testContentNotFound() throws IOException, InterruptedException {
@@ -575,7 +570,6 @@ public class LoadBalancedQueueIT {
             server.stop();
         }
     }
-
 
     @Test
     @Timeout(20)
@@ -666,7 +660,6 @@ public class LoadBalancedQueueIT {
             server.stop();
         }
     }
-
 
     @Test
     @Timeout(20)
@@ -768,7 +761,6 @@ public class LoadBalancedQueueIT {
         final int timeoutMillis = 30000;
         final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
 
-
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
 
@@ -845,7 +837,6 @@ public class LoadBalancedQueueIT {
             server.stop();
         }
     }
-
 
     @Test
     @Timeout(60)
@@ -933,7 +924,6 @@ public class LoadBalancedQueueIT {
             server.stop();
         }
     }
-
 
     @Test
     @Timeout(20)
@@ -1024,7 +1014,6 @@ public class LoadBalancedQueueIT {
             server.stop();
         }
     }
-
 
     @Test
     @Timeout(60)
@@ -1157,7 +1146,6 @@ public class LoadBalancedQueueIT {
         }
     }
 
-
     @Test
     @Timeout(20)
     public void testNotAuthorized() throws IOException, InterruptedException {
@@ -1223,7 +1211,6 @@ public class LoadBalancedQueueIT {
             server.stop();
         }
     }
-
 
     @Test
     @Timeout(35)
@@ -1313,12 +1300,10 @@ public class LoadBalancedQueueIT {
         return flowFileRepo;
     }
 
-
     private ContentRepository createContentRepository(final ConcurrentMap<ContentClaim, byte[]> claimContents) throws IOException {
         final ContentRepository contentRepo = mock(ContentRepository.class);
 
         Mockito.doAnswer((Answer<ContentClaim>) invocation -> createContentClaim(null)).when(contentRepo).create(Mockito.anyBoolean());
-
 
         Mockito.doAnswer(new Answer<OutputStream>() {
             @Override
@@ -1336,7 +1321,6 @@ public class LoadBalancedQueueIT {
                 return baos;
             }
         }).when(contentRepo).write(any(ContentClaim.class));
-
 
         Mockito.doAnswer((Answer<InputStream>) invocation -> {
             final ContentClaim contentClaim = invocation.getArgument(0);

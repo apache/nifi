@@ -232,7 +232,6 @@ public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
         config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION.getName());
     }
 
-
     @Override
     protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context) {
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();

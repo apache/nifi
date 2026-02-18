@@ -203,7 +203,6 @@ public class TestFetchDistributedMapCache {
         outputFlowFile.assertAttributeEquals("test.key1", "value1");
     }
 
-
     private static class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
         private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
@@ -211,7 +210,6 @@ public class TestFetchDistributedMapCache {
         public void setFailOnCalls(boolean failOnCalls) {
             this.failOnCalls = failOnCalls;
         }
-
 
         private void verifyNotFail() throws IOException {
             if (failOnCalls) {

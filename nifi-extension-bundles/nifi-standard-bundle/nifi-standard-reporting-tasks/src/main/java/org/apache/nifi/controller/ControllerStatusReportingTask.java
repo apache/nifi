@@ -239,7 +239,6 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         }
     }
 
-
     private void populateConnectionStatuses(final ProcessGroupStatus groupStatus, final List<ConnectionStatus> statuses) {
         statuses.addAll(groupStatus.getConnectionStatus());
         for (final ProcessGroupStatus childGroupStatus : groupStatus.getProcessGroupStatus()) {

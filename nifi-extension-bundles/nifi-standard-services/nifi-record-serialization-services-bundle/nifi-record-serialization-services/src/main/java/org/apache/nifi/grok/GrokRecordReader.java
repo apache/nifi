@@ -215,7 +215,6 @@ public class GrokRecordReader implements RecordReader {
         return new MapRecord(schema, converted);
     }
 
-
     private boolean isStartOfStackTrace(final String line) {
         if (line == null) {
             return false;
@@ -260,7 +259,6 @@ public class GrokRecordReader implements RecordReader {
         return STACK_TRACE_PATTERN.matcher(line).find();
     }
 
-
     protected Object convert(final DataType fieldType, final Object rawValue, final String fieldName) {
         if (fieldType == null) {
             return rawValue;
@@ -279,7 +277,6 @@ public class GrokRecordReader implements RecordReader {
 
         return DataTypeUtils.convertType(rawValue, fieldType, fieldName);
     }
-
 
     @Override
     public RecordSchema getSchema() {

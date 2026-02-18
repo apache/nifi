@@ -73,7 +73,6 @@ public class AbstractBoxFileTest {
     @Mock
     protected BoxFolder.Info mockBoxFolderInfo;
 
-
     @BeforeEach
     void setUp() throws Exception {
         doReturn(mockBoxClientService.toString()).when(mockBoxClientService).getIdentifier();

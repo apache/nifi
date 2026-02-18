@@ -163,7 +163,6 @@ public class TestRecordSetWriterLookup {
             this.name = name;
         }
 
-
         @Override
         public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) {
             return new SimpleRecordSchema(SchemaIdentifier.builder().name(name).build());
@@ -181,7 +180,6 @@ public class TestRecordSetWriterLookup {
         public MockRecordSetWriter(String name) {
             this.name = name;
         }
-
 
         @Override
         public WriteResult write(RecordSet recordSet) {

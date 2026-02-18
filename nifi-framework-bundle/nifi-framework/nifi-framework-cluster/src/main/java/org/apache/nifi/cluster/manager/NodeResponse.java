@@ -169,7 +169,6 @@ public class NodeResponse {
         return response;
     }
 
-
     public Entity getUpdatedEntity() {
         return updatedEntity;
     }
@@ -182,7 +181,6 @@ public class NodeResponse {
         hasCreatedResponse = true;
         return createResponse();
     }
-
 
     public Throwable getThrowable() {
         return throwable;

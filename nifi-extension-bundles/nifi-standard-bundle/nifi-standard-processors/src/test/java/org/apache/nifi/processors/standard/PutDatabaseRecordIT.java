@@ -70,7 +70,6 @@ public class PutDatabaseRecordIT {
     private static PostgreSQLContainer postgres;
     private TestRunner runner;
 
-
     @BeforeAll
     public static void startPostgres() {
         postgres = new PostgreSQLContainer("postgres:18.0").withInitScript("PutDatabaseRecordIT/create-person-table.sql");
@@ -111,7 +110,6 @@ public class PutDatabaseRecordIT {
         runner.setProperty(PutDatabaseRecord.DB_TYPE, "PostgreSQL");
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, "INSERT");
     }
-
 
     @Test
     public void testSimplePut() throws SQLException {
@@ -215,7 +213,6 @@ public class PutDatabaseRecordIT {
         assertEquals(INSTANT_MICROS_PRECISION, lastTransactionTime.toInstant());
     }
 
-
     @Test
     public void testWithDecimalTimestampUsingMicros() throws SQLException {
         runner.enqueue(createJson(Double.toString(MICROS_TIMESTAMP_DOUBLE)));
@@ -237,7 +234,6 @@ public class PutDatabaseRecordIT {
         final Timestamp lastTransactionTime = (Timestamp) results.get("lasttransactiontime");
         assertEquals(INSTANT_MICROS_PRECISION, lastTransactionTime.toInstant());
     }
-
 
     private static void truncateTable() throws SQLException {
         try (final Connection connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {

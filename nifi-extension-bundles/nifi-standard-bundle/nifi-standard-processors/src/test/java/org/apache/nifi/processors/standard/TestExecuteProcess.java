@@ -210,7 +210,6 @@ public class TestExecuteProcess {
         assertEquals(0, succeeded.size());
     }
 
-
     @Test
     public void testRedirectErrorStream() {
         runner.setProperty(ExecuteProcess.COMMAND, "cd");

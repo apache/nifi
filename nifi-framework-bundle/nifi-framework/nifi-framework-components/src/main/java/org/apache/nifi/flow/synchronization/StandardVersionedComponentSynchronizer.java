@@ -545,7 +545,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // 10. Update connections to match those in the proposed group
         // 11. Delete the temporary destination that was created above
 
-
         // During the flow update, we will use temporary names for process group ports. This is because port names must be
         // unique within a process group, but during an update we might temporarily be in a state where two ports have the same name.
         // For example, if a process group update involves removing/renaming port A, and then adding/updating port B where B is given
@@ -2130,7 +2129,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             .anyMatch(connection -> connection.getSource() != processor);
     }
 
-
     private void verifyNotInherited(final String parameterContextId) {
         for (final ParameterContext parameterContext : context.getFlowManager().getParameterContextManager().getParameterContexts()) {
             if (parameterContext.getInheritedParameterContexts().stream().anyMatch(pc -> pc.getIdentifier().equals(parameterContextId))) {
@@ -3010,7 +3008,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
     }
 
-
     private void updateProcessor(final ProcessorNode processor, final VersionedProcessor proposed, final ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
         LOG.debug("Updating Processor {}", processor);
 
@@ -3307,7 +3304,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         if (portByName.isPresent()) {
             return portByName.get();
         }
-
 
         final String portId = componentIdGenerator.generateUuid(port.getIdentifier(), port.getInstanceIdentifier(), rpg.getIdentifier());
         final RemoteGroupPort remoteGroupPort = portLookup.apply(portId);

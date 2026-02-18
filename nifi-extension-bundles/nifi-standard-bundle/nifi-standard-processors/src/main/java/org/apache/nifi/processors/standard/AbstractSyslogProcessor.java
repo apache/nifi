@@ -61,6 +61,4 @@ public abstract class AbstractSyslogProcessor extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-
-
 }

@@ -49,7 +49,6 @@ public abstract class NumericBinaryOperatorFilter extends BinaryOperatorFilter {
             return false;
         }
 
-
         boolean rhsNumeric;
         final boolean rhsLongCompatible = DataTypeUtils.isLongTypeCompatible(rhsValue);
         final boolean rhsDoubleCompatible;

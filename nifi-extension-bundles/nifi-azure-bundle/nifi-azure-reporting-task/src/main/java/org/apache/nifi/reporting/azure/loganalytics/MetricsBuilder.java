@@ -132,11 +132,9 @@ public class MetricsBuilder {
         return this.processorId;
     }
 
-
     public String getProcessorName() {
         return this.processorName;
     }
-
 
     public boolean isIsProcessorMetric() {
         return this.isProcessorMetric;

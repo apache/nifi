@@ -194,7 +194,6 @@ class TestWriteJsonResult {
         assertEquals(StringUtils.deleteWhitespace(expected), StringUtils.deleteWhitespace(output));
     }
 
-
     @Test
     void testWriteSerializedForm() throws IOException {
         final List<RecordField> fields = new ArrayList<>();
@@ -540,7 +539,6 @@ class TestWriteJsonResult {
         values2.put("timestamp", new java.sql.Timestamp(37293999L));
         values2.put("time", new java.sql.Time(37293999L));
         values2.put("date", date);
-
 
         final Record record2 = new MapRecord(schema, values2);
 

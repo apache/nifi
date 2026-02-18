@@ -217,7 +217,6 @@ public class TestConvertRecord {
         out.assertAttributeEquals("record.error.message", "Intentional Unit Test Exception because 2 records have been read");
     }
 
-
     @Test
     public void testWriteFailure() throws InitializationException, IOException {
         final MockRecordParser readerService = new MockRecordParser();

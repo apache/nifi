@@ -265,7 +265,6 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
         return offsets;
     }
 
-
     private static class RecordIterable implements Iterable<ByteRecord> {
         private final Iterator<ByteRecord> records;
 

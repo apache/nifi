@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cdc.event;
 
-
 /**
  * A base class for all MySQL binlog events
  */
@@ -29,7 +28,6 @@ public class BaseEventInfo implements EventInfo {
         this.eventType = eventType;
         this.timestamp = timestamp;
     }
-
 
     @Override
     public String getEventType() {

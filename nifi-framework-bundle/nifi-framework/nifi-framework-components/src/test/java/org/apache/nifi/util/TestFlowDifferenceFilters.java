@@ -106,7 +106,6 @@ public class TestFlowDifferenceFilters {
         assertTrue(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
-
     @Test
     public void testFilterPublicPortNameChangeWhenNotNameChange() {
         final VersionedPort portA = new VersionedPort();
