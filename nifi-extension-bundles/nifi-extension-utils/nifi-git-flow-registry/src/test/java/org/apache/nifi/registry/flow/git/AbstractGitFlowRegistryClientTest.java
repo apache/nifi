@@ -32,8 +32,6 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Test;
 
-import javax.net.ssl.SSLContext;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -42,6 +40,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.SSLContext;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

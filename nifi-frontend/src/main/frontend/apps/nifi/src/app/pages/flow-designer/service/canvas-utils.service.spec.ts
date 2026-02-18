@@ -137,6 +137,10 @@ describe('CanvasUtils', () => {
     });
 
     describe('supportsCreateFlowBranch', () => {
+        beforeEach(() => {
+            (service as any).currentUser = { canVersionFlows: true };
+        });
+
         it('should return true when process group is up to date and registry supports branching', () => {
             const versionControlInformation = {
                 groupId: '1',
@@ -193,6 +197,115 @@ describe('CanvasUtils', () => {
             ];
 
             expect(service.supportsCreateFlowBranch(selection)).toBe(true);
+        });
+
+        it('should return false when process group has sync failure', () => {
+            const versionControlInformation = {
+                groupId: '1',
+                registryId: 'registry-1',
+                branch: 'main',
+                state: 'SYNC_FAILURE'
+            };
+            const pgDatum = {
+                id: '1',
+                type: ComponentType.ProcessGroup,
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    id: '1',
+                    name: 'Test Process Group',
+                    versionControlInformation
+                }
+            };
+            const selection = d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
+
+            (service as any).registryClients = [
+                {
+                    id: 'registry-1',
+                    component: { supportsBranching: true }
+                }
+            ];
+
+            expect(service.supportsCreateFlowBranch(selection)).toBe(false);
+        });
+
+        it('should return false when registry does not support branching', () => {
+            const versionControlInformation = {
+                groupId: '1',
+                registryId: 'registry-1',
+                branch: 'main',
+                state: 'UP_TO_DATE'
+            };
+            const pgDatum = {
+                id: '1',
+                type: ComponentType.ProcessGroup,
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    id: '1',
+                    name: 'Test Process Group',
+                    versionControlInformation
+                }
+            };
+            const selection = d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
+
+            (service as any).registryClients = [
+                {
+                    id: 'registry-1',
+                    component: { supportsBranching: false }
+                }
+            ];
+
+            expect(service.supportsCreateFlowBranch(selection)).toBe(false);
+        });
+
+        it('should return false when registry client is not found', () => {
+            const versionControlInformation = {
+                groupId: '1',
+                registryId: 'registry-unknown',
+                branch: 'main',
+                state: 'UP_TO_DATE'
+            };
+            const pgDatum = {
+                id: '1',
+                type: ComponentType.ProcessGroup,
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    id: '1',
+                    name: 'Test Process Group',
+                    versionControlInformation
+                }
+            };
+            const selection = d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
+
+            (service as any).registryClients = [
+                {
+                    id: 'registry-1',
+                    component: { supportsBranching: true }
+                }
+            ];
+
+            expect(service.supportsCreateFlowBranch(selection)).toBe(false);
+        });
+
+        it('should return false when process group is not version controlled', () => {
+            const pgDatum = {
+                id: '1',
+                type: ComponentType.ProcessGroup,
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    id: '1',
+                    name: 'Test Process Group'
+                }
+            };
+            const selection = d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
+
+            (service as any).registryClients = [
+                {
+                    id: 'registry-1',
+                    component: { supportsBranching: true }
+                }
+            ];
+
+            expect(service.supportsCreateFlowBranch(selection)).toBe(false);
         });
     });
 
