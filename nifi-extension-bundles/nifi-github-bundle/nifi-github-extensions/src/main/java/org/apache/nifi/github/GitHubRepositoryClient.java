@@ -480,6 +480,8 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         final String newBranchRefPath = "heads/" + trimmedNewBranch;
         final String sourceBranchRefPath = "heads/" + trimmedSourceBranch;
 
+        // FileNotFoundException indicates the branch does not exist, which is the expected case.
+        // Other exceptions (FlowRegistryException, IOException) propagate as communication errors.
         try {
             execute(() -> repository.getRef(newBranchRefPath));
             throw new FlowRegistryException("Branch [" + trimmedNewBranch + "] already exists");

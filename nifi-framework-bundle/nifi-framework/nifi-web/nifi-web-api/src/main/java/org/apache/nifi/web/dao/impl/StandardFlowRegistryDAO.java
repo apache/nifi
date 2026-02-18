@@ -222,7 +222,7 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
         } catch (final UnsupportedOperationException e) {
             throw e;
         } catch (final IOException | FlowRegistryException ioe) {
-            throw new NiFiCoreException("Unable to create branch [" + newBranchName + "] in registry with ID " + registryId, ioe);
+            throw new NiFiCoreException("Unable to create branch [%s] in registry with ID %s".formatted(newBranchName, registryId), ioe);
         }
     }
 

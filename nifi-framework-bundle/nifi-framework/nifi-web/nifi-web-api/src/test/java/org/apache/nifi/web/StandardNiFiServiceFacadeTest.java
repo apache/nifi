@@ -34,6 +34,7 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.Counter;
@@ -63,9 +64,17 @@ import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
+import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistryUtil;
+import org.apache.nifi.registry.flow.FlowSnapshotContainer;
+import org.apache.nifi.registry.flow.FlowVersionLocation;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
+import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowState;
+import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
@@ -92,6 +101,8 @@ import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
@@ -105,24 +116,30 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
+import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
+import org.apache.nifi.web.dao.FlowRegistryDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
 import org.apache.nifi.web.revision.NaiveRevisionManager;
+import org.apache.nifi.web.revision.RevisionClaim;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.revision.RevisionUpdate;
 import org.apache.nifi.web.revision.StandardRevisionUpdate;
+import org.apache.nifi.web.revision.UpdateRevisionTask;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -161,7 +178,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -1666,5 +1686,214 @@ public class StandardNiFiServiceFacadeTest {
 
         assertNotNull(result);
         assertEquals(0, result.getBulletinsCleared());
+    }
+
+    private StandardNiFiServiceFacade createBranchTestFacade(final ProcessGroupDAO branchProcessGroupDAO, final FlowRegistryDAO flowRegistryDAO,
+                                                             final DtoFactory branchDtoFactory, final EntityFactory branchEntityFactory,
+                                                             final FlowManager branchFlowManager) {
+        final ControllerFacade branchControllerFacade = mock(ControllerFacade.class);
+        lenient().when(branchControllerFacade.getFlowManager()).thenReturn(branchFlowManager);
+
+        final RevisionManager branchRevisionManager = mock(RevisionManager.class);
+        lenient().when(branchRevisionManager.updateRevision(any(RevisionClaim.class), any(NiFiUser.class), any(UpdateRevisionTask.class)))
+                .thenAnswer(invocation -> {
+                    final UpdateRevisionTask<?> task = invocation.getArgument(2);
+                    return task.update();
+                });
+        lenient().when(branchRevisionManager.getRevision(anyString())).thenAnswer(invocation -> {
+            final String componentId = invocation.getArgument(0, String.class);
+            return new Revision(1L, "client-1", componentId);
+        });
+
+        final StandardNiFiServiceFacade facade = new StandardNiFiServiceFacade();
+        facade.setProcessGroupDAO(branchProcessGroupDAO);
+        facade.setFlowRegistryDAO(flowRegistryDAO);
+        facade.setDtoFactory(branchDtoFactory);
+        facade.setEntityFactory(branchEntityFactory);
+        facade.setControllerFacade(branchControllerFacade);
+        facade.setRevisionManager(branchRevisionManager);
+
+        final NiFiUser user = new StandardNiFiUser.Builder().identity("unit-test").build();
+        final TestingAuthenticationToken authenticationToken = new TestingAuthenticationToken(new NiFiUserDetails(user), null);
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+        return facade;
+    }
+
+    @Test
+    public void testCreateFlowBranchSuccess() throws IOException, FlowRegistryException {
+        final ProcessGroupDAO branchProcessGroupDAO = mock(ProcessGroupDAO.class);
+        final FlowRegistryDAO flowRegistryDAO = mock(FlowRegistryDAO.class);
+        final DtoFactory branchDtoFactory = mock(DtoFactory.class);
+        final EntityFactory branchEntityFactory = mock(EntityFactory.class);
+        final FlowManager branchFlowManager = mock(FlowManager.class);
+        lenient().when(branchFlowManager.getFlowRegistryClient(anyString())).thenReturn(null);
+
+        final StandardNiFiServiceFacade facade = createBranchTestFacade(branchProcessGroupDAO, flowRegistryDAO, branchDtoFactory, branchEntityFactory, branchFlowManager);
+        final Revision revision = new Revision(1L, "client-1", "pg-1");
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(branchProcessGroupDAO.getProcessGroup("pg-1")).thenReturn(processGroup);
+
+        final VersionControlInformation versionControlInformation = mock(VersionControlInformation.class);
+        when(processGroup.getVersionControlInformation()).thenReturn(versionControlInformation);
+        when(versionControlInformation.getRegistryIdentifier()).thenReturn("registry-1");
+        when(versionControlInformation.getBranch()).thenReturn("main");
+        when(versionControlInformation.getBucketIdentifier()).thenReturn("bucket-1");
+        when(versionControlInformation.getFlowIdentifier()).thenReturn("flow-1");
+        when(versionControlInformation.getFlowDescription()).thenReturn("desc");
+        when(versionControlInformation.getFlowName()).thenReturn("name");
+        when(versionControlInformation.getStorageLocation()).thenReturn("loc");
+        when(versionControlInformation.getVersion()).thenReturn("1");
+
+        final VersionedFlowStatus flowStatus = mock(VersionedFlowStatus.class);
+        when(versionControlInformation.getStatus()).thenReturn(flowStatus);
+        when(flowStatus.getState()).thenReturn(VersionedFlowState.LOCALLY_MODIFIED_AND_STALE);
+        when(flowStatus.getStateExplanation()).thenReturn("Up to date");
+
+        when(branchProcessGroupDAO.updateVersionControlInformation(any(VersionControlInformationDTO.class), eq(Collections.emptyMap())))
+                .thenReturn(processGroup);
+
+        final VersionControlInformationDTO updatedDto = new VersionControlInformationDTO();
+        updatedDto.setBranch("feature");
+        updatedDto.setRegistryId("registry-1");
+
+        final VersionControlInformationDTO refreshedDto = new VersionControlInformationDTO();
+        refreshedDto.setBranch("feature");
+        refreshedDto.setRegistryId("registry-1");
+        refreshedDto.setState(VersionControlInformationDTO.LOCALLY_MODIFIED);
+        refreshedDto.setStateExplanation("Process Group has local modifications");
+
+        when(branchDtoFactory.createVersionControlInformationDto(processGroup)).thenReturn(updatedDto, refreshedDto);
+
+        final VersionControlInformationEntity resultEntity = new VersionControlInformationEntity();
+        resultEntity.setVersionControlInformation(refreshedDto);
+        when(branchEntityFactory.createVersionControlInformationEntity(eq(refreshedDto), any(RevisionDTO.class))).thenReturn(resultEntity);
+        when(branchDtoFactory.createRevisionDTO(any(FlowModification.class))).thenReturn(new RevisionDTO());
+
+        final FlowRegistryClientNode registryClient = mock(FlowRegistryClientNode.class);
+        when(branchFlowManager.getFlowRegistryClient("registry-1")).thenReturn(registryClient);
+        final VersionedProcessGroup registrySnapshot = new VersionedProcessGroup();
+        final RegisteredFlowSnapshot registeredFlowSnapshot = new RegisteredFlowSnapshot();
+        registeredFlowSnapshot.setFlowContents(registrySnapshot);
+        final FlowSnapshotContainer snapshotContainer = new FlowSnapshotContainer(registeredFlowSnapshot);
+        when(registryClient.getFlowContents(any(), any(FlowVersionLocation.class), eq(false))).thenReturn(snapshotContainer);
+
+        final VersionControlInformationEntity response = facade.createFlowBranch(revision, "pg-1", " feature ", null, null);
+        assertEquals(resultEntity, response);
+
+        final ArgumentCaptor<FlowVersionLocation> locationCaptor = ArgumentCaptor.forClass(FlowVersionLocation.class);
+        verify(flowRegistryDAO).createBranchForUser(any(FlowRegistryClientUserContext.class), eq("registry-1"), locationCaptor.capture(), eq("feature"));
+
+        final FlowVersionLocation capturedLocation = locationCaptor.getValue();
+        assertEquals("main", capturedLocation.getBranch());
+        assertEquals("bucket-1", capturedLocation.getBucketId());
+        assertEquals("flow-1", capturedLocation.getFlowId());
+        assertEquals("1", capturedLocation.getVersion());
+
+        verify(registryClient).getFlowContents(any(), any(FlowVersionLocation.class), eq(false));
+        verify(processGroup).setVersionControlInformation(argThat(vci -> vci instanceof StandardVersionControlInformation
+                && ((StandardVersionControlInformation) vci).getFlowSnapshot() == registrySnapshot), eq(Collections.emptyMap()));
+        verify(processGroup).synchronizeWithFlowRegistry(branchFlowManager);
+    }
+
+    @Test
+    public void testCreateFlowBranchSameBranchRejected() {
+        final ProcessGroupDAO branchProcessGroupDAO = mock(ProcessGroupDAO.class);
+        final FlowRegistryDAO flowRegistryDAO = mock(FlowRegistryDAO.class);
+        final FlowManager branchFlowManager = mock(FlowManager.class);
+        final StandardNiFiServiceFacade facade = createBranchTestFacade(branchProcessGroupDAO, flowRegistryDAO, mock(DtoFactory.class), mock(EntityFactory.class), branchFlowManager);
+        final Revision revision = new Revision(1L, "client-1", "pg-1");
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(branchProcessGroupDAO.getProcessGroup("pg-1")).thenReturn(processGroup);
+
+        final VersionControlInformation versionControlInformation = mock(VersionControlInformation.class);
+        when(processGroup.getVersionControlInformation()).thenReturn(versionControlInformation);
+        when(versionControlInformation.getBranch()).thenReturn("main");
+
+        assertThrows(IllegalArgumentException.class, () -> facade.createFlowBranch(revision, "pg-1", "main", null, null));
+
+        verify(flowRegistryDAO, never()).createBranchForUser(any(), any(), any(), any());
+        verify(processGroup, never()).synchronizeWithFlowRegistry(any(FlowManager.class));
+    }
+
+    @Test
+    public void testCreateFlowBranchUnsupportedRegistry() throws IOException, FlowRegistryException {
+        final ProcessGroupDAO branchProcessGroupDAO = mock(ProcessGroupDAO.class);
+        final FlowRegistryDAO flowRegistryDAO = mock(FlowRegistryDAO.class);
+        final FlowManager branchFlowManager = mock(FlowManager.class);
+        final StandardNiFiServiceFacade facade = createBranchTestFacade(branchProcessGroupDAO, flowRegistryDAO, mock(DtoFactory.class), mock(EntityFactory.class), branchFlowManager);
+        final Revision revision = new Revision(1L, "client-1", "pg-1");
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(branchProcessGroupDAO.getProcessGroup("pg-1")).thenReturn(processGroup);
+
+        final VersionControlInformation versionControlInformation = mock(VersionControlInformation.class);
+        when(processGroup.getVersionControlInformation()).thenReturn(versionControlInformation);
+        when(versionControlInformation.getRegistryIdentifier()).thenReturn("registry-1");
+        when(versionControlInformation.getBranch()).thenReturn("main");
+        when(versionControlInformation.getBucketIdentifier()).thenReturn("bucket-1");
+        when(versionControlInformation.getFlowIdentifier()).thenReturn("flow-1");
+        when(versionControlInformation.getVersion()).thenReturn("1");
+
+        doThrow(new UnsupportedOperationException("not supported"))
+                .when(flowRegistryDAO)
+                .createBranchForUser(any(FlowRegistryClientUserContext.class), eq("registry-1"), any(FlowVersionLocation.class), eq("feature"));
+
+        assertThrows(IllegalArgumentException.class, () -> facade.createFlowBranch(revision, "pg-1", "feature", null, null));
+
+        verify(processGroup, never()).synchronizeWithFlowRegistry(any(FlowManager.class));
+    }
+
+    @Test
+    public void testCreateFlowBranchNotVersionControlled() {
+        final ProcessGroupDAO branchProcessGroupDAO = mock(ProcessGroupDAO.class);
+        final FlowRegistryDAO flowRegistryDAO = mock(FlowRegistryDAO.class);
+        final FlowManager branchFlowManager = mock(FlowManager.class);
+        final StandardNiFiServiceFacade facade = createBranchTestFacade(branchProcessGroupDAO, flowRegistryDAO, mock(DtoFactory.class), mock(EntityFactory.class), branchFlowManager);
+        final Revision revision = new Revision(1L, "client-1", "pg-1");
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(branchProcessGroupDAO.getProcessGroup("pg-1")).thenReturn(processGroup);
+        when(processGroup.getVersionControlInformation()).thenReturn(null);
+
+        assertThrows(IllegalStateException.class, () -> facade.createFlowBranch(revision, "pg-1", "feature", null, null));
+
+        verify(flowRegistryDAO, never()).createBranchForUser(any(), any(), any(), any());
+        verify(processGroup, never()).synchronizeWithFlowRegistry(any(FlowManager.class));
+    }
+
+    @Test
+    public void testCreateFlowBranchPropagatesRegistryErrors() throws IOException, FlowRegistryException {
+        final ProcessGroupDAO branchProcessGroupDAO = mock(ProcessGroupDAO.class);
+        final FlowRegistryDAO flowRegistryDAO = mock(FlowRegistryDAO.class);
+        final FlowManager branchFlowManager = mock(FlowManager.class);
+        final StandardNiFiServiceFacade facade = createBranchTestFacade(branchProcessGroupDAO, flowRegistryDAO, mock(DtoFactory.class), mock(EntityFactory.class), branchFlowManager);
+        final Revision revision = new Revision(1L, "client-1", "pg-1");
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(branchProcessGroupDAO.getProcessGroup("pg-1")).thenReturn(processGroup);
+
+        final VersionControlInformation versionControlInformation = mock(VersionControlInformation.class);
+        when(processGroup.getVersionControlInformation()).thenReturn(versionControlInformation);
+        when(versionControlInformation.getRegistryIdentifier()).thenReturn("registry-1");
+        when(versionControlInformation.getBranch()).thenReturn("main");
+        when(versionControlInformation.getBucketIdentifier()).thenReturn("bucket-1");
+        when(versionControlInformation.getFlowIdentifier()).thenReturn("flow-1");
+        when(versionControlInformation.getVersion()).thenReturn("1");
+
+        final FlowRegistryException cause = new FlowRegistryException("Branch [feature] already exists");
+        doThrow(new NiFiCoreException("Unable to create branch [feature] in registry with ID registry-1", cause))
+                .when(flowRegistryDAO)
+                .createBranchForUser(any(FlowRegistryClientUserContext.class), eq("registry-1"), any(FlowVersionLocation.class), eq("feature"));
+
+        final NiFiCoreException exception = assertThrows(NiFiCoreException.class, () -> facade.createFlowBranch(revision, "pg-1", "feature", null, null));
+
+        assertTrue(exception.getMessage().contains("registry-1"));
+        assertTrue(exception.getMessage().contains("[feature]"));
+        assertEquals(cause, exception.getCause());
+
+        verify(processGroup, never()).synchronizeWithFlowRegistry(any(FlowManager.class));
     }
 }

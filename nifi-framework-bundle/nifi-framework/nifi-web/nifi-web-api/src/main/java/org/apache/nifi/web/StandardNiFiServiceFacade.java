@@ -5744,20 +5744,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new IllegalStateException("Process Group with ID " + processGroupId + " is not currently under Version Control");
         }
 
-        final String trimmedBranchName = org.apache.commons.lang3.StringUtils.trimToNull(newBranchName);
-        if (trimmedBranchName == null) {
+        if (StringUtils.isBlank(newBranchName)) {
             throw new IllegalArgumentException("Branch name must be specified");
         }
+        final String trimmedBranchName = newBranchName.trim();
         if (trimmedBranchName.equals(versionControlInformation.getBranch())) {
             throw new IllegalArgumentException("Process Group is already tracking branch " + trimmedBranchName);
         }
 
-        final String resolvedSourceBranch = org.apache.commons.lang3.StringUtils.isNotBlank(sourceBranch) ? sourceBranch : versionControlInformation.getBranch();
-        if (org.apache.commons.lang3.StringUtils.isBlank(resolvedSourceBranch)) {
+        final String resolvedSourceBranch = StringUtils.isNotBlank(sourceBranch) ? sourceBranch : versionControlInformation.getBranch();
+        if (StringUtils.isBlank(resolvedSourceBranch)) {
             throw new IllegalArgumentException("Source branch must be specified");
         }
 
-        final String resolvedSourceVersion = org.apache.commons.lang3.StringUtils.isNotBlank(sourceVersion) ? sourceVersion : versionControlInformation.getVersion();
+        final String resolvedSourceVersion = StringUtils.isNotBlank(sourceVersion) ? sourceVersion : versionControlInformation.getVersion();
 
         final FlowVersionLocation sourceLocation = new FlowVersionLocation(resolvedSourceBranch,
                 versionControlInformation.getBucketIdentifier(),
@@ -5791,18 +5791,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (status != null) {
             final VersionedFlowState state = status.getState();
             if (state != null) {
-                switch (state) {
-                    case LOCALLY_MODIFIED_AND_STALE:
-                        updatedState = VersionedFlowState.LOCALLY_MODIFIED;
+                updatedState = switch (state) {
+                    case LOCALLY_MODIFIED_AND_STALE -> {
                         stateExplanation = "Process Group has local modifications";
-                        break;
-                    case STALE:
-                        updatedState = VersionedFlowState.UP_TO_DATE;
-                        break;
-                    default:
-                        updatedState = state;
-                        break;
-                }
+                        yield VersionedFlowState.LOCALLY_MODIFIED;
+                    }
+                    case STALE -> VersionedFlowState.UP_TO_DATE;
+                    default -> state;
+                };
             }
         }
 
@@ -5854,8 +5850,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             restoredInfo.setStorageLocation(updatedVersionControlInformation.getStorageLocation());
 
             group.setVersionControlInformation(restoredInfo, Collections.emptyMap());
-        } else if (updatedVci instanceof StandardVersionControlInformation) {
-            ((StandardVersionControlInformation) updatedVci).setFlowSnapshot(null);
+        } else if (updatedVci instanceof StandardVersionControlInformation standardVci) {
+            standardVci.setFlowSnapshot(null);
         }
 
         if (flowManager != null) {
