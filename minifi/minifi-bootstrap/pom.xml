@@ -60,7 +60,7 @@ limitations under the License.
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
-            <version>26.0.2-1</version>
+            <version>26.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
