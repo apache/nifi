@@ -82,7 +82,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_PARSE_FAILURE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.makeMillisBehindLatestGaugeName;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.makeCurrentLagGaugeName;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_COUNT;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_ERROR_MESSAGE;
 import static org.apache.nifi.processors.aws.kinesis.JsonRecordAssert.assertFlowFileRecordPayloads;
@@ -208,11 +208,11 @@ class ConsumeKinesisIT {
                 streamClient.getEnhancedFanOutConsumerNames(),
                 "Expected a single enhanced fan-out consumer with an application name");
 
-        // Verify millisBehindLatest gauge is recorded.
+        // Verify current.lag gauge is recorded.
         final String shardId = flowFile.getAttribute("aws.kinesis.shard.id");
-        final String gaugeName = ConsumeKinesis.makeMillisBehindLatestGaugeName(streamName, shardId);
+        final String gaugeName = ConsumeKinesis.makeCurrentLagGaugeName(streamName, shardId);
         final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
-        assertFalse(gaugeValues.isEmpty(), "Expected millisBehindLatest gauge to be recorded");
+        assertFalse(gaugeValues.isEmpty(), "Expected current.lag gauge to be recorded");
     }
 
     @Test
@@ -242,9 +242,9 @@ class ConsumeKinesisIT {
                 streamClient.getEnhancedFanOutConsumerNames().isEmpty(),
                 "No enhanced fan-out consumers should be created for Shared Throughput consumer type");
         final String shardId = flowFile.getAttribute("aws.kinesis.shard.id");
-        final String gaugeName = makeMillisBehindLatestGaugeName(streamName, shardId);
+        final String gaugeName = makeCurrentLagGaugeName(streamName, shardId);
         final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
-        assertFalse(gaugeValues.isEmpty(), "Expected millisBehindLatest gauge to be recorded");
+        assertFalse(gaugeValues.isEmpty(), "Expected current.lag gauge to be recorded");
     }
 
     @Test

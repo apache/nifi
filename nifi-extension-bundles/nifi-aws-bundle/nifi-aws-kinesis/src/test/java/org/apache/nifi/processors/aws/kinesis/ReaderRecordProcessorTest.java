@@ -52,11 +52,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.APPROXIMATE_ARRIVAL_TIMESTAMP;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.CURRENT_LAG;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SUB_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SUB_SEQUENCE_NUMBER;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.MILLIS_BEHIND_LATEST;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.PARTITION_KEY;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_COUNT;
@@ -367,7 +367,7 @@ class ReaderRecordProcessorTest {
     }
 
     @Test
-    void testMillisBehindLatestAttributeOnSuccessAndFailure() {
+    void testCurrentLagAttributeOnSuccessAndFailure() {
         final List<KinesisClientRecord> records = List.of(
                 createKinesisRecord(USER_JSON_1, "1"),
                 createKinesisRecord(INVALID_JSON, "2")
@@ -381,14 +381,14 @@ class ReaderRecordProcessorTest {
         assertEquals(1, result.parseFailureFlowFiles().size());
 
         final FlowFile successFlowFile = result.successFlowFiles().getFirst();
-        assertEquals(String.valueOf(millis), successFlowFile.getAttribute(MILLIS_BEHIND_LATEST));
+        assertEquals(String.valueOf(millis), successFlowFile.getAttribute(CURRENT_LAG));
 
         final FlowFile failureFlowFile = result.parseFailureFlowFiles().getFirst();
-        assertEquals(String.valueOf(millis), failureFlowFile.getAttribute(MILLIS_BEHIND_LATEST));
+        assertEquals(String.valueOf(millis), failureFlowFile.getAttribute(CURRENT_LAG));
     }
 
     @Test
-    void testNullMillisBehindLatestAttributeNotSet() {
+    void testNullCurrentLagAttributeNotSet() {
         final List<KinesisClientRecord> records = List.of(
                 createKinesisRecord(USER_JSON_1, "1")
         );
@@ -398,7 +398,7 @@ class ReaderRecordProcessorTest {
         assertEquals(1, result.successFlowFiles().size());
 
         final FlowFile successFlowFile = result.successFlowFiles().getFirst();
-        assertNull(successFlowFile.getAttribute(MILLIS_BEHIND_LATEST));
+        assertNull(successFlowFile.getAttribute(CURRENT_LAG));
     }
 
     private static ConsumeRecordsResult consumeResult(final List<KinesisClientRecord> records) {

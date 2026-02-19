@@ -72,7 +72,7 @@ final class ReaderRecordProcessor {
             final String shardId,
             final ConsumeRecordsResult consumeResult) {
         final List<KinesisClientRecord> records = consumeResult.records();
-        final Long millisBehindLatest = consumeResult.millisBehindLatest();
+        final Long currentLag = consumeResult.currentLag();
         final List<FlowFile> successFlowFiles = new ArrayList<>();
         final List<FlowFile> failureFlowFiles = new ArrayList<>();
 
@@ -92,13 +92,13 @@ final class ReaderRecordProcessor {
                     final RecordSchema writeSchema = recordWriterFactory.getSchema(emptyMap(), convertedRecord.getSchema());
 
                     if (activeFlowFile == null) {
-                        activeFlowFile = ActiveFlowFile.startNewFile(logger, session, recordWriterFactory, writeSchema, streamName, shardId, millisBehindLatest);
+                        activeFlowFile = ActiveFlowFile.startNewFile(logger, session, recordWriterFactory, writeSchema, streamName, shardId, currentLag);
                     } else if (!writeSchema.equals(activeFlowFile.schema())) {
                         // If the write schema has changed, we need to complete the current FlowFile and start a new one.
                         final FlowFile completedFlowFile = activeFlowFile.complete();
                         successFlowFiles.add(completedFlowFile);
 
-                        activeFlowFile = ActiveFlowFile.startNewFile(logger, session, recordWriterFactory, writeSchema, streamName, shardId, millisBehindLatest);
+                        activeFlowFile = ActiveFlowFile.startNewFile(logger, session, recordWriterFactory, writeSchema, streamName, shardId, currentLag);
                     }
 
                     activeFlowFile.writeRecord(convertedRecord, kinesisRecord);
@@ -106,7 +106,7 @@ final class ReaderRecordProcessor {
             } catch (final IOException | MalformedRecordException | SchemaNotFoundException e) {
                 logger.error("Reader or Writer failed to process Kinesis Record with Stream Name [{}] Shard Id [{}] Sequence Number [{}] SubSequence Number [{}]",
                         streamName, shardId, kinesisRecord.sequenceNumber(), kinesisRecord.subSequenceNumber(), e);
-                final FlowFile failureFlowFile = createParseFailureFlowFile(session, streamName, shardId, kinesisRecord, millisBehindLatest, e);
+                final FlowFile failureFlowFile = createParseFailureFlowFile(session, streamName, shardId, kinesisRecord, currentLag, e);
                 failureFlowFiles.add(failureFlowFile);
             }
         }
@@ -124,7 +124,7 @@ final class ReaderRecordProcessor {
             final String streamName,
             final String shardId,
             final KinesisClientRecord record,
-            final Long millisBehindLatest,
+            final Long currentLag,
             final Exception e) {
         FlowFile flowFile = session.create();
 
@@ -135,7 +135,7 @@ final class ReaderRecordProcessor {
             }
         });
 
-        final Map<String, String> attributes = ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, record, record, millisBehindLatest);
+        final Map<String, String> attributes = ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, record, record, currentLag);
 
         final Throwable cause = e.getCause() != null ? e.getCause() : e;
         attributes.put(RECORD_ERROR_MESSAGE, cause.toString());
@@ -167,7 +167,7 @@ final class ReaderRecordProcessor {
 
         private final String streamName;
         private final String shardId;
-        private final Long millisBehindLatest;
+        private final Long currentLag;
 
         private KinesisClientRecord firstRecord;
         private KinesisClientRecord lastRecord;
@@ -180,7 +180,7 @@ final class ReaderRecordProcessor {
                 final RecordSchema schema,
                 final String streamName,
                 final String shardId,
-                final Long millisBehindLatest) {
+                final Long currentLag) {
             this.logger = logger;
             this.session = session;
             this.flowFile = flowFile;
@@ -188,7 +188,7 @@ final class ReaderRecordProcessor {
             this.schema = schema;
             this.streamName = streamName;
             this.shardId = shardId;
-            this.millisBehindLatest = millisBehindLatest;
+            this.currentLag = currentLag;
         }
 
         static ActiveFlowFile startNewFile(
@@ -198,7 +198,7 @@ final class ReaderRecordProcessor {
                 final RecordSchema writeSchema,
                 final String streamName,
                 final String shardId,
-                final Long millisBehindLatest) throws SchemaNotFoundException {
+                final Long currentLag) throws SchemaNotFoundException {
             final FlowFile flowFile = session.create();
             final OutputStream outputStream = session.write(flowFile);
 
@@ -206,7 +206,7 @@ final class ReaderRecordProcessor {
                 final RecordSetWriter writer = recordWriterFactory.createWriter(logger, writeSchema, outputStream, flowFile);
                 writer.beginRecordSet();
 
-                return new ActiveFlowFile(logger, session, flowFile, writer, writeSchema, streamName, shardId, millisBehindLatest);
+                return new ActiveFlowFile(logger, session, flowFile, writer, writeSchema, streamName, shardId, currentLag);
 
             } catch (final SchemaNotFoundException e) {
                 logger.debug("Failed to find writeSchema for Kinesis stream record: {}", e.getMessage());
@@ -257,7 +257,7 @@ final class ReaderRecordProcessor {
                 final WriteResult finalResult = writer.finishRecordSet();
                 writer.close();
 
-                final Map<String, String> attributes = ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, firstRecord, lastRecord, millisBehindLatest);
+                final Map<String, String> attributes = ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, firstRecord, lastRecord, currentLag);
                 attributes.putAll(finalResult.getAttributes());
                 attributes.put(RECORD_COUNT, String.valueOf(finalResult.getRecordCount()));
                 attributes.put(MIME_TYPE, writer.getMimeType());

@@ -582,7 +582,7 @@ class MemoryBoundRecordBufferTest {
     }
 
     @Test
-    void testConsumeRecordsReturnsLastMillisBehindLatest() {
+    void testConsumeRecordsReturnsLastValueOfCurrentLag() {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
 
         recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer1, 200L);
@@ -592,11 +592,11 @@ class MemoryBoundRecordBufferTest {
         final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
 
         assertEquals(2, result.records().size());
-        assertEquals(500L, result.millisBehindLatest());
+        assertEquals(500L, result.currentLag());
     }
 
     @Test
-    void testConsumeRecordsWithNullMillisBehindLatest() {
+    void testConsumeRecordsWithNullCurrentLag() {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
 
         recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer1, null);
@@ -605,11 +605,11 @@ class MemoryBoundRecordBufferTest {
         final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
 
         assertEquals(1, result.records().size());
-        assertNull(result.millisBehindLatest());
+        assertNull(result.currentLag());
     }
 
     @Test
-    void testConsumeRecordsWithMixedMillisBehindLatest() {
+    void testConsumeRecordsWithMixedCurrentLagValues() {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
 
         recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer1, 300L);
@@ -619,7 +619,7 @@ class MemoryBoundRecordBufferTest {
         final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
 
         assertEquals(2, result.records().size());
-        assertEquals(300L, result.millisBehindLatest());
+        assertEquals(300L, result.currentLag());
     }
 
     @ParameterizedTest

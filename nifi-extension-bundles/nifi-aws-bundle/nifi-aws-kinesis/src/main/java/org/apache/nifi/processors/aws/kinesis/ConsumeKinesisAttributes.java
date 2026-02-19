@@ -32,7 +32,7 @@ final class ConsumeKinesisAttributes {
     static final String FIRST_SUB_SEQUENCE_NUMBER = PREFIX + "first.subsequence.number";
     static final String LAST_SEQUENCE_NUMBER = PREFIX + "last.sequence.number";
     static final String LAST_SUB_SEQUENCE_NUMBER = PREFIX + "last.subsequence.number";
-    static final String MILLIS_BEHIND_LATEST = PREFIX + "millis.behind.latest";
+    static final String CURRENT_LAG = PREFIX + "current.lag";
 
     static final String PARTITION_KEY = PREFIX + "partition.key";
     static final String APPROXIMATE_ARRIVAL_TIMESTAMP = PREFIX + "approximate.arrival.timestamp.ms";
@@ -49,7 +49,7 @@ final class ConsumeKinesisAttributes {
      * @param shardId the shard ID the FlowFile records came from.
      * @param firstRecord the first Kinesis record in the FlowFile.
      * @param lastRecord the last Kinesis record in the FlowFile.
-     * @param millisBehindLatest milliseconds behind the latest record in the shard, or null if not available.
+     * @param currentLag milliseconds behind the latest record in the shard, or null if not available.
      * @return a <b>mutable</b> map with kinesis attributes.
      */
     static Map<String, String> fromKinesisRecords(
@@ -57,7 +57,7 @@ final class ConsumeKinesisAttributes {
             final String shardId,
             final KinesisClientRecord firstRecord,
             final KinesisClientRecord lastRecord,
-            final Long millisBehindLatest) {
+            final Long currentLag) {
         final Map<String, String> attributes = new HashMap<>(9);
 
         attributes.put(STREAM_NAME, streamName);
@@ -75,8 +75,8 @@ final class ConsumeKinesisAttributes {
             attributes.put(APPROXIMATE_ARRIVAL_TIMESTAMP, String.valueOf(lastRecord.approximateArrivalTimestamp().toEpochMilli()));
         }
 
-        if (millisBehindLatest != null) {
-            attributes.put(MILLIS_BEHIND_LATEST, String.valueOf(millisBehindLatest));
+        if (currentLag != null) {
+            attributes.put(CURRENT_LAG, String.valueOf(currentLag));
         }
 
         return attributes;

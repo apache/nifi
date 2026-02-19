@@ -37,7 +37,7 @@ interface RecordBuffer {
 
         ShardBufferId createBuffer(String shardId);
 
-        void addRecords(ShardBufferId bufferId, List<KinesisClientRecord> records, RecordProcessorCheckpointer checkpointer, Long millisBehindLatest);
+        void addRecords(ShardBufferId bufferId, List<KinesisClientRecord> records, RecordProcessorCheckpointer checkpointer, Long currentLag);
 
         /**
          * Called when a shard ends - waits until the buffer is flushed then performs the final checkpoint.
@@ -90,7 +90,7 @@ interface RecordBuffer {
     record ShardBufferId(String shardId, long bufferId) {
     }
 
-    record ConsumeRecordsResult(List<KinesisClientRecord> records, Long millisBehindLatest) {
+    record ConsumeRecordsResult(List<KinesisClientRecord> records, Long currentLag) {
         static ConsumeRecordsResult empty() {
             return new ConsumeRecordsResult(List.of(), null);
         }

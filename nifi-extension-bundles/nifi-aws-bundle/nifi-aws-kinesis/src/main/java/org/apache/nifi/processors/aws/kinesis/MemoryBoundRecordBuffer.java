@@ -98,7 +98,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     @Override
     public void addRecords(final ShardBufferId bufferId, final List<KinesisClientRecord> records,
-                           final RecordProcessorCheckpointer checkpointer, final Long millisBehindLatest) {
+                           final RecordProcessorCheckpointer checkpointer, final Long currentLag) {
         if (records.isEmpty()) {
             return;
         }
@@ -114,7 +114,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             return;
         }
 
-        final RecordBatch recordBatch = new RecordBatch(records, checkpointer, calculateMemoryUsage(records), millisBehindLatest);
+        final RecordBatch recordBatch = new RecordBatch(records, checkpointer, calculateMemoryUsage(records), currentLag);
         memoryTracker.reserveMemory(recordBatch, bufferId);
         final boolean addedRecords = buffer.offer(recordBatch);
 
@@ -401,7 +401,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     private record RecordBatch(List<KinesisClientRecord> records,
                                RecordProcessorCheckpointer checkpointer,
                                long batchSizeBytes,
-                               Long millisBehindLatest) {
+                               Long currentLag) {
         int size() {
             return records.size();
         }
@@ -503,15 +503,15 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             }
 
             final List<KinesisClientRecord> recordsToConsume = new ArrayList<>();
-            Long lastMillisBehindLatest = null;
+            Long currentLag = null;
             for (final RecordBatch batch : inProgressBatches) {
                 recordsToConsume.addAll(batch.records());
-                if (batch.millisBehindLatest != null) {
-                    lastMillisBehindLatest = batch.millisBehindLatest;
+                if (batch.currentLag != null) {
+                    currentLag = batch.currentLag;
                 }
             }
 
-            return new ConsumeRecordsResult(recordsToConsume, lastMillisBehindLatest);
+            return new ConsumeRecordsResult(recordsToConsume, currentLag);
         }
 
         List<RecordBatch> commitConsumedRecords() {
