@@ -980,7 +980,6 @@ public class TestXMLRecordReader {
         assertEquals("Columbus", fourthRecordNested.getValue("CITY"));
     }
 
-
     @Test
     public void testSimpleArray() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_array_simple.xml");
