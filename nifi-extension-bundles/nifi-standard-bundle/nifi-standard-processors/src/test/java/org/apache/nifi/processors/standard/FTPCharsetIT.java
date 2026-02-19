@@ -95,7 +95,6 @@ public class FTPCharsetIT {
 
     private static int listeningPort;
 
-
     public static Stream<Arguments> folderNamesProvider() {
         return Stream.of(
                 arguments("folder1", "folder2"),
@@ -168,7 +167,6 @@ public class FTPCharsetIT {
             FTP_SERVER.stop();
         }
     }
-
 
     /**
      * Test connectivity to FTP server.

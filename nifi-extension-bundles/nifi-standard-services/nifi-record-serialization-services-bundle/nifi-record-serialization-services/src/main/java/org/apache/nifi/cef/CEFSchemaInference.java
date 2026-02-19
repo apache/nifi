@@ -115,5 +115,4 @@ final class CEFSchemaInference implements SchemaInferenceEngine<CommonEvent> {
         return Optional.empty();
     }
 
-
 }

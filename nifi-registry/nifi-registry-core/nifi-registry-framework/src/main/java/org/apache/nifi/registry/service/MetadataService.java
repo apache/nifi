@@ -462,7 +462,6 @@ public interface MetadataService {
      */
     void deleteExtension(ExtensionEntity extension);
 
-
     // --------------------------------------------------------------------------------------------
 
     /**

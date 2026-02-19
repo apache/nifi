@@ -155,7 +155,6 @@ public class TestPartitionedWriteAheadEventStore {
         }
     }
 
-
     @Test()
     public void testMultipleWritesThenGetAllInSingleRead() throws IOException {
         final PartitionedWriteAheadEventStore store = new PartitionedWriteAheadEventStore(createConfig(), writerFactory, readerFactory, EventReporter.NO_OP, new EventFileManager());
@@ -319,7 +318,6 @@ public class TestPartitionedWriteAheadEventStore {
         }
     }
 
-
     @Test
     public void testGetEventsWithStartOffsetAndCountWithNothingAuthorized() throws IOException {
         final RepositoryConfiguration config = createConfig();
@@ -392,7 +390,6 @@ public class TestPartitionedWriteAheadEventStore {
         final List<ProvenanceEventRecord> allStoredEvents = store.getEvents(allEventIds, EventAuthorizer.GRANT_ALL, EventTransformer.EMPTY_TRANSFORMER);
         assertEquals(events, allStoredEvents);
     }
-
 
     @Test
     public void testWriteAfterRecoveringRepo() throws IOException {
@@ -490,7 +487,6 @@ public class TestPartitionedWriteAheadEventStore {
         assertEquals(600, count);
     }
 
-
     private RepositoryConfiguration createConfig() {
         return createConfig(2);
     }
@@ -513,7 +509,6 @@ public class TestPartitionedWriteAheadEventStore {
             .setEventId(eventId)
             .build();
     }
-
 
     private ProvenanceEventRecord createEvent() {
         final String uuid = UUID.randomUUID().toString();

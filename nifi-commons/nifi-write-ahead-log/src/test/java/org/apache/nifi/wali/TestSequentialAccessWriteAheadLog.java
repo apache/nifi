@@ -307,7 +307,6 @@ public class TestSequentialAccessWriteAheadLog {
         recoveryRepo.shutdown();
     }
 
-
     @Test
     @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true", disabledReason = "For manual performance testing")
     public void testUpdatePerformance() throws IOException, InterruptedException {

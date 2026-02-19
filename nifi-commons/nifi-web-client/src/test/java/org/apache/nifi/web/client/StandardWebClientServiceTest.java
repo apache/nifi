@@ -393,7 +393,6 @@ public class StandardWebClientServiceTest {
         }
     }
 
-
     private void runRequestMethodRequestBody(
             final HttpRequestUriSpec httpRequestUriSpec,
             final HttpRequestMethod httpRequestMethod,

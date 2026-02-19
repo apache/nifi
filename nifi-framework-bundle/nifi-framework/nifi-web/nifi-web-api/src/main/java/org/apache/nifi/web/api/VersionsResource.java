@@ -270,7 +270,6 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                 });
     }
 
-
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -388,7 +387,6 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         }
     }
 
-
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
@@ -454,7 +452,6 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     });
         }
     }
-
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -548,7 +545,6 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
             } catch (final URISyntaxException e) {
                 throw new RuntimeException(e);
             }
-
 
             // Now that we have the Request, we know that no other thread is updating the Flow Registry. So we can now
             // create the Flow in the Flow Registry and push the Process Group as the first version of the Flow. Once we've
@@ -712,7 +708,6 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         }
     }
 
-
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
@@ -777,7 +772,6 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     return generateOkResponse(entity).build();
                 });
     }
-
 
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
@@ -877,7 +871,6 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
                     return generateOkResponse(responseEntity).build();
                 });
     }
-
 
     @GET
     @Consumes(MediaType.WILDCARD)

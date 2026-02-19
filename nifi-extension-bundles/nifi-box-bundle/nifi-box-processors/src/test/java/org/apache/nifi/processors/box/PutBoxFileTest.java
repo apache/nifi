@@ -64,7 +64,6 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
 
     private final Map<String, BoxFolder> mockBoxFolders = new HashMap<>();
 
-
     @Override
     @BeforeEach
     void setUp() throws Exception {

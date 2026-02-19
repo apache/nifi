@@ -79,7 +79,6 @@ public class PythonProcess {
     private Thread logReaderThread;
     private String logListenerId;
 
-
     public PythonProcess(final PythonProcessConfig processConfig, final ControllerServiceTypeLookup controllerServiceTypeLookup, final File virtualEnvHome,
                          final boolean packagedWithDependencies, final String componentType, final String componentId) {
         this.processConfig = processConfig;
@@ -531,7 +530,6 @@ public class PythonProcess {
             logger.info("Recreated Processor {} ({}) in Python Process {}", createdProcessor.identifier(), createdProcessor.type(), process);
         }
     }
-
 
     public boolean containsIsolatedProcessor() {
         return processorPrefersIsolation.containsValue(Boolean.TRUE);

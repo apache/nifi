@@ -58,7 +58,6 @@ public class StandardControllerServiceFactory implements ControllerServiceFactor
         this.creator = creator;
     }
 
-
     @Override
     public ControllerServiceCreationDetails getCreationDetails(final String implementationClassName, final Map<String, String> propertyValues) {
         final String serviceId = determineServiceId(implementationClassName, propertyValues);

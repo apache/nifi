@@ -51,7 +51,6 @@ public class DeleteGCSObjectTest extends AbstractGCSTest {
     public static final Long GENERATION = 42L;
     static final String KEY = "somefile";
 
-
     public static final String BUCKET_ATTR = "gcs.bucket";
     public static final String KEY_ATTR = "gcs.key";
     public static final String GENERATION_ATTR = "gcs.generation";
@@ -92,7 +91,6 @@ public class DeleteGCSObjectTest extends AbstractGCSTest {
             }
         };
     }
-
 
     @Test
     public void testDeleteWithValidArguments() throws Exception {

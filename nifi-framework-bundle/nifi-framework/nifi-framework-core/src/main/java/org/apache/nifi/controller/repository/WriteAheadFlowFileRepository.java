@@ -227,7 +227,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             }
         }
 
-
         for (final String swapLocation : snapshot.getSwapLocations()) {
             final String queueIdentifier = swapManager.getQueueIdentifier(swapLocation);
             final ResourceClaimReference swapReference = createResourceClaimReference(swapLocation, queueIdentifier);
@@ -542,7 +541,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         claimManager.decrementClaimantCount(claim.getResourceClaim());
     }
-
 
     protected static String normalizeSwapLocation(final String swapLocation) {
         if (swapLocation == null) {

@@ -274,7 +274,6 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         }
     }
 
-
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>();
@@ -300,7 +299,6 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     private SchemaAccessStrategy createAccessStrategy() {
         return new SchemaAccessStrategy() {
             private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
-
 
             @Override
             public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) {

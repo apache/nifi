@@ -246,7 +246,6 @@ public class LocalPort extends AbstractPort {
         logger.debug("{} Transferred Single FlowFile", this);
     }
 
-
     protected void transferUnboundedConcurrency(final ProcessContext context, final ProcessSession session) {
         final Map<String, String> attributes = new HashMap<>();
         final Map<String, Integer> counts = getProcessGroup().getBatchCounts().captureCounts();

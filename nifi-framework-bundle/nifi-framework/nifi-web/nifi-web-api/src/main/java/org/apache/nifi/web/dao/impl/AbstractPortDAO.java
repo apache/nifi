@@ -48,7 +48,6 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
         verifyUpdate(port, portDTO);
     }
 
-
     protected void verifyUpdate(final Port port, final PortDTO portDTO) {
         if (isNotNull(portDTO.getState())) {
             final ScheduledState purposedScheduledState = ScheduledState.valueOf(portDTO.getState());

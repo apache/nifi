@@ -582,7 +582,6 @@ public class TestStandardProcessScheduler {
         proc.setAllowSleepInterrupt(true);
     }
 
-
     public static class FailingService extends AbstractControllerService {
 
         @OnEnabled

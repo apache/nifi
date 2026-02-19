@@ -30,7 +30,6 @@ public class ProcessorRunStatusDetailsDTO {
     public static final String VALIDATING = "Validating";
     public static final String DISABLED = "Disabled";
 
-
     private String id;
     private String name;
     private String runStatus;
@@ -74,7 +73,6 @@ public class ProcessorRunStatusDetailsDTO {
     public void setActiveThreadCount(final int activeThreads) {
         this.activeThreads = activeThreads;
     }
-
 
     @Schema(description = "The processor's validation errors")
     public Set<String> getValidationErrors() {

@@ -48,7 +48,6 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
     private long blockStartOffset = 0L;
     private int recordCount = 0;
 
-
     public CompressableRecordWriter(final File file, final AtomicLong idGenerator, final TocWriter writer, final boolean compressed,
         final int uncompressedBlockSize) throws IOException {
         super(file, writer);
@@ -71,7 +70,6 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
         this.rawOutStream = new ByteCountingOutputStream(new BufferedOutputStream(out));
         this.idGenerator = idGenerator;
     }
-
 
     protected AtomicLong getIdGenerator() {
         return idGenerator;
@@ -96,8 +94,6 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
             throw ioe;
         }
     }
-
-
 
     /**
      * Resets the streams to prepare for a new block

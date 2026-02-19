@@ -105,7 +105,6 @@ import javax.net.ssl.SSLContext;
 public class StandardStatelessDataflowFactory implements StatelessDataflowFactory {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
 
-
     @Override
     public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition dataflowDefinition,
                                             final ClassLoader extensionRootClassLoader)

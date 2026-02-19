@@ -170,7 +170,6 @@ public class PutGCSObject extends AbstractGCSProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-
     public static final PropertyDescriptor CRC32C = new PropertyDescriptor.Builder()
         .name("CRC32C Checksum")
         .description("CRC32C Checksum (encoded in Base64, big-Endian order) of the file for server-side validation.")
@@ -249,7 +248,6 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
-
 
     public static final PropertyDescriptor OVERWRITE = new PropertyDescriptor.Builder()
             .name("Overwrite Object")
@@ -422,7 +420,6 @@ public class PutGCSObject extends AbstractGCSProcessor {
                     // Create attributes
                     attributes.put(BUCKET_ATTR, blob.getBucket());
                     attributes.put(KEY_ATTR, blob.getName());
-
 
                     if (blob.getSize() != null) {
                         attributes.put(SIZE_ATTR, String.valueOf(blob.getSize()));

@@ -337,7 +337,6 @@ public class NiFiRegistryFlowMapper {
         return resolved;
     }
 
-
     public String getGroupId(final String groupId) {
         return versionedComponentIds.get(groupId);
     }
@@ -676,7 +675,6 @@ public class NiFiRegistryFlowMapper {
             }
         }
 
-
         final List<ControllerServiceAPI> serviceApis = new ArrayList<>();
         for (final Class<?> serviceApiClass : serviceApiClasses) {
             final BundleCoordinate bundleCoordinate = extensionManager.getBundle(serviceApiClass.getClassLoader()).getBundleDetails().getCoordinate();
@@ -688,7 +686,6 @@ public class NiFiRegistryFlowMapper {
         }
         return serviceApis;
     }
-
 
     public VersionedFunnel mapFunnel(final Funnel funnel) {
         final VersionedFunnel versionedFunnel = new InstantiatedVersionedFunnel(funnel.getIdentifier(), funnel.getProcessGroupIdentifier());

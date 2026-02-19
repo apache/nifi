@@ -99,7 +99,6 @@ public class TestTransformXml {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
                 new FileInputStream("src/test/resources/TestTransformXml/tokens.csv")))) {
 
-
             String line;
             while ((line = reader.readLine()) != null) {
                 builder.append(line).append("\n");

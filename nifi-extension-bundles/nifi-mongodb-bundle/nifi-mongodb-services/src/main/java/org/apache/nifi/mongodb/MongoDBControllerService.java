@@ -236,7 +236,6 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         this.mongoClient.close();
     }
 
-
     @Override
     public MongoDatabase getDatabase(String name) {
         return mongoClient.getDatabase(name);

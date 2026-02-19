@@ -95,7 +95,6 @@ public class BootstrapConfiguration {
         runContinuous = Boolean.parseBoolean(System.getenv(RUN_CONTINUOUS_ENV_VAR));
     }
 
-
     public File getEngineConfigFile() {
         return engineConfigFile;
     }
@@ -120,7 +119,6 @@ public class BootstrapConfiguration {
         // Configuration is valid so it can be returned.
         return configuration;
     }
-
 
     private void parseArguments(final String[] args) {
         // Set defaults for engine config filename

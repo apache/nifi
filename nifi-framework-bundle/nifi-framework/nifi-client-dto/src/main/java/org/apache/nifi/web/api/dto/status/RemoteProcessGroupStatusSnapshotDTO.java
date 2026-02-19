@@ -124,7 +124,6 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         this.sent = sent;
     }
 
-
     /**
      * @return Formatted description of the amount of data received from this remote process group
      */

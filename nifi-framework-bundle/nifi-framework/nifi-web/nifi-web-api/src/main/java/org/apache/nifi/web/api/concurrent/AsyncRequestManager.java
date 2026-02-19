@@ -51,7 +51,6 @@ public class AsyncRequestManager<R, T> implements RequestManager<R, T> {
 
     private final ExecutorService threadPool;
 
-
     public AsyncRequestManager(final int maxConcurrentRequests, final long requestExpirationMillis, final String threadNamePrefix) {
         this.requestExpirationMillis = requestExpirationMillis;
         this.maxConcurrentRequests = maxConcurrentRequests;
@@ -124,7 +123,6 @@ public class AsyncRequestManager<R, T> implements RequestManager<R, T> {
             }
         });
     }
-
 
     @Override
     public AsynchronousWebRequest<R, T> removeRequest(final String type, final String id, final NiFiUser user) {

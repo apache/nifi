@@ -61,7 +61,6 @@ class TestSchemaInferenceUtil {
 
             Arguments.of(String.valueOf(1.1D), RecordFieldType.FLOAT.getDataType()),
 
-
             Arguments.of(String.valueOf(1), RecordFieldType.INT.getDataType()),
             Arguments.of(String.valueOf(Long.MAX_VALUE), RecordFieldType.LONG.getDataType()),
 

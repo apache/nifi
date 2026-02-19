@@ -103,7 +103,6 @@ public class TestExtractGrok {
         matched.assertAttributeEquals("grok.NUMBER", "-42");
     }
 
-
     @Test
     public void testExtractGrokWithUnMatchedContent() throws IOException {
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{URI}");

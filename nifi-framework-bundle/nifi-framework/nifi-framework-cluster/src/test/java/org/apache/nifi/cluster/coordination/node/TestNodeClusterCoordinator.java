@@ -88,7 +88,6 @@ public class TestNodeClusterCoordinator {
         when(stateManager.getState(any(Scope.class))).thenReturn(new MockStateMap(Collections.emptyMap(), 1));
         when(stateManagerProvider.getStateManager(anyString())).thenReturn(stateManager);
 
-
         final EventReporter eventReporter = Mockito.mock(EventReporter.class);
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
         when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
@@ -504,7 +503,6 @@ public class TestNodeClusterCoordinator {
         requestMsg.setConnectionRequest(request);
         return coordinator.handle(requestMsg, Collections.emptySet());
     }
-
 
     private static class FirstVoteWinsFlowElection implements FlowElection {
         private DataFlow dataFlow;

@@ -92,7 +92,6 @@ public class Group {
         return String.format("identifier[%s], name[%s], users[%s]", getIdentifier(), getName(), String.join(", ", users));
     }
 
-
     /**
      * Builder for creating Groups.
      */

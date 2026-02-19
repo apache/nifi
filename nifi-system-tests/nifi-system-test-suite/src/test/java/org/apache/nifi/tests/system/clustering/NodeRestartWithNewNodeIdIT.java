@@ -81,7 +81,6 @@ public class NodeRestartWithNewNodeIdIT extends NiFiSystemIT {
         assertEquals(originalNode2.getApiPort(), updatedNode2.getApiPort());
     }
 
-
     private void deleteChildren(final File dir) {
         if (!dir.exists()) {
             return;

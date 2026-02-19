@@ -83,7 +83,6 @@ public class TestPopularVoteFlowElection {
         assertTrue(new String(flow1).equals(electedFlowXml) || new String(flow2).equals(electedFlowXml));
     }
 
-
     @Test
     public void testEmptyFlowIgnoredIfNonEmptyFlowExists() throws IOException {
         final PopularVoteFlowElection election = new PopularVoteFlowElection(1, TimeUnit.MINUTES, 8);

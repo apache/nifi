@@ -249,7 +249,6 @@ public class TestSiteToSiteProvenanceReportingTask {
         assertEquals(3, task.dataSent.size());
     }
 
-
     @Test
     public void testFilterComponentIdNoResult() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
@@ -505,7 +504,6 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "pgB2");
 
-
         // B201 belongs to ProcessGroup B2, so it should be picked.
         ProvenanceEventRecord event = createProvenanceEventRecord("B201", "dummy");
         MockSiteToSiteProvenanceReportingTask task = setup(event, properties, 1);
@@ -517,7 +515,6 @@ public class TestSiteToSiteProvenanceReportingTask {
         JsonNode reportedEvent = new ObjectMapper().readTree(task.dataSent.get(0)).get(0);
         assertEquals("B201", reportedEvent.get("componentId").asText());
         assertEquals("Processor in PGB2", reportedEvent.get("componentName").asText());
-
 
         // B301 belongs to PG B3, whose parent is PGB2, so it should be picked, too.
         event = createProvenanceEventRecord("B301", "dummy");
@@ -550,7 +547,6 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "riB2,roB3");
 
-
         // riB2 is a Remote Input Port in Process Group B2.
         ProvenanceEventRecord event = createProvenanceEventRecord("riB2", "Remote Input Port");
         MockSiteToSiteProvenanceReportingTask task = setup(event, properties, 1);
@@ -563,7 +559,6 @@ public class TestSiteToSiteProvenanceReportingTask {
         assertEquals("riB2", reportedEvent.get("componentId").asText());
         assertEquals("Remote Input Port name", reportedEvent.get("componentName").asText());
         assertEquals("pgB2", reportedEvent.get("processGroupId").asText());
-
 
         // roB3 is a Remote Output Port in Process Group B3.
         event = createProvenanceEventRecord("roB3", "Remote Output Port");

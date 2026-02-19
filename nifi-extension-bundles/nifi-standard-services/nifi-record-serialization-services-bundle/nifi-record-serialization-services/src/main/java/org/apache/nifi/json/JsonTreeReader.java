@@ -87,7 +87,6 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .allowableValues(StartingFieldStrategy.class)
             .build();
 
-
     public static final PropertyDescriptor STARTING_FIELD_NAME = new PropertyDescriptor.Builder()
             .name("Starting Field Name")
             .description("Skips forward to the given nested JSON field (array or object) to begin processing.")

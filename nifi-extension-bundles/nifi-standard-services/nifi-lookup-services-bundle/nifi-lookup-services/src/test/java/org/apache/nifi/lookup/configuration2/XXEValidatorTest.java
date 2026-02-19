@@ -54,7 +54,6 @@ public class XXEValidatorTest {
         assertTrue(val.isValid());
     }
 
-
     @Test
     public void testXmlFileWithRemoteXXEIsNotValid() {
         // Arrange

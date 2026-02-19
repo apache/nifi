@@ -64,7 +64,6 @@ final class StorageStatusResultProcessor implements QueryResultProcessor<Map<Lon
                 STORAGE_USED_DESCRIPTION
         ), context.getLong(4));
 
-
         storageNumber++;
     }
 

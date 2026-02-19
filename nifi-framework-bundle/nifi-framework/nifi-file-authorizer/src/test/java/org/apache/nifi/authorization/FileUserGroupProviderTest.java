@@ -286,7 +286,6 @@ public class FileUserGroupProviderTest {
                 () -> userGroupProvider.onConfigured(configurationContext));
     }
 
-
     @Test
     public void testOnConfiguredWhenPrimaryTenantsDifferentThanRestore() throws Exception {
         writeFile(primaryTenants, EMPTY_TENANTS);

@@ -123,5 +123,4 @@ public class TransformNifiCommandFactory {
         versionedRemoteGroupPort.setScheduledState(ScheduledState.RUNNING);
     }
 
-
 }

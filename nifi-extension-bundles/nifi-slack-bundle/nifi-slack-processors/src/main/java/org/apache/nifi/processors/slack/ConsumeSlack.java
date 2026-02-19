@@ -202,7 +202,6 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
     private final Queue<ConsumeChannel> channels = new LinkedBlockingQueue<>();
     private volatile App slackApp;
 
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -237,11 +236,9 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
         rateLimit = null;
     }
 
-
     public RateLimit getRateLimit() {
         return rateLimit;
     }
-
 
     private App createSlackApp(final ProcessContext context) {
         final String botToken = context.getProperty(ACCESS_TOKEN).getValue();
@@ -341,7 +338,6 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
         return new DelegatingSlackClient(slackApp.client());
     }
 
-
     private ConsumeChannel getChannel() {
         final List<ConsumeChannel> yieldedChannels = new ArrayList<>();
 
@@ -410,7 +406,6 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
         context.yield();
     }
 
-
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
@@ -446,7 +441,6 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
 
         return results;
     }
-
 
     private static class DelegatingSlackClient implements ConsumeSlackClient {
         private final MethodsClient delegate;

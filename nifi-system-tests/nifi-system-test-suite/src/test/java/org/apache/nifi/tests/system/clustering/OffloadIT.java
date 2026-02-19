@@ -67,7 +67,6 @@ public class OffloadIT extends NiFiSystemIT {
 
         getClientUtil().updateProcessorProperties(sleep, Collections.singletonMap("onTrigger Sleep Time", "100 ms"));
 
-
         getClientUtil().startProcessGroupComponents("root");
 
         waitForQueueNotEmpty(connectionEntity.getId());
@@ -84,7 +83,6 @@ public class OffloadIT extends NiFiSystemIT {
         getClientUtil().connectNode(nodeId);
         waitForAllNodesConnected();
     }
-
 
     private void disconnectNode(final NodeDTO nodeDto) throws NiFiClientException, IOException, InterruptedException {
         getClientUtil().disconnectNode(nodeDto.getNodeId());

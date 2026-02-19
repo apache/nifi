@@ -142,7 +142,6 @@ public interface ContentRepository {
      */
     ContentClaim clone(ContentClaim original, boolean lossTolerant) throws IOException;
 
-
     /**
      * Imports content from the given path creating a new content object and
      * claim within the repository.

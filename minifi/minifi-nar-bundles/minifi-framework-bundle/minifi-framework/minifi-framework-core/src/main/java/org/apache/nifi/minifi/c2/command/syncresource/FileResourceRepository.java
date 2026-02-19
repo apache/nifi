@@ -171,7 +171,6 @@ public class FileResourceRepository implements ResourceRepository {
                 .findFirst();
     }
 
-
     private void initialize() {
         try {
             createDirectories(assetRepositoryDirectory);

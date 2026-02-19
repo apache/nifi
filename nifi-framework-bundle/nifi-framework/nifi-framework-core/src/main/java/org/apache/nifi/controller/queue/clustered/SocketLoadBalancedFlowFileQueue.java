@@ -122,7 +122,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     private boolean stopped = true;
     private volatile boolean offloaded = false;
 
-
     public SocketLoadBalancedFlowFileQueue(final String identifier, final ProcessScheduler scheduler, final FlowFileRepository flowFileRepo,
                                            final ProvenanceEventRepository provRepo, final ContentRepository contentRepo,
                                            final ClusterCoordinator clusterCoordinator, final AsyncLoadBalanceClientRegistry clientRegistry, final FlowFileSwapManager swapManager,
@@ -184,7 +183,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
         rebalancingPartition.start(partitioner);
     }
-
 
     @Override
     public synchronized void setLoadBalanceStrategy(final LoadBalanceStrategy strategy, final String partitioningAttribute) {
@@ -426,7 +424,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             partitionReadLock.unlock();
         }
     }
-
 
     @Override
     public SwapSummary recoverSwappedFlowFiles() {
@@ -774,7 +771,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 }
             }
 
-
             this.nodeIdentifiers.clear();
             this.nodeIdentifiers.addAll(updatedNodeIdentifiers);
 
@@ -801,7 +797,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     public void put(final FlowFileRecord flowFile) {
         putAndGetPartition(flowFile);
     }
-
 
     protected QueuePartition putAndGetPartition(final FlowFileRecord flowFile) {
         final QueuePartition partition;
@@ -1050,7 +1045,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                     "that point.", expiredRecords.size(), e);
         }
     }
-
 
     @Override
     protected List<FlowFileRecord> getListableFlowFiles() {

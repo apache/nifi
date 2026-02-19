@@ -82,7 +82,6 @@ public abstract class AbstractTestRecordReaderWriter {
         }
     }
 
-
     @Test
     public void testSingleRecordCompressed() throws IOException {
         final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.gz");
@@ -100,7 +99,6 @@ public abstract class AbstractTestRecordReaderWriter {
 
         FileUtils.deleteFile(journalFile.getParentFile(), true);
     }
-
 
     @Test
     public void testMultipleRecordsSameBlockCompressed() throws IOException {
@@ -139,7 +137,6 @@ public abstract class AbstractTestRecordReaderWriter {
 
         FileUtils.deleteFile(journalFile.getParentFile(), true);
     }
-
 
     @Test
     public void testMultipleRecordsMultipleBlocksCompressed() throws IOException {

@@ -32,7 +32,6 @@ public class FlowRegistryClientInitializer implements ConfigurableComponentIniti
 
     private final ExtensionManager extensionManager;
 
-
     public FlowRegistryClientInitializer(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
     }

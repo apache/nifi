@@ -82,7 +82,6 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
         assertEquals(StsAssumeRoleCredentialsProvider.class, credentialsProvider.getClass());
     }
 
-
     @Test
     public void testFileCredentials() {
         runner.setProperty(service, AWSCredentialsProviderControllerService.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
@@ -98,7 +97,6 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
         runner.setProperty(service, AWSCredentialsProviderControllerService.ACCESS_KEY_ID, "BogusAccessKey");
         runner.assertNotValid(service);
     }
-
 
     @Test
     public void testAssumeRoleCredentialsInvalidSessionTime() {

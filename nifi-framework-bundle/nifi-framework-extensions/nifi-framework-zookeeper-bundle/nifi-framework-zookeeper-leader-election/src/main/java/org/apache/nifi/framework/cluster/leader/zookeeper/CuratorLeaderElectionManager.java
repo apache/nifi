@@ -354,7 +354,6 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
         return client;
     }
 
-
     private static class LeaderRole {
 
         private final LeaderSelector leaderSelector;

@@ -167,7 +167,6 @@ public class TestUpdateAttribute {
         flowFile.assertAttributeEquals("sum", "2");
     }
 
-
     @Test
     public void testStateWithInitValue() {
         runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);

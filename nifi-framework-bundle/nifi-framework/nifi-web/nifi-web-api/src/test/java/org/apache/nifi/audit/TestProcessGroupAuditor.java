@@ -397,7 +397,6 @@ public class TestProcessGroupAuditor {
             return new ProcessGroupAuditor();
         }
 
-
         @Bean
         public AuditService auditService() {
             return mock(AuditService.class);

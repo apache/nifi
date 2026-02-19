@@ -104,7 +104,6 @@ public class PythonProxyInvocationHandler implements InvocationHandler {
         }
     }
 
-
     private Object convertOutput(final Method method, final Object output) {
         final Class<?> returnType = method.getReturnType();
         // If output is None/null or expected return type is

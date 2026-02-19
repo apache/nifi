@@ -157,7 +157,6 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
             .build();
     }
 
-
     @Override
     public Set<SchemaField> getSuppliedSchemaFields() {
         return schemaFields;

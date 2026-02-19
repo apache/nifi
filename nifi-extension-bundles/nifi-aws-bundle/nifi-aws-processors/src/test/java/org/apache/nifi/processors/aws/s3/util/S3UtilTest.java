@@ -51,7 +51,6 @@ public class S3UtilTest {
         assertNull(S3Util.nullIfBlank(null));
     }
 
-
     @Test
     void testRequestPayerWithFalse() {
         assertNull(S3Util.getRequestPayer(false));
@@ -61,7 +60,6 @@ public class S3UtilTest {
     void testRequestPayerWithTrue() {
         assertEquals(RequestPayer.REQUESTER, S3Util.getRequestPayer(true));
     }
-
 
     @Test
     void testGetResourceURL() {
@@ -73,7 +71,6 @@ public class S3UtilTest {
 
         assertEquals(url, S3Util.getResourceUrl(s3Client, bucket, key));
     }
-
 
     @Test
     void testSanitizeETagWithQuotes() {
@@ -92,7 +89,6 @@ public class S3UtilTest {
     void testSanitizeETagWithNull() {
         assertNull(S3Util.sanitizeETag(null));
     }
-
 
     @Test
     void testParseExpirationHeaderWithValidHeader() {
@@ -116,7 +112,6 @@ public class S3UtilTest {
     void testParseExpirationHeaderWithNull() {
         assertNull(S3Util.parseExpirationHeader(null));
     }
-
 
     @Test
     void testCreateSpecWithStartOnly() {

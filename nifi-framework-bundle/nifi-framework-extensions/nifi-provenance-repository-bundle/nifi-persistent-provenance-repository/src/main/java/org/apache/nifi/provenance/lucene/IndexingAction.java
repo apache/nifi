@@ -52,7 +52,6 @@ public class IndexingAction {
         doc.add(new StringField(field.getSearchableFieldName(), value.toLowerCase(), store));
     }
 
-
     public void index(final StandardProvenanceEventRecord record, final IndexWriter indexWriter, final Integer blockIndex) throws IOException {
         final Document doc = new Document();
         addField(doc, SearchableFields.FlowFileUUID, record.getFlowFileUuid(), Store.NO);

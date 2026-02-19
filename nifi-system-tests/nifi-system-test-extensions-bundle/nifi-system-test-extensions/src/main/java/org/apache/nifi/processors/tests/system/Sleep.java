@@ -163,7 +163,6 @@ public class Sleep extends AbstractProcessor {
         sleep(context.getProperty(ON_STOPPED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS), isIgnoreInterrupt(context), false);
     }
 
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();

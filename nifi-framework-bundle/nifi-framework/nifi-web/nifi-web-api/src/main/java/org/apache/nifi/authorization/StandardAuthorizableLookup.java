@@ -171,8 +171,6 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     };
 
-
-
     // nifi core components
     private ControllerFacade controllerFacade;
 

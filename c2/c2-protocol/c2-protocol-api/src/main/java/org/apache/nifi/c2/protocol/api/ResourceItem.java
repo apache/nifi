@@ -97,7 +97,6 @@ public class ResourceItem implements Serializable {
         this.url = url;
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) {

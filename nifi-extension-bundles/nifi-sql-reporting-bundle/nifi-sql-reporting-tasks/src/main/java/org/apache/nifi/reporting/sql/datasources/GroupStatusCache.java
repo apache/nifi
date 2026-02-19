@@ -28,7 +28,6 @@ public class GroupStatusCache {
     private long nextRefreshTime;
     private ProcessGroupStatus cached;
 
-
     public GroupStatusCache(final Duration refreshFrequency) {
         this.refreshMillis = refreshFrequency.toMillis();
         nextRefreshTime = 0L;

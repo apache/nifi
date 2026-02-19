@@ -91,7 +91,6 @@ public class JndiJmsConnectionFactoryHandler extends CachedJMSConnectionFactoryH
         }
     }
 
-
     private Context createInitialContext() throws NamingException {
         final Hashtable<String, String> env = new Hashtable<>(); //NOPMD
         env.put(Context.INITIAL_CONTEXT_FACTORY, context.getProperty(JNDI_INITIAL_CONTEXT_FACTORY).evaluateAttributeExpressions().getValue().trim());

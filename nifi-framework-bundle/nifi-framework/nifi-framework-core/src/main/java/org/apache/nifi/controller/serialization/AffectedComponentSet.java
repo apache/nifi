@@ -713,7 +713,6 @@ public class AffectedComponentSet {
         return existing;
     }
 
-
     /**
      * Returns a new AffectedComponentSet that represents only those components that currently can be started. When a set of dataflow updates have occurred, it is very possible
      * that one or more components referred to by the AffectedComponentSet can no longer be started (for example, there was a dataflow update that disabled a Processor that previously was running).
@@ -859,7 +858,6 @@ public class AffectedComponentSet {
 
         return true;
     }
-
 
     @Override
     public String toString() {

@@ -39,7 +39,6 @@ public class Anchored extends RecordPathSegment {
         this.evaluationPath = evaluationPath;
     }
 
-
     @Override
     public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         final Stream<FieldValue> anchoredStream = anchorPath.evaluate(context);

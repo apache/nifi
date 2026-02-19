@@ -42,7 +42,6 @@ public class StandardRevisionUpdate<T> implements RevisionUpdate<T> {
         }
     }
 
-
     @Override
     public T getComponent() {
         return component;

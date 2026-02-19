@@ -142,7 +142,6 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals("Updated", thirdFlowFileContents);
     }
 
-
     @Test
     public void testChangeConnectionDestinationRemoveOldAndMoveGroup() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity clientEntity = registerClient();
@@ -192,7 +191,6 @@ public class RegistryClientIT extends NiFiSystemIT {
         util.changeFlowVersion(parent.getId(), "1");
         util.changeFlowVersion(parent.getId(), "2");
     }
-
 
     @Test
     public void testControllerServiceUpdateWhileRunning() throws NiFiClientException, IOException, InterruptedException {
@@ -251,7 +249,6 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals("1", thirdFlowFileAttributes.get("count"));
     }
 
-
     @Test
     public void testChangeVersionWithPortMoveBetweenGroups() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity clientEntity = registerClient(new File("src/test/resources/versioned-flows"));
@@ -298,7 +295,6 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertTrue(v1Contents.getInputPorts().isEmpty());
     }
 
-
     @Test
     public void testRollbackOnFailure() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity clientEntity = registerClient(new File("src/test/resources/versioned-flows"));
@@ -318,7 +314,6 @@ public class RegistryClientIT extends NiFiSystemIT {
         final FlowDTO contents = getNifiClient().getFlowClient().getProcessGroup(imported.getId()).getProcessGroupFlow().getFlow();
         assertEquals(1, contents.getProcessors().size());
     }
-
 
     @Test
     public void testStartVersionControlThenImport() throws NiFiClientException, IOException {
@@ -341,7 +336,6 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertEquals(terminate.getComponent().getName(), importedProcessor.getName());
         assertNotEquals(terminate.getComponent().getId(), importedProcessor.getId());
     }
-
 
     @Test
     public void testStartVersionControlThenModifyAndRevert() throws NiFiClientException, IOException, InterruptedException {

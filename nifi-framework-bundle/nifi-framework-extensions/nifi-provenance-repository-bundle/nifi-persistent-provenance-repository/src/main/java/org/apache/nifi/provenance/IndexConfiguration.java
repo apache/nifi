@@ -113,7 +113,6 @@ public class IndexConfiguration {
         }
     }
 
-
     public File getWritableIndexDirectory(final File provenanceLogFile, final long newIndexTimestamp) {
         return getWritableIndexDirectoryForStorageDirectory(provenanceLogFile.getParentFile(), provenanceLogFile, newIndexTimestamp);
     }

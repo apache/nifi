@@ -224,7 +224,6 @@ public abstract class AbstractFlowManager implements FlowManager {
         return new HashSet<>(allConnections.values());
     }
 
-
     public void setRootGroup(final ProcessGroup rootGroup) {
         if (this.rootGroup != null && this.rootGroup.isEmpty()) {
             allProcessGroups.remove(this.rootGroup.getIdentifier());

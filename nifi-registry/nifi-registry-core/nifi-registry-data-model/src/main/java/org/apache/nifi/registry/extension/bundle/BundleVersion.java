@@ -42,7 +42,6 @@ public class BundleVersion extends LinkableEntity {
     // read-only, only populated from retrieval of an individual bundle version
     private Bucket bucket;
 
-
     @Schema(description = "The metadata about this version of the extension bundle")
     public BundleVersionMetadata getVersionMetadata() {
         return versionMetadata;

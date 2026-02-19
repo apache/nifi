@@ -1069,7 +1069,6 @@ public class RunNiFiRegistry {
         this.loggingFutures = futures;
     }
 
-
     private boolean isWindows() {
         final String osName = System.getProperty("os.name");
         return osName != null && osName.toLowerCase().contains("win");

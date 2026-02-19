@@ -80,7 +80,6 @@ public interface NiFiWebConfigurationContext {
     ComponentDetails updateComponent(NiFiWebConfigurationRequestContext configurationContext, String annotationData, Map<String, String> properties)
             throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException;
 
-
     /**
      * Gets the details for the underlying component (including configuration,
      * validation errors, and annotation data).

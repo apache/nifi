@@ -37,7 +37,6 @@ import java.util.Set;
 
 public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<StringResult> {
 
-
     public UpdateBucketPolicy() {
         super("update-bucket-policy", StringResult.class);
     }
@@ -57,7 +56,6 @@ public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<StringResult
         addOption(CommandOption.GROUP_ID_LIST.createOption());
         addOption(CommandOption.POLICY_ACTION.createOption());
     }
-
 
     @Override
     public StringResult doExecute(NiFiRegistryClient client, Properties properties) throws IOException, NiFiRegistryException, ParseException {

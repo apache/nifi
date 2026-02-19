@@ -39,7 +39,6 @@ public class MockFlowFileRecord implements FlowFileRecord {
 
     private volatile long penaltyExpiration = 0L;
 
-
     public MockFlowFileRecord() {
         this(1L);
     }

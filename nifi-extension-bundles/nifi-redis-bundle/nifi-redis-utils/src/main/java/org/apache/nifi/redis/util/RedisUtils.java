@@ -75,7 +75,6 @@ public class RedisUtils {
             .defaultValue("0 secs")
             .build();
 
-
     // These properties are shared between the connection pool controller service and the state provider, the name
     // is purposely set to be more human-readable since that will be referenced in state-management.xml
 

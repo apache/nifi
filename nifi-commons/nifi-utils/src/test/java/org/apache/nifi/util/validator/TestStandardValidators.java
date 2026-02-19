@@ -313,7 +313,6 @@ public class TestStandardValidators {
         assertEquals(2, mockValidator.getValidateCallCount());
     }
 
-
     @Test
     public void testListValidatorEnsuringElementValidation() {
         // use the TestMockValidator to be sure the item validator get's called when we think it should
@@ -463,7 +462,6 @@ public class TestStandardValidators {
         assertTrue(vr.isValid());
         assertEquals(2, mockValidator.getValidateCallCount());
     }
-
 
     @Test
     public void testiso8061InstantValidator() {

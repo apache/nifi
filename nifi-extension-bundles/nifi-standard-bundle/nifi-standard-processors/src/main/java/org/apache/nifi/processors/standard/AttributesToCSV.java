@@ -177,7 +177,6 @@ public class AttributesToCSV extends AbstractProcessor {
         return RELATIONSHIPS;
     }
 
-
     private Map<String, String> buildAttributesMapForFlowFile(FlowFile ff, Set<String> attributes, Pattern attPattern) {
         Map<String, String> result;
         Map<String, String> ffAttributes = ff.getAttributes();

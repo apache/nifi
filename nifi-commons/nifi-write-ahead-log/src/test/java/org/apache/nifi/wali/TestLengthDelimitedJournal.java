@@ -112,7 +112,6 @@ public class TestLengthDelimitedJournal {
             fos.write(withNuls);
         }
 
-
         try (final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, streamPool, 0L)) {
             final Map<Object, DummyRecord> recordMap = new HashMap<>();
             final Set<String> swapLocations = new HashSet<>();
@@ -183,7 +182,6 @@ public class TestLengthDelimitedJournal {
         try (final FileOutputStream fos = new FileOutputStream(journalFile, true)) {
             fos.getChannel().truncate(journalFile.length() - 8);
         }
-
 
         try (final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, streamPool, 0L)) {
             final Map<Object, DummyRecord> recordMap = new HashMap<>();
@@ -475,7 +473,6 @@ public class TestLengthDelimitedJournal {
             }
         };
 
-
         final Supplier<ByteArrayDataOutputStream> badosSupplier = new Supplier<>() {
             private final AtomicInteger count = new AtomicInteger(0);
 
@@ -489,12 +486,10 @@ public class TestLengthDelimitedJournal {
             }
         };
 
-
         final ObjectPool<ByteArrayDataOutputStream> corruptingStreamPool = new BlockingQueuePool<>(2,
             badosSupplier,
             stream -> true,
             stream -> stream.getByteArrayOutputStream().reset());
-
 
         final Thread[] threads = new Thread[2];
 
@@ -514,7 +509,6 @@ public class TestLengthDelimitedJournal {
             }
         };
 
-
         final DummyRecord firstRecord;
         final DummyRecord secondRecord;
         try {
@@ -529,7 +523,6 @@ public class TestLengthDelimitedJournal {
                 } catch (final IOException ignored) {
                 }
             });
-
 
             final Thread t2 = new Thread(() -> {
                 try {

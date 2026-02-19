@@ -102,7 +102,6 @@ public class PutBigQueryTest {
     @Mock
     protected BigQuery bq;
 
-
     private TestRunner runner;
 
     @Mock
@@ -122,7 +121,6 @@ public class PutBigQueryTest {
 
     @Captor
     private ArgumentCaptor<BatchCommitWriteStreamsRequest> batchCommitRequestCaptor;
-
 
     public static TestRunner buildNewRunner(Processor processor) throws Exception {
         final GCPCredentialsService credentialsService = new GCPCredentialsControllerService();
@@ -155,7 +153,6 @@ public class PutBigQueryTest {
         assertEquals(RETRIES.intValue(), options.getRetrySettings().getMaxAttempts(), "Retry counts should match");
         assertSame(mockCredentials, options.getCredentials(), "Credentials should be configured correctly");
     }
-
 
     public AbstractBigQueryProcessor getProcessor() {
         return new PutBigQuery() {
@@ -576,7 +573,6 @@ public class PutBigQueryTest {
         when(tableFieldSchemaValue.getMode()).thenReturn(TableFieldSchema.Mode.NULLABLE);
         when(tableFieldSchemaValue.getType()).thenReturn(type2);
         when(tableFieldSchemaValue.getName()).thenReturn(name2);
-
 
         when(myTableSchema.getFieldsList()).thenReturn(Arrays.asList(tableFieldSchemaId, tableFieldSchemaValue));
 

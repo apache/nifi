@@ -54,7 +54,6 @@ public enum DefaultDataSourceValues {
 
     SOFT_MIN_EVICTABLE_IDLE_TIME("-1");
 
-
     private final String value;
 
     DefaultDataSourceValues(String value) {

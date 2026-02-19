@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.repository.claim;
 
-
 /**
  * <p>
  * A ContentClaim is a reference to a given flow file's content. Multiple flow files may reference the same content by both having the same content claim.</p>

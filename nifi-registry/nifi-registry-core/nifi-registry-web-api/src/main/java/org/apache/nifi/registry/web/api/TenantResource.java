@@ -68,7 +68,6 @@ public class TenantResource extends ApplicationResource {
         super(serviceFacade, eventService);
     }
 
-
     // ---------- User endpoints --------------------------------------------------------------------------------------
 
     /**
@@ -278,7 +277,6 @@ public class TenantResource extends ApplicationResource {
         publish(EventFactory.userDeleted(user));
         return generateOkResponse(user).build();
     }
-
 
     // ---------- User Group endpoints --------------------------------------------------------------------------------
 

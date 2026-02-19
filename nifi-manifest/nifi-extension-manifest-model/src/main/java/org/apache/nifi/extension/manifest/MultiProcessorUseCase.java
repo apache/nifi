@@ -38,7 +38,6 @@ public class MultiProcessorUseCase {
     @XmlElement(name = "processorConfiguration")
     private List<ProcessorConfiguration> processorConfigurations;
 
-
     public String getDescription() {
         return description;
     }

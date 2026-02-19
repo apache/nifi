@@ -102,7 +102,6 @@ public class TestFTP {
         }
         assertEquals(0, results.size());
 
-
         results = new HashSet<>();
         runner.setProperty(FTPTransfer.REMOTE_PATH, "${el-remote-target}");
         runner.enqueue(new byte[0]);
@@ -261,7 +260,6 @@ public class TestFTP {
         runner.setProperty(FetchFTP.REMOTE_FILENAME, "c:\\data\\randombytes-2");
         runner.setProperty(FetchFTP.COMPLETION_STRATEGY, FetchFTP.COMPLETION_MOVE);
         runner.setProperty(FetchFTP.MOVE_DESTINATION_DIR, "data");
-
 
         Map<String, String> attrs = new HashMap<>();
         attrs.put("host", "localhost");

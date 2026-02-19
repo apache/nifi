@@ -246,7 +246,6 @@ public class TestFetchS3Object {
         ff.assertContentEquals("Some Content");
     }
 
-
     @Test
     public void testGetObjectExceptionGoesToFailure() {
         runner.setProperty(RegionUtil.REGION, "us-east-1");

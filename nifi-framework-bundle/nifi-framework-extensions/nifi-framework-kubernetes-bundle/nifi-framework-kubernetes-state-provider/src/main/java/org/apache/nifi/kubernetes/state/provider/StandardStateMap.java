@@ -39,7 +39,6 @@ class StandardStateMap implements StateMap {
         this.configMapMetadata = configMapMetadata;
     }
 
-
     /**
      * Get State Version
      *

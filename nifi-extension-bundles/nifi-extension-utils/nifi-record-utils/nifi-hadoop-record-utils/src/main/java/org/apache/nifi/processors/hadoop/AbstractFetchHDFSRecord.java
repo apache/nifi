@@ -172,7 +172,6 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
             return;
         }
 
-
         ugi.doAs((PrivilegedAction<Object>) () -> {
             FlowFile child = null;
             final String filenameValue = context.getProperty(FILENAME).evaluateAttributeExpressions(originalFlowFile).getValue();
@@ -229,7 +228,6 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                 attributes.put(RECORD_COUNT_ATTR, String.valueOf(writeResult.get().getRecordCount()));
                 attributes.put(CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
                 successFlowFile = session.putAllAttributes(successFlowFile, attributes);
-
 
                 final Path qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
                 successFlowFile = session.putAttribute(successFlowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());

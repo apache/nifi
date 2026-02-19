@@ -319,7 +319,6 @@ public class TestNotify {
             this.failOnCalls = failOnCalls;
         }
 
-
         private void verifyNotFail() throws IOException {
             if (failOnCalls) {
                 throw new IOException("Could not call to remote service because Unit Test marked service unavailable");

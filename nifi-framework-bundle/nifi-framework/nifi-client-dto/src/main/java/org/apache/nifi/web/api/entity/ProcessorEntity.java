@@ -88,7 +88,6 @@ public class ProcessorEntity extends ComponentEntity implements Permissible<Proc
         this.physicalState = physicalState;
     }
 
-
     /**
      * @return The permissions for this component operations
      */

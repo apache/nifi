@@ -44,7 +44,6 @@ public class NioAsyncLoadBalanceClientFactory implements AsyncLoadBalanceClientF
         this.clusterCoordinator = clusterCoordinator;
     }
 
-
     @Override
     public NioAsyncLoadBalanceClient createClient(final NodeIdentifier nodeIdentifier) {
         return new NioAsyncLoadBalanceClient(nodeIdentifier, sslContext, timeoutMillis, flowFileContentAccess, flowFileCodec, eventReporter, clusterCoordinator);

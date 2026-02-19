@@ -1525,7 +1525,6 @@ public class DataTypeUtils {
         return isNumberTypeCompatible(value, s -> isIntegral(s, Integer.MIN_VALUE, Integer.MAX_VALUE));
     }
 
-
     public static Short toShort(final Object value, final String fieldName) {
         return switch (value) {
             case null -> null;
@@ -1555,7 +1554,6 @@ public class DataTypeUtils {
     public static boolean isByteTypeCompatible(final Object value) {
         return isNumberTypeCompatible(value, s -> isIntegral(s, Byte.MIN_VALUE, Byte.MAX_VALUE));
     }
-
 
     public static Character toCharacter(final Object value, final String fieldName) {
         switch (value) {
@@ -1650,7 +1648,6 @@ public class DataTypeUtils {
 
         return new SimpleRecordSchema(fields);
     }
-
 
     private static boolean isMergeRequired(final RecordField thisField, final RecordField otherField) {
         if (!thisField.getDataType().equals(otherField.getDataType())) {

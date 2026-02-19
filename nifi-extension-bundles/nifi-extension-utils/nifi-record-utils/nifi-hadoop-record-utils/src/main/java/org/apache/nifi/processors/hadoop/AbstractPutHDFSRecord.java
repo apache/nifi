@@ -69,7 +69,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @DefaultSettings(yieldDuration = "100 ms") // decrease the default yield since we are triggering when empty
 public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
-
     public static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
             .name("Compression Type")
             .description("The type of compression for the file being written.")
@@ -113,7 +112,6 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
             .required(true)
             .build();
 
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that have been successfully processed are transferred to this relationship")
@@ -136,7 +134,6 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
     private volatile Set<Relationship> putHdfsRecordRelationships;
     private volatile List<PropertyDescriptor> putHdfsRecordProperties;
-
 
     @Override
     protected final void init(final ProcessorInitializationContext context) {

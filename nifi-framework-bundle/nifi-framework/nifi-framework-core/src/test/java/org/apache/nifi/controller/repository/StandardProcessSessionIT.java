@@ -704,7 +704,6 @@ public class StandardProcessSessionIT {
                 "Should not have been able to poll second FlowFile with same ID");
     }
 
-
     @Test
     @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
             disabledReason = "Test should be run manually only - not for automated builds/CI env")
@@ -876,7 +875,6 @@ public class StandardProcessSessionIT {
         final Connection conn2 = createConnection();
         connList.add(conn1);
         connList.add(conn2);
-
 
         final StandardFlowFileRecord.Builder flowFileRecord = new StandardFlowFileRecord.Builder()
             .id(1000L)
@@ -1796,7 +1794,6 @@ public class StandardProcessSessionIT {
                 }));
         assertSame(ioe, processException.getCause());
 
-
         final ProcessException pe = new ProcessException();
         processException = assertThrows(ProcessException.class,
                 () -> session.read(ff1, in -> {
@@ -2150,7 +2147,6 @@ public class StandardProcessSessionIT {
         }
     }
 
-
     @Test
     public void testTransferUnknownRelationship() {
         final FlowFileRecord flowFileRecord1 = new StandardFlowFileRecord.Builder()
@@ -2258,7 +2254,6 @@ public class StandardProcessSessionIT {
         assertEquals(4, transientClaims.size());
     }
 
-
     @Test
     public void testUpdateFlowFileModifiedMultipleTimesHasTransientClaimsOnCommit() {
         flowFileQueue.put(new MockFlowFileRecord(1L));
@@ -2281,7 +2276,6 @@ public class StandardProcessSessionIT {
         final List<ContentClaim> transientClaims = record.getTransientClaims();
         assertEquals(4, transientClaims.size());
     }
-
 
     @Test
     public void testUpdateFlowFileModifiedMultipleTimesHasTransientClaimsOnRollback() {
@@ -2384,7 +2378,6 @@ public class StandardProcessSessionIT {
         session.setState(Collections.singletonMap("abc", "123"), Scope.LOCAL);
         stateManager.assertStateNotSet();
 
-
         retrieved = session.getState(Scope.LOCAL);
         assertNotNull(retrieved);
         assertTrue(retrieved.getStateVersion().isPresent());
@@ -2436,7 +2429,6 @@ public class StandardProcessSessionIT {
         session.commit();
         stateManager.assertStateEquals("abc", "2", Scope.LOCAL);
     }
-
 
     @Test
     public void testRollbackAfterCheckpointStoresState() throws IOException {
@@ -3239,7 +3231,6 @@ public class StandardProcessSessionIT {
         public ContentClaim clone(ContentClaim original, boolean lossTolerant) {
             return null;
         }
-
 
         private Path getPath(final ContentClaim contentClaim) {
             final ResourceClaim claim = contentClaim.getResourceClaim();

@@ -43,7 +43,6 @@ public interface ParameterLookup {
      */
     long getVersion();
 
-
     ParameterLookup EMPTY = new ParameterLookup() {
         @Override
         public Optional<Parameter> getParameter(final String parameterName) {

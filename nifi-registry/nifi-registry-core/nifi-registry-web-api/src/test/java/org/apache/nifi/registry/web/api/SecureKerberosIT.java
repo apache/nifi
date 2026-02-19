@@ -206,5 +206,4 @@ public class SecureKerberosIT extends IntegrationTestBase {
 
     }
 
-
 }

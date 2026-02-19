@@ -66,7 +66,6 @@ public class StandardPreparedQuery implements PreparedQuery {
         return sb.toString();
     }
 
-
     @Override
     public boolean isExpressionLanguagePresent() {
         for (Expression expression : expressions) {

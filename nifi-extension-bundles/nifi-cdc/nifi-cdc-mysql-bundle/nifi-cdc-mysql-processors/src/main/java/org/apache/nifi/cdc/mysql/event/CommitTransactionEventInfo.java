@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cdc.mysql.event;
 
-
 /**
  * An event implementation corresponding to the beginning of a MySQL transaction (update rows, e.g.)
  */

@@ -108,7 +108,6 @@ class IntegrationTestUtils {
         assertSetsEqual(expected.getControllerServices(), actual.getControllerServices());
     }
 
-
     private static void assertSetsEqual(Set<? extends VersionedComponent> expected, Set<? extends VersionedComponent> actual) {
         if (expected != null) {
             assertNotNull(actual);

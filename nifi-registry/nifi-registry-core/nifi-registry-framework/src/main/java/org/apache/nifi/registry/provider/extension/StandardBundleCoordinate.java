@@ -91,7 +91,6 @@ public class StandardBundleCoordinate implements BundleCoordinate {
             return this;
         }
 
-
         public StandardBundleCoordinate build() {
             return new StandardBundleCoordinate(this);
         }

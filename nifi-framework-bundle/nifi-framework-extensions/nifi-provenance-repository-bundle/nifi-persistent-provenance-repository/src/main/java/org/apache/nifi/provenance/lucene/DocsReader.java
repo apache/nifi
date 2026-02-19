@@ -72,7 +72,6 @@ public class DocsReader {
         return read(docs, authorizer, allProvenanceLogFiles, retrievalCount, maxResults, maxAttributeChars);
     }
 
-
     private long getByteOffset(final Document d, final RecordReader reader) {
         final IndexableField blockField = d.getField(FieldNames.BLOCK_INDEX);
         if (blockField != null) {
@@ -83,7 +82,6 @@ public class DocsReader {
 
         return d.getField(FieldNames.STORAGE_FILE_OFFSET).numericValue().longValue();
     }
-
 
     private ProvenanceEventRecord getRecord(final Document d, final RecordReader reader) throws IOException {
         final IndexableField blockField = d.getField(FieldNames.BLOCK_INDEX);

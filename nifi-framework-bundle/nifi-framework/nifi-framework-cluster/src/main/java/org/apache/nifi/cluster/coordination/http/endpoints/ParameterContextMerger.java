@@ -122,7 +122,6 @@ public class ParameterContextMerger {
         }
     }
 
-
     private static void merge(final ProcessGroupEntity merged, final NodeIdentifier additionalNodeId, final ProcessGroupEntity additional) {
         PermissionsDtoMerger.mergePermissions(merged.getPermissions(), additional.getPermissions());
 

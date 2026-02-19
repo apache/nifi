@@ -157,7 +157,6 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
     private volatile SNMPTrapReceiverHandler snmpTrapReceiverHandler;
     private volatile List<UsmUser> usmUsers;
 
-
     @Override
     public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>();

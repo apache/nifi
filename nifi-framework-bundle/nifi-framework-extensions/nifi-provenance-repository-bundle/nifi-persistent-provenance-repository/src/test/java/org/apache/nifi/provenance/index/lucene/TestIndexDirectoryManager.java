@@ -84,7 +84,6 @@ public class TestIndexDirectoryManager {
         }
     }
 
-
     @Test
     public void testActiveIndexNotLostWhenSizeExceeded() throws IOException {
         final RepositoryConfiguration config = createConfig(2);
@@ -164,7 +163,6 @@ public class TestIndexDirectoryManager {
             }
         }
     }
-
 
     private IndexLocation createLocation(final long timestamp) {
         return createLocation(timestamp, "1");

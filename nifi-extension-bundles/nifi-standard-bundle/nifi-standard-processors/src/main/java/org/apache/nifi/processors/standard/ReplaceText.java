@@ -597,7 +597,6 @@ public class ReplaceText extends AbstractProcessor {
         }
     }
 
-
     private static class RegexReplace implements ReplacementStrategyExecutor {
         private final int numCapturingGroups;
 
@@ -807,7 +806,6 @@ public class ReplaceText extends AbstractProcessor {
     private interface ReplaceLine {
         void apply(BufferedWriter bw, String oneLine) throws IOException;
     }
-
 
     private static class StreamReplaceCallback implements StreamCallback {
         private final Charset charset;

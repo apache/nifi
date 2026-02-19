@@ -34,7 +34,6 @@ public class SimpleNodeRestartIT extends NiFiSystemIT {
         return createTwoNodeInstanceFactory();
     }
 
-
     @Test
     public void testRestartNode() throws NiFiClientException, IOException {
         final NiFiInstance secondNode = getNiFiInstance().getNodeInstance(2);

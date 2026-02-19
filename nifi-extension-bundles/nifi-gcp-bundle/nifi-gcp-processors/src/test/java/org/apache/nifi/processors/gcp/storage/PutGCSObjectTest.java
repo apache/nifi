@@ -98,7 +98,6 @@ public class PutGCSObjectTest extends AbstractGCSTest {
     private static final Boolean OVERWRITE = false;
     private static final String CONTENT_DISPOSITION_TYPE = "inline";
 
-
     private static final Long SIZE = 100L;
     private static final String CACHE_CONTROL = "test-cache-control";
     private static final Integer COMPONENT_COUNT = 3;
@@ -425,7 +424,6 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         mockFlowFile.assertAttributeEquals(OWNER_TYPE_ATTR, "group");
     }
 
-
     @Test
     public void testAclAttributeDomain() throws Exception {
         reset(storageOptions, storage, blob);
@@ -453,7 +451,6 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         mockFlowFile.assertAttributeEquals(OWNER_ATTR, OWNER_DOMAIN);
         mockFlowFile.assertAttributeEquals(OWNER_TYPE_ATTR, "domain");
     }
-
 
     @Test
     public void testAclAttributeProject() throws Exception {

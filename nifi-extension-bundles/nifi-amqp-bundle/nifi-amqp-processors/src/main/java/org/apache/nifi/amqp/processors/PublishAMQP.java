@@ -225,7 +225,6 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         return messageContent;
     }
 
-
     /**
      * Reads an attribute from flowFile and pass it to the consumer function
      *

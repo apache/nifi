@@ -339,7 +339,6 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
      */
     DeleteOperationResponse deleteById(String index, String type, String id, ElasticsearchRequestOptions elasticsearchRequestOptions);
 
-
     /**
      * Delete multiple documents by ID from an index.
      * @param index The index to target.

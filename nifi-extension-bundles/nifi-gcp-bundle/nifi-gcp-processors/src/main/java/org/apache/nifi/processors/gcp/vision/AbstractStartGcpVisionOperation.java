@@ -58,7 +58,6 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
             .required(false)
             .build();
 
-
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();

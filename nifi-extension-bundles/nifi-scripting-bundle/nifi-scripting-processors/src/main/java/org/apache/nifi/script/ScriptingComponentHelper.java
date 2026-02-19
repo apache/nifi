@@ -263,7 +263,6 @@ public class ScriptingComponentHelper {
             final String[] locations = (modules == null) ? new String[0] : modules.asLocations().toArray(new String[0]);
             final URL[] additionalClasspathURLs = ScriptRunnerFactory.getInstance().getModuleURLsForClasspath(scriptEngineName, locations, log);
 
-
             // Need the right classloader when the engine is created. This ensures the NAR's execution class loader
             // (plus the module path) becomes the parent for the script engine
             ClassLoader scriptEngineModuleClassLoader = additionalClasspathURLs != null

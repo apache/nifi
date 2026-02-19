@@ -507,7 +507,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         return results;
     }
 
-
     /**
      * Returns a list of {@link ValidationResult}s for truststore validity checking. Ensures none of the properties
      * are populated or at least filename and type are populated; if populated, validates the truststore file on disk

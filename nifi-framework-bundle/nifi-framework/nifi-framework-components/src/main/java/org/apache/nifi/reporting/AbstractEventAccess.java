@@ -124,7 +124,6 @@ public abstract class AbstractEventAccess implements EventAccess {
         return flowFileEventRepository.reportTransferEvents(System.currentTimeMillis());
     }
 
-
     /**
      * Returns the status for the components in the specified group with the
      * specified report. The results will be filtered by executing the specified

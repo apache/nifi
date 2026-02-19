@@ -305,7 +305,6 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
         }
     }
 
-
     public class Snapshot implements SnapshotCapture<T> {
         private final Map<Object, T> records;
         private final long maxTransactionId;

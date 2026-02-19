@@ -125,7 +125,6 @@ public class TestPutDistributedMapCache {
         outputFlowFile.assertAttributeNotExists("cached");
         outputFlowFile.assertContentEquals(flowFileContent);
 
-
         runner.clearTransferState();
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_MAX_BYTES, "1 MB");
     }

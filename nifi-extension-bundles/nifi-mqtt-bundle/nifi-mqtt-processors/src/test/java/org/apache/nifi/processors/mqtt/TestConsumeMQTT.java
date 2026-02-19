@@ -797,7 +797,6 @@ public class TestConsumeMQTT {
         return mqttClient.isConnected();
     }
 
-
     public static void reconnect(ConsumeMQTT processor, ProcessContext context) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         final Method method = ConsumeMQTT.class.getDeclaredMethod("initializeClient", ProcessContext.class);
         method.setAccessible(true);

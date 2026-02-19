@@ -185,7 +185,6 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      */
     public abstract Set<Group> getGroups() throws AuthorizationAccessException;
 
-
     /**
      * Adds the given user.
      *

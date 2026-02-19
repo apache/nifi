@@ -83,7 +83,6 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
             ScriptingComponentUtils.SCRIPT_FILE,
             ScriptingComponentUtils.MODULES);
 
-
     @OnScheduled
     public void setup(final ProcessContext context) throws IOException {
         if (!scriptingComponentHelper.isInitialized.get()) {

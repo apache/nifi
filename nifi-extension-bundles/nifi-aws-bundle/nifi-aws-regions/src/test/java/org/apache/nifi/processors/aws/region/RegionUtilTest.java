@@ -72,7 +72,6 @@ public class RegionUtilTest {
         assertEquals(region, RegionUtil.getRegion(propertyContext, flowFileAttributes).id());
     }
 
-
     @Test
     void testIsDynamicRegionWithAwsRegion() {
         String region = Region.US_WEST_2.id();

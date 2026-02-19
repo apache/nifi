@@ -78,7 +78,6 @@ public class SimpleSwapDeserializer implements SwapDeserializer {
         return swapContents.getSummary();
     }
 
-
     @Override
     public SwapContents deserializeFlowFiles(final DataInputStream in, final String swapLocation, final FlowFileQueue queue, final ResourceClaimManager claimManager) throws IOException {
         final int swapEncodingVersion = in.readInt();

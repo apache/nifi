@@ -52,7 +52,6 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     private volatile boolean stopped = true;
     private RebalanceTask rebalanceTask;
 
-
     public StandardRebalancingPartition(final FlowFileSwapManager swapManager, final int swapThreshold, final EventReporter eventReporter,
                                         final LoadBalancedFlowFileQueue flowFileQueue, final DropFlowFileAction dropAction) {
 
@@ -182,7 +181,6 @@ public class StandardRebalancingPartition implements RebalancingPartition {
         this.rebalanceTask = null;
         return true;
     }
-
 
     private class RebalanceTask implements Runnable {
         private volatile boolean stopped = false;

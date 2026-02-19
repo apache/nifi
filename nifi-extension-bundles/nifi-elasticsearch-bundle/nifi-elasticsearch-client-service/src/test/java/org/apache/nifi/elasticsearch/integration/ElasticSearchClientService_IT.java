@@ -244,7 +244,6 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 .build();
         final String query = prettyJson(temp);
 
-
         final SearchResponse response = service.search(query, "messages", type, new ElasticsearchRequestOptions(requestParameters, requestHeaders));
         assertNotNull(response, "Response was null");
 
@@ -297,7 +296,6 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 .build();
         final String query = prettyJson(temp);
 
-
         final SearchResponse response = service.search(query, "messages", type, new ElasticsearchRequestOptions(Map.of("_source", "not_exists"),
                 Map.of("ES-Client-Authentication", "sharedsecret foobar")));
         assertNotNull(response, "Response was null");
@@ -317,7 +315,6 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                         "query", new MapBuilder().of("match_all", new HashMap<>()).build())
                 .build();
         final String query = prettyJson(temp);
-
 
         final SearchResponse response = service.search(query, "no_source", type, null);
         assertNotNull(response, "Response was null");

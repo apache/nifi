@@ -114,7 +114,6 @@ public class TestConsumeSlack {
         outFlowFile1.assertAttributeEquals("slack.channel.name", "#cname1");
     }
 
-
     @Test
     public void testReceivedMultipleMessages() throws JsonProcessingException {
         final Message message1 = createMessage("U12345", "Hello world", "1683903832.350");
@@ -137,7 +136,6 @@ public class TestConsumeSlack {
         outFlowFile1.assertAttributeEquals("slack.channel.id", "cid1");
         outFlowFile1.assertAttributeEquals("slack.channel.name", "#cname1");
     }
-
 
     @Test
     public void testYieldOnException() {
@@ -210,7 +208,6 @@ public class TestConsumeSlack {
         assertEquals("1683903832.350", requestsMade.get(1).getOldest());
     }
 
-
     @Test
     public void testMessageWithReplies() throws JsonProcessingException {
         final String threadTs = "3820387.29201";
@@ -258,7 +255,6 @@ public class TestConsumeSlack {
         assertEquals(1L, noCursorRequestCount);
         assertEquals(1L, nextCursorRequestCount);
     }
-
 
     @Test
     public void testRateLimitedWhileFetchingReplies() throws InterruptedException, JsonProcessingException {
@@ -365,7 +361,6 @@ public class TestConsumeSlack {
         assertTrue(testRunner.isYieldCalled());
     }
 
-
     @Test
     public void testNotOkResponseWhileFetchingReplies() throws InterruptedException, JsonProcessingException {
         // Enqueue 3 messages with the second one (only) having replies.
@@ -438,7 +433,6 @@ public class TestConsumeSlack {
         assertArrayEquals(expectedSecondMessages, secondOutputMessages);
     }
 
-
     private Message createMessage(final String user, final String text, final String ts) {
         return createMessage(user, text, ts, null);
     }
@@ -496,7 +490,6 @@ public class TestConsumeSlack {
         response.setError(errorMessage);
         return response;
     }
-
 
     private static class MockConsumeSlackClient implements ConsumeSlackClient {
         private static final ConversationsHistoryResponse EMPTY_HISTORY_RESPONSE;
@@ -604,7 +597,6 @@ public class TestConsumeSlack {
 
             throw new RateLimitedException(seconds);
         }
-
 
         public void addHistoryResponse(final ConversationsHistoryResponse response) {
             historyResponses.offer(response);

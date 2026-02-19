@@ -129,7 +129,6 @@ public class TestMergeRecord {
                 ff -> assertEquals(mff.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeRecord.MERGE_UUID_ATTRIBUTE)));
     }
 
-
     // Verify that FlowFiles are grouped with like schemas.
     @Test
     public void testDifferentSchema() {
@@ -357,7 +356,6 @@ public class TestMergeRecord {
 
     }
 
-
     @Test
     public void testMinSize() {
         runner.setProperty(MergeRecord.MIN_RECORDS, "2");
@@ -477,7 +475,6 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 100);
     }
-
 
     @Test
     public void testBinCount() {

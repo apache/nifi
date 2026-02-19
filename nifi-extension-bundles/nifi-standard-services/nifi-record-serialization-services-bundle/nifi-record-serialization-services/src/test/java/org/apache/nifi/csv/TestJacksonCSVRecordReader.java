@@ -73,7 +73,6 @@ public class TestJacksonCSVRecordReader {
         .setDuplicateHeaderMode(DuplicateHeaderMode.DISALLOW)
         .get();
 
-
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
         for (final String fieldName : new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"}) {
@@ -401,7 +400,6 @@ public class TestJacksonCSVRecordReader {
             assertNull(reader.nextRecord(false, false));
         }
     }
-
 
     @Test
     public void testFieldInSchemaButNotHeader() throws IOException, MalformedRecordException {

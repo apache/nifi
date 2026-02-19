@@ -86,7 +86,6 @@ public class AzureDevOpsFlowRegistryClient extends AbstractGitFlowRegistryClient
             .identifiesControllerService(WebClientServiceProvider.class)
             .build();
 
-
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             AZURE_DEVOPS_API_URL,
             ORGANIZATION,

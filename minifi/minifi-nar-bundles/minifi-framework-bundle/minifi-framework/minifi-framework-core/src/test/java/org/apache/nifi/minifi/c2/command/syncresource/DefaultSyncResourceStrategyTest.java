@@ -170,7 +170,6 @@ public class DefaultSyncResourceStrategyTest {
         }
     }
 
-
     @ParameterizedTest
     @MethodSource("invalidResourcePaths")
     public void testAddingNewItemFailureWhenTypeIsAssetAndPathIsInvalid(String invalidResourcePath) {

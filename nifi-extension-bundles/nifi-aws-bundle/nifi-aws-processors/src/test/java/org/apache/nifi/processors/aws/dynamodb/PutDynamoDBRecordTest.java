@@ -278,7 +278,6 @@ public class PutDynamoDBRecordTest {
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/nonRecordOriented.txt"));
         runner.run();
 
-
         assertTrue(captor.getAllValues().isEmpty());
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_FAILURE, 1);
     }

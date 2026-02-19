@@ -41,7 +41,6 @@ public class ControllerServiceSchema extends BaseSchemaWithIdAndName {
         annotationData = getOptionalKeyAsType(map, ANNOTATION_DATA_KEY, String.class, wrapperName, "");
     }
 
-
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> result = super.toMap();

@@ -31,7 +31,6 @@ public class StandardQueueProvider implements QueueProvider {
         this.flowManager = flowManager;
     }
 
-
     @Override
     public Collection<FlowFileQueue> getAllQueues() {
         final Collection<Connection> connections = flowManager.findAllConnections();

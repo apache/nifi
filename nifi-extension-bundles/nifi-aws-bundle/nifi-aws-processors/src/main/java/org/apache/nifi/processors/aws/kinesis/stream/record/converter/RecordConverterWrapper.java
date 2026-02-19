@@ -55,7 +55,6 @@ public class RecordConverterWrapper implements RecordConverter {
 
     public static final RecordField FIELD_METADATA = new RecordField(METADATA, RecordFieldType.RECORD.getRecordDataType(SCHEMA_METADATA));
 
-
     @Override
     public Record convert(final Record valueRecord, final KinesisClientRecord kinesisRecord, final String streamName, final String shardId) {
         final Map<String, Object> metadata = new LinkedHashMap<>();

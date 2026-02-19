@@ -91,7 +91,6 @@ public class TestLookupRecord {
         recordReader.addRecord("Jimmy Doe", 14, null, null);
     }
 
-
     private void setupForRootElement() throws InitializationException {
         lookupService.addValue("file1.txt", "text/plain");
         lookupService.addValue("file2.pdf", "application/pdf");
@@ -508,7 +507,6 @@ public class TestLookupRecord {
         matched.assertContentEquals("John Doe,48,\nJane Doe,47,Soccer\nJimmy Doe,14,Football\n");
     }
 
-
     @Test
     public void testResultPathNotFound() {
         runner.setProperty(LookupRecord.RESULT_RECORD_PATH, "/other");
@@ -575,7 +573,6 @@ public class TestLookupRecord {
         out.assertContentEquals("John Doe,48,\nJane Doe,47,\nJimmy Doe,14,\n");
     }
 
-
     @Test
     public void testMultipleLookupPaths() {
         lookupService.addValue("John Doe", "Soccer");
@@ -607,7 +604,6 @@ public class TestLookupRecord {
         runner.setProperty("lookup", "/name");
         runner.assertValid();
     }
-
 
     @Test
     public void testAddFieldsToExistingRecord() throws InitializationException {
@@ -957,7 +953,6 @@ public class TestLookupRecord {
         final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).getFirst();
         out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-unmatched.json").toPath());
     }
-
 
     @Test
     public void testLiteralCoordinate() {

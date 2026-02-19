@@ -244,7 +244,6 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      */
     void enableOutputPort(Port port);
 
-
     /**
      * Starts the given Processor
      *

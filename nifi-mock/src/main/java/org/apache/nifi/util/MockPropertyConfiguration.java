@@ -34,7 +34,6 @@ public class MockPropertyConfiguration implements PropertyConfiguration {
     private final Map<String, String> rawProperties;
     private final Set<CreatedControllerService> createdControllerServices = new HashSet<>();
 
-
     public MockPropertyConfiguration(final Map<String, String> propertyValues) {
         this.rawProperties = new HashMap<>(propertyValues);
     }

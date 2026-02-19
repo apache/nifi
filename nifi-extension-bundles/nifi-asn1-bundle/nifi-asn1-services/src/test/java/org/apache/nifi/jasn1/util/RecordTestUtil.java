@@ -68,7 +68,6 @@ public class RecordTestUtil {
                 })
                 .collect(Collectors.toMap(Tuple::getKey, Tuple::getValue));
 
-
         return converted;
     }
 

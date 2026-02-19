@@ -274,7 +274,6 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         return kerberosUser;
     }
 
-
     @Override
     public Connection getConnection() throws ProcessException {
         return getConnection(dataSource, kerberosUser);

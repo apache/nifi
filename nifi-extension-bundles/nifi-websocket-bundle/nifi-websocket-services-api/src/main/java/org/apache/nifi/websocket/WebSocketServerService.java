@@ -36,5 +36,4 @@ public interface WebSocketServerService extends WebSocketService {
     @OnShutdown
     void stopServer() throws Exception;
 
-
 }

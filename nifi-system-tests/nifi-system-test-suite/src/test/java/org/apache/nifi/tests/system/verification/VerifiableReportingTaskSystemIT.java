@@ -54,7 +54,6 @@ public class VerifiableReportingTaskSystemIT extends NiFiSystemIT {
         assertEquals(Outcome.SKIPPED.name(), resultList.get(2).getOutcome());
     }
 
-
     @Test
     public void testVerifyWithInvalidConfigWhenComponentValid() throws NiFiClientException, IOException, InterruptedException {
         final ReportingTaskEntity reportingTask = getClientUtil().createReportingTask("EnsureReportingTaskConfigurationCorrect");
@@ -122,7 +121,6 @@ public class VerifiableReportingTaskSystemIT extends NiFiSystemIT {
 
         assertThrows(NiFiClientException.class, () -> getClientUtil().verifyReportingTaskConfig(reportingTask.getId(), properties));
     }
-
 
     @Test
     public void testVerifyWhenExceptionThrown() throws InterruptedException, IOException, NiFiClientException {

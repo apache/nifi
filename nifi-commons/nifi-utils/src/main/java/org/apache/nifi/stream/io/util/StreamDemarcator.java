@@ -133,7 +133,6 @@ public class StreamDemarcator extends AbstractDemarcator {
         return token;
     }
 
-
     /**
      * Validates prerequisites for constructor arguments
      */

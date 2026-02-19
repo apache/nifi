@@ -118,7 +118,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
     private final HttpReplicationClient httpClient;
 
-
     /**
      * Creates an instance.
      *
@@ -176,7 +175,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         executorService.shutdown();
         maintenanceExecutor.shutdown();
     }
-
 
     @Override
     public AsyncClusterResponse replicate(String method, URI uri, Object entity, Map<String, String> headers) {
@@ -316,7 +314,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null, !performVerification, true, null);
         }
     }
-
 
     @Override
     public AsyncClusterResponse forwardToCoordinator(final NodeIdentifier coordinatorNodeId, final String method, final URI uri, final Object entity, final Map<String, String> headers) {
@@ -624,7 +621,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         submitAsyncRequest(nodeIds, requestFactory);
     }
 
-
     @Override
     public AsyncClusterResponse getClusterResponse(final String identifier) {
         return responseMap.get(identifier);
@@ -793,7 +789,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         logger.debug("{}", sb);
     }
 
-
     private void submitAsyncRequest(final Set<NodeIdentifier> nodeIds, final Function<NodeIdentifier, NodeHttpRequest> callableFactory) {
 
         if (nodeIds.isEmpty()) {
@@ -807,7 +802,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         }
     }
 
-
     private URI createURI(final URI exampleUri, final NodeIdentifier nodeId) {
         return createURI(exampleUri.getScheme(), nodeId.getApiAddress(), nodeId.getApiPort(), exampleUri.getPath(), exampleUri.getQuery());
     }
@@ -819,7 +813,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             throw new UriConstructionException(e);
         }
     }
-
 
     /**
      * A Callable for making an HTTP request to a single node and returning its response.
@@ -842,7 +835,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
             this.callback = callback;
             this.clusterResponse = clusterResponse;
         }
-
 
         @Override
         public void run() {

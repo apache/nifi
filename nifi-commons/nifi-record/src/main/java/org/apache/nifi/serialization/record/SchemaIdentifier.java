@@ -48,7 +48,6 @@ public interface SchemaIdentifier {
      */
     Optional<String> getBranch();
 
-
     SchemaIdentifier EMPTY = new StandardSchemaIdentifier(null, null, null, null, null);
 
     static Builder builder() {

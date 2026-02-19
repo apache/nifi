@@ -67,7 +67,6 @@ public interface StateProvider extends ConfigurableComponent {
      */
     void setState(Map<String, String> state, String componentId) throws IOException;
 
-
     /**
      * Returns the currently configured state for the component. The returned StateMap will never be null.
      * The version of the StateMap will be -1 and the state will contain no key/value pairs if the state has never been set.
@@ -78,7 +77,6 @@ public interface StateProvider extends ConfigurableComponent {
      * @throws IOException if unable to communicate with the underlying storage mechanism
      */
     StateMap getState(String componentId) throws IOException;
-
 
     /**
      * Updates the value of the component's state to the new value if and only if the value currently

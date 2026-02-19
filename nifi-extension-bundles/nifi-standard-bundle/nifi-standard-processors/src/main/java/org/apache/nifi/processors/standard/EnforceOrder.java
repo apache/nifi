@@ -342,7 +342,6 @@ public class EnforceOrder extends AbstractProcessor {
             waitTimeoutMillis = processContext.getProperty(WAIT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
             getOrder = flowFile -> Integer.parseInt(flowFile.getAttribute(orderAttribute));
 
-
             groupIdentifierProperty = processContext.getProperty(GROUP_IDENTIFIER);
 
             initOrderProperty = processContext.getProperty(INITIAL_ORDER);
@@ -543,6 +542,5 @@ public class EnforceOrder extends AbstractProcessor {
         }
 
     }
-
 
 }

@@ -31,7 +31,6 @@ public interface ScheduledStateLookup {
 
     ScheduledState getScheduledState(ProcessGroup processGroup);
 
-
     ScheduledStateLookup IDENTITY_LOOKUP = new ScheduledStateLookup() {
         @Override
         public ScheduledState getScheduledState(final ProcessorNode procNode) {

@@ -60,7 +60,6 @@ public class PeerDTO {
         this.secure = secure;
     }
 
-
     @Schema(description = "The number of flowFiles this peer holds."
     )
     public int getFlowFileCount() {

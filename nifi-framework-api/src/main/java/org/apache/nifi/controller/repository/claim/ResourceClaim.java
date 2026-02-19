@@ -65,7 +65,6 @@ public interface ResourceClaim extends Comparable<ResourceClaim> {
      */
     boolean isInUse();
 
-
     /**
      * Provides the natural ordering for ResourceClaim objects. By default they are sorted by their id, then container, then section
      *

@@ -167,7 +167,6 @@ public class X509IdentityProvider implements IdentityProvider {
     @Override
     public void preDestruction() throws SecurityProviderDestructionException { }
 
-
     private void validateClientCertificate(X509Certificate certificate) throws CertificateExpiredException, CertificateNotYetValidException {
         certificate.checkValidity();
     }

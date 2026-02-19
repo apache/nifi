@@ -45,7 +45,6 @@ public class ClojureScriptEngine extends AbstractScriptEngine {
     private final String uuid = "ns-" + UUID.randomUUID().toString();
     private final Symbol NAMESPACE_SYMBOL = Symbol.create(uuid);
 
-
     protected ClojureScriptEngine(ScriptEngineFactory scriptEngineFactory) {
         this.scriptEngineFactory = scriptEngineFactory;
 

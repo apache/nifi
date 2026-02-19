@@ -275,7 +275,6 @@ public class TestPutSplunk {
         runner.assertAllFlowFilesTransferred(PutSplunk.REL_FAILURE, 1);
     }
 
-
     private void createTestServer(final TransportProtocol protocol) {
         messages = new LinkedBlockingQueue<>();
         runner.setProperty(PutSplunk.PROTOCOL, protocol.name());

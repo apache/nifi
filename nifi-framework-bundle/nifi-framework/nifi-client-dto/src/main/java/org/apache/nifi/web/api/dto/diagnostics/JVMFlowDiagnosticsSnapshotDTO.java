@@ -49,7 +49,6 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
         this.timeZone = timeZone;
     }
 
-
     @Schema(description = "The number of timer-driven threads that are active")
     public Integer getActiveTimerDrivenThreads() {
         return activeTimerDrivenThreads;

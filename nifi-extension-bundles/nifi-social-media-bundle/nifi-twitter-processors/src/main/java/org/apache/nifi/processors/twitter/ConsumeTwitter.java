@@ -369,7 +369,6 @@ public class ConsumeTwitter extends AbstractProcessor {
         }
     }
 
-
     private void emptyQueue() {
         while (!messageQueue.isEmpty()) {
             messageQueue.poll();

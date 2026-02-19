@@ -147,7 +147,6 @@ public class ConnectionStatusDTO implements Cloneable {
         other.setSourceName(getSourceName());
         other.setAggregateSnapshot(getAggregateSnapshot().clone());
 
-
         final List<NodeConnectionStatusSnapshotDTO> nodeStatuses = getNodeSnapshots();
         final List<NodeConnectionStatusSnapshotDTO> nodeStatusClones = new ArrayList<>(nodeStatuses.size());
         for (final NodeConnectionStatusSnapshotDTO nodeStatus : nodeStatuses) {

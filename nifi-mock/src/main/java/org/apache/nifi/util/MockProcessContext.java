@@ -170,7 +170,6 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return parameterLookup;
     }
 
-
     @Override
     public PropertyValue getProperty(final PropertyDescriptor descriptor) {
         return getProperty(descriptor.getName());

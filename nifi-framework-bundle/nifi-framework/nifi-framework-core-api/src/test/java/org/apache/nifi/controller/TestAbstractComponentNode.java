@@ -554,7 +554,6 @@ public class TestAbstractComponentNode {
         }
     }
 
-
     private static class ValidationControlledAbstractComponentNode extends LocalComponentNode {
         private final long pauseMillis;
 

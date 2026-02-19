@@ -563,7 +563,6 @@ public class TestListFile {
         assertEquals(0, successFiles3.size());
     }
 
-
     @Test
     public void testFilterFilePattern() throws Exception {
 

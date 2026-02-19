@@ -68,7 +68,6 @@ public abstract class TestStatusAnalyticsEngine {
         Double[][] features = new Double[1][1];
         Double[] target = new Double[1];
 
-
         ProcessGroup processGroup = Mockito.mock(ProcessGroup.class);
         StatusHistory statusHistory = Mockito.mock(StatusHistory.class);
         StatusSnapshot statusSnapshot = Mockito.mock(StatusSnapshot.class);

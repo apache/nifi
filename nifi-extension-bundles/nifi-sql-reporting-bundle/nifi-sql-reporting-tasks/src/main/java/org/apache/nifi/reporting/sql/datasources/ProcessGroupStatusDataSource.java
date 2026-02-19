@@ -58,7 +58,6 @@ public class ProcessGroupStatusDataSource implements ResettableDataSource {
         new ColumnSchema("garbageCollectionDuration", long.class, false)
     ));
 
-
     private final ReportingContext reportingContext;
     private final GroupStatusCache groupStatusCache;
     private ProcessGroupStatus lastFetchedStatus = null;

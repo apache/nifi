@@ -359,7 +359,6 @@ public class LookupRecord extends AbstractProcessor {
         }
     }
 
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
@@ -523,7 +522,6 @@ public class LookupRecord extends AbstractProcessor {
         }
     }
 
-
     private class InPlaceReplacementStrategy implements ReplacementStrategy {
         private int lookupCount = 0;
 
@@ -615,7 +613,6 @@ public class LookupRecord extends AbstractProcessor {
             return lookupCount;
         }
     }
-
 
     private class RecordPathReplacementStrategy implements ReplacementStrategy {
         private int lookupCount = 0;
@@ -804,7 +801,6 @@ public class LookupRecord extends AbstractProcessor {
         }
     }
 
-
     protected LookupContext createLookupContext(final FlowFile flowFile, final ProcessContext context, final ProcessSession session, final RecordSetWriterFactory writerFactory) {
         final Map<String, RecordPath> recordPaths = new HashMap<>();
         for (final PropertyDescriptor prop : context.getProperties().keySet()) {
@@ -843,7 +839,6 @@ public class LookupRecord extends AbstractProcessor {
         int getLookupCount();
     }
 
-
     protected static class LookupContext {
         private final Map<String, RecordPath> recordPathsByCoordinateKey;
         private final RecordPath resultRecordPath;
@@ -853,7 +848,6 @@ public class LookupRecord extends AbstractProcessor {
         private final ComponentLog logger;
 
         private final Map<Relationship, Tuple<FlowFile, RecordSetWriter>> writersByRelationship = new HashMap<>();
-
 
         public LookupContext(final Map<String, RecordPath> recordPathsByCoordinateKey, final RecordPath resultRecordPath, final ProcessSession session, final FlowFile flowFile,
                              final RecordSetWriterFactory writerFactory, final ComponentLog logger) {

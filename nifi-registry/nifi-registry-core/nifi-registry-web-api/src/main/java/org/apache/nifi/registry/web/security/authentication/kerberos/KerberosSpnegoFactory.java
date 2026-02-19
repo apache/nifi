@@ -47,7 +47,6 @@ public class KerberosSpnegoFactory {
         return kerberosSpnegoIdentityProvider;
     }
 
-
     private KerberosServiceAuthenticationProvider kerberosServiceAuthenticationProvider() throws Exception {
 
         if (kerberosServiceAuthenticationProvider == null && properties.isKerberosSpnegoSupportEnabled()) {

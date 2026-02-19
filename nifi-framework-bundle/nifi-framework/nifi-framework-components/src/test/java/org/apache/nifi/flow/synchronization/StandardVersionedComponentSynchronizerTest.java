@@ -204,7 +204,6 @@ public class StandardVersionedComponentSynchronizerTest {
             final Map<String, Parameter> parameterMap = invocation.getArgument(3, Map.class);
             parameterContext.setParameters(parameterMap);
 
-
             final List<String> inheritedContextIds = invocation.getArgument(4, List.class);
             final List<ParameterContext> inheritedContexts = inheritedContextIds.stream()
                 .map(parameterContextManager::getParameterContext)
@@ -1009,7 +1008,6 @@ public class StandardVersionedComponentSynchronizerTest {
         verify(service).setName("Hello");
     }
 
-
     @Test
     public void testCreatingParameterContext() throws FlowSynchronizationException, InterruptedException, TimeoutException {
         final Map<String, String> parameterMap = new HashMap<>();
@@ -1331,7 +1329,6 @@ public class StandardVersionedComponentSynchronizerTest {
         when(csReference.getReferencingComponents()).thenReturn(new HashSet<>(Arrays.asList(reference)));
         when(service.getReferences()).thenReturn(csReference);
     }
-
 
     //////////
     // Convenience methods for testing

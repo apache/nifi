@@ -228,7 +228,6 @@ public class FlowDifferenceFilters {
         return false;
     }
 
-
     private static boolean isNewZIndexLabelConfigWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
         final Object valueA = fd.getValueA();
         if (valueA != null) {

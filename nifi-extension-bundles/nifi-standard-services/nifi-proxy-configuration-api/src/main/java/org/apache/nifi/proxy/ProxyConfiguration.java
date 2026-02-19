@@ -115,7 +115,6 @@ public class ProxyConfiguration {
             }
         }
 
-
     }
 
     /**

@@ -162,8 +162,6 @@ public class TestScriptedTransformRecord {
         assertTrue(written.isEmpty());
     }
 
-
-
     @Test
     public void testCollectionOfRecords() throws InitializationException {
         final RecordSchema schema = createSimpleNumberSchema();
@@ -412,7 +410,6 @@ public class TestScriptedTransformRecord {
         final Map<String, Object> book1ValueMap = mutableMap("book", firstBookRecord);
         return new MapRecord(outerSchema, book1ValueMap);
     }
-
 
     private void setup(final RecordSchema schema) throws InitializationException {
         setupWithDifferentSchemas(schema, schema);

@@ -70,7 +70,6 @@ public class PutDropboxTest extends AbstractDropboxTest {
     public static final String LARGE_CONTENT_30B = "123456789012345678901234567890";
     public static final String SESSION_ID = "sessionId";
 
-
     @Mock(answer = RETURNS_DEEP_STUBS)
     private DbxUserFilesRequests mockDbxUserFilesRequest;
 

@@ -148,7 +148,6 @@ public class TestStandardParameterContextDAO {
         refs.add(ref);
         dto.setInheritedParameterContexts(refs);
 
-
         // Updating a provided parameter that is not inherited should fail
         assertThrows(IllegalArgumentException.class, () -> dao.verifyUpdate(dto, true));
     }

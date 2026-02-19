@@ -43,7 +43,6 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
     private Long openFileDescriptors;
     private Long maxOpenFileDescriptors;
 
-
     @Schema(description = "Information about the FlowFile Repository's usage")
     public RepositoryUsageDTO getFlowFileRepositoryStorageUsage() {
         return flowFileRepositoryStorageUsage;

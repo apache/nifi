@@ -71,7 +71,6 @@ class TestProtobufReader {
         runner.addControllerService(PROTOBUF_READER_SERVICE_ID, protobufReader);
     }
 
-
     private static Stream<Arguments> validConfigurationProvider() {
         return Stream.of(
             Arguments.of("test_proto3.proto", PROTO3_MESSAGE_TYPE),
@@ -197,7 +196,6 @@ class TestProtobufReader {
         }
     }
 
-
     @Test
     void testValidationWithCircularReferenceProto() throws IOException {
         final Path testTempDir = createTempDirWithProtoFile("test_circular_reference.proto");
@@ -207,7 +205,6 @@ class TestProtobufReader {
         final Collection<ValidationResult> results = runner.validate(protobufReader);
         assertTrue(results.stream().allMatch(ValidationResult::isValid));
     }
-
 
     private Path createTempDirWithProtoFile(final String protoFileName) throws IOException {
         final Path testTempDir = Files.createTempDirectory("proto-test-");

@@ -141,7 +141,6 @@ class TestListHDFS {
         mff.assertAttributeEquals("filename", "testFile.txt");
     }
 
-
     @Test
     void testRecursiveWithDefaultFilterAndFilterMode() {
         addFileStatus("/test", ".testFile.txt", false);
@@ -335,11 +334,9 @@ class TestListHDFS {
         mff1.assertAttributeEquals("filename", "testFile.txt");
     }
 
-
     @Test
     void testNoListUntilUpdateFromRemoteOnPrimaryNodeChange() throws IOException {
         addFileStatus("/test", "testFile.txt", false, 1999L, 0L);
-
 
         runner.run();
 
@@ -582,7 +579,6 @@ class TestListHDFS {
     private FsPermission create777() {
         return new FsPermission((short) 0x777);
     }
-
 
     private static class ListHDFSWithMockedFileSystem extends ListHDFS {
         private final MockFileSystem fileSystem = new MockFileSystem();

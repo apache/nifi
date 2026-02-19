@@ -157,7 +157,6 @@ public class NiFiPythonGateway extends Gateway {
         objectBindings.unbind(objectId);
     }
 
-
     @Override
     protected PythonProxyHandler createPythonProxyHandler(final String id) {
         logger.debug("Creating Python Proxy Handler for ID {}", id);
@@ -238,7 +237,6 @@ public class NiFiPythonGateway extends Gateway {
     private boolean isBindNecessary(final Class<?> type) {
         return !type.isPrimitive() && type != String.class && type != byte[].class;
     }
-
 
     public static class InvocationBindings {
         private final String targetObjectId;

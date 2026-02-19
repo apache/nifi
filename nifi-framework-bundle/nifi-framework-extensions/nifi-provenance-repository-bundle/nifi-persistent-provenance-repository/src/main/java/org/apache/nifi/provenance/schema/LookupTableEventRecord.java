@@ -71,7 +71,6 @@ public class LookupTableEventRecord implements Record {
         return schema;
     }
 
-
     private static Record createPreviousContentClaimRecord(final RecordSchema contentClaimSchema, final String container, final String section,
         final String identifier, final Long offset, final Long size) {
 
@@ -239,7 +238,6 @@ public class LookupTableEventRecord implements Record {
         builder.setSourceSystemFlowFileIdentifier((String) record.getFieldValue(EventFieldNames.SOURCE_SYSTEM_FLOWFILE_IDENTIFIER));
         builder.setTransitUri((String) record.getFieldValue(EventFieldNames.TRANSIT_URI));
         builder.setUpdatedAttributes(updatedAttributes);
-
 
         builder.setComponentId(readLookupValue(record.getFieldValue(EventFieldNames.COMPONENT_ID), componentIds));
         builder.setComponentType(readLookupValue(record.getFieldValue(EventFieldNames.COMPONENT_TYPE), componentTypes));

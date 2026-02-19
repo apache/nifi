@@ -40,7 +40,6 @@ public class StatelessBridgeFlowFileRepository extends StatelessFlowFileReposito
         this.resourceClaimManager = resourceClaimManager;
     }
 
-
     @Override
     public long getNextFlowFileSequence() {
         return nifiFlowFileRepository.getNextFlowFileSequence();

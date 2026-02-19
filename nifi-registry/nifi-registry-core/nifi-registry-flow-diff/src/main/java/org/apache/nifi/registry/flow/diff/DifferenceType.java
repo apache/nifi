@@ -390,7 +390,6 @@ public enum DifferenceType {
      */
     EXECUTION_ENGINE_CHANGED("Execution Engine Changed");
 
-
     private final String description;
 
     DifferenceType(final String description) {

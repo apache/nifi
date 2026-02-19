@@ -205,7 +205,6 @@ public class TestQueryRecord {
         }
     }
 
-
     @Test
     public void testRecordPathWithArray() throws InitializationException {
         final Record record = createHierarchicalArrayRecord();
@@ -426,7 +425,6 @@ public class TestQueryRecord {
         recordReader.addRecord(createTaggedRecord("2", "b", "e"));
         recordReader.addRecord(createTaggedRecord("3", "c", "f", "h"));
 
-
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(sample.getSchema());
 
         TestRunner runner = getRunner();
@@ -460,7 +458,6 @@ public class TestQueryRecord {
         assertArrayEquals(new Object[]{"b", "e"}, (Object[]) output1.getValue("tags"));
     }
 
-
     @Test
     public void testArrayColumnWithIndex() throws InitializationException {
         final Record sample = createTaggedRecord("1", "a", "b", "c");
@@ -469,7 +466,6 @@ public class TestQueryRecord {
         recordReader.addRecord(createTaggedRecord("1", "a", "d", "g"));
         recordReader.addRecord(createTaggedRecord("2", "b", "e"));
         recordReader.addRecord(createTaggedRecord("3", "c", "f", "h"));
-
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(sample.getSchema());
 
@@ -674,7 +670,6 @@ public class TestQueryRecord {
         assertNull(fr.getValue("proficiencyLevel"));
     }
 
-
     @Test
     public void testRecordPathWithArrayAndOnlyOneElementMatchingRPath() throws InitializationException {
         final Record record = createHierarchicalArrayRecord();
@@ -713,7 +708,6 @@ public class TestQueryRecord {
         assertEquals("Software Engineer", output.getValue("title"));
     }
 
-
     @Test
     public void testLikeWithRecordPath() throws InitializationException {
         final Record record = createHierarchicalArrayRecord();
@@ -751,7 +745,6 @@ public class TestQueryRecord {
         assertEquals("John Doe", output.getValue("name"));
         assertEquals("Software Engineer", output.getValue("title"));
     }
-
 
     @Test
     public void testRecordPathWithMap() throws InitializationException {
@@ -849,7 +842,6 @@ public class TestQueryRecord {
         favorites.put("roses", "raindrops");
         favorites.put("kittens", "whiskers");
 
-
         final Map<String, Object> map = new HashMap<>();
         map.put("name", "John Doe");
         map.put("age", 30);
@@ -868,7 +860,6 @@ public class TestQueryRecord {
 
         return new MapRecord(recordSchema, personValues);
     }
-
 
     /**
      * Returns a Record that, if written in JSON, would look like:
@@ -973,7 +964,6 @@ public class TestQueryRecord {
         map.put("addresses", new Record[] {homeAddress, workAddress});
         return new MapRecord(personSchema, map);
     }
-
 
     @Test
     public void testStreamClosedWhenBadData() throws InitializationException {
@@ -1130,7 +1120,6 @@ public class TestQueryRecord {
         out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
         out.assertContentEquals("\"name\",\"age\"\n");
     }
-
 
     @Test
     public void testTransformCalc() throws InitializationException {

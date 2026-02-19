@@ -53,7 +53,6 @@ public class VerifiableProcessorSystemIT extends NiFiSystemIT {
         assertEquals(Outcome.SKIPPED.name(), resultList.get(2).getOutcome());
     }
 
-
     @Test
     public void testVerifyWithInvalidConfigWhenComponentValid() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity processor = getClientUtil().createProcessor("EnsureProcessorConfigurationCorrect");

@@ -64,7 +64,6 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
         logger.debug("Registered Connection with ID {} to send to Node {}", connectionId, nodeId);
     }
 
-
     @Override
     public synchronized void unregister(final String connectionId, final NodeIdentifier nodeId) {
         final Set<AsyncLoadBalanceClient> clients = clientMap.get(nodeId);

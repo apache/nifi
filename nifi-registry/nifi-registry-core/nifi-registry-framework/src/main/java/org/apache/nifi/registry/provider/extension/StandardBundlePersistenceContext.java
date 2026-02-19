@@ -37,7 +37,6 @@ public class StandardBundlePersistenceContext implements BundlePersistenceContex
         Validate.notBlank(this.author);
     }
 
-
     @Override
     public BundleVersionCoordinate getCoordinate() {
         return coordinate;

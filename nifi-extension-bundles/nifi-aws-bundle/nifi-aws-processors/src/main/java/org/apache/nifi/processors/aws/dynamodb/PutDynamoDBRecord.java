@@ -267,7 +267,6 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         BY_SEQUENCE("BySequence", "Generate Sequence",
                 "The processor will assign a number for every item based on the original record's position in the incoming FlowFile. This will be used as sort key value.");
 
-
         private final String value;
         private final String displayName;
         private final String description;

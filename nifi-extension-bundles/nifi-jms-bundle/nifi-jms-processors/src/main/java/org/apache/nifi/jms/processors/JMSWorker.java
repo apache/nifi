@@ -36,7 +36,6 @@ abstract class JMSWorker {
     private final CachingConnectionFactory connectionFactory;
     private boolean isValid = true;
 
-
     /**
      * Creates an instance of this worker initializing it with JMS
      * {@link Connection} and creating a target {@link Channel} used by

@@ -181,7 +181,6 @@ final class ProtobufSchemaCompiler {
         }
     }
 
-
     /**
      * Writes a schema definition to the temporary directory structure.
      * If package name is present, creates the appropriate directory structure.
@@ -243,7 +242,6 @@ final class ProtobufSchemaCompiler {
             }
         }
     }
-
 
     @FunctionalInterface
     private interface WithTemporaryDirectory<T> {

@@ -222,7 +222,6 @@ public class GetShopify extends AbstractProcessor {
         RESET_STATE_PROPERTY_NAMES.add(IS_INCREMENTAL.getName());
     }
 
-
     private volatile ShopifyRestService shopifyRestService;
     private volatile String resourceName;
     private volatile boolean isResetState;
@@ -421,6 +420,5 @@ public class GetShopify extends AbstractProcessor {
             throw new ProcessException("Clearing state failed", e);
         }
     }
-
 
 }

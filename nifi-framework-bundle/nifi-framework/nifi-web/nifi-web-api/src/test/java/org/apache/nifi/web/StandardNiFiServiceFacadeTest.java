@@ -224,7 +224,6 @@ public class StandardNiFiServiceFacadeTest {
             return history;
         });
 
-
         // authorizable lookup
         final AuthorizableLookup authorizableLookup = mock(AuthorizableLookup.class);
         when(authorizableLookup.getProcessor(Mockito.anyString())).then(getProcessorInvocation -> {
@@ -802,7 +801,6 @@ public class StandardNiFiServiceFacadeTest {
                 .map(RemoteProcessGroupDTO::getId)
                 .forEach(remoteProcessGroupId -> when(remoteProcessGroupDAO.hasRemoteProcessGroup(remoteProcessGroupId)).thenReturn(true));
 
-
         // WHEN
         serviceFacade.verifyUpdateRemoteProcessGroups(groupId, shouldTransmit);
 
@@ -1340,7 +1338,6 @@ public class StandardNiFiServiceFacadeTest {
         // THEN
         assertEquals(expected, actual);
     }
-
 
     @Test
     public void testGetRuleViolationsEmpty() {

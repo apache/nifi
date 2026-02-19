@@ -261,7 +261,6 @@ public class SiteToSiteResource extends ApplicationResource {
             final PeerDTO peer = new PeerDTO();
             final String siteToSiteHostname = getSiteToSiteHostname(req);
 
-
             PeerDescription target = new PeerDescription(siteToSiteHostname,
                     properties.getRemoteInputHttpPort(), properties.isSiteToSiteSecure());
 

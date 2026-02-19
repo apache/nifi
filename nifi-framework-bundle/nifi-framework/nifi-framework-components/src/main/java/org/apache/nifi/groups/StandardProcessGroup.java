@@ -220,7 +220,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, String> loggingAttributes = new ConcurrentHashMap<>();
     private volatile String logFileSuffix;
 
-
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
                                 final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager,
@@ -508,7 +507,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     public boolean isRootGroup() {
         return parent.get() == null;
     }
-
 
     @Override
     public void startProcessing() {
@@ -1085,7 +1083,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-
     /**
      * A component's Versioned Component ID is used to link a component on the canvas to a component in a versioned flow.
      * There may, however, be multiple instances of the same versioned flow in a single NiFi instance. In this case, we will have
@@ -1166,7 +1163,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-
     private boolean containsVersionedComponentId(final Collection<? extends org.apache.nifi.components.VersionedComponent> components, final String id) {
         for (final org.apache.nifi.components.VersionedComponent component : components) {
             final Optional<String> optionalConnectableId = component.getVersionedComponentId();
@@ -1177,7 +1173,6 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         return false;
     }
-
 
     /**
      * Looks for any property that is configured on the given component that references a Controller Service.
@@ -3046,7 +3041,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-
     @Override
     public void verifyCanScheduleComponentsIndividually() {
         if (resolveExecutionEngine() == ExecutionEngine.STATELESS) {
@@ -3916,7 +3910,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             writeLock.unlock();
         }
     }
-
 
     @Override
     public Set<String> getAncestorServiceIds() {

@@ -110,7 +110,6 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
         lastCaptureTime = Math.max(lastCaptureTime, timestamp.getTime());
     }
 
-
     private void capture(final ProcessGroupStatus groupStatus, final Date timestamp) {
         // Capture status for the ProcessGroup
         final ComponentDetails groupDetails = ComponentDetails.forProcessGroup(groupStatus);
@@ -143,7 +142,6 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
             capture(childStatus, timestamp);
         }
     }
-
 
     private void updateStatusHistory(final StatusSnapshot statusSnapshot, final ComponentDetails componentDetails, final Date timestamp) {
         final String componentId = componentDetails.getComponentId();
@@ -368,7 +366,6 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
         // if preferredDataPoints != Integer.MAX_VALUE, Dates returned will be reduced further
         return filteredDates.subList(Math.max(filteredDates.size() - preferredDataPoints, 0), filteredDates.size());
     }
-
 
     @Override
     public GarbageCollectionHistory getGarbageCollectionHistory(final Date start, final Date end) {

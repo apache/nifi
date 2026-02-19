@@ -84,7 +84,6 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
                 .map(NarClassLoader.class::cast)
                 .toList();
 
-
         Set<String> actualLibraryLocations = narClassLoaders.stream()
                 .map(classLoader -> classLoader.findLibrary("testjni"))
                 .collect(Collectors.toSet());
@@ -132,7 +131,6 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
             String actualLibraryLocation = instanceClassLoader.findLibrary("testjni");
 
             Class<?> TestJNI = instanceClassLoader.loadClass("org.apache.nifi.nar.sharedlib.TestJNI");
-
 
             Object actualJniMethodReturnValue = TestJNI
                     .getMethod("testJniMethod")

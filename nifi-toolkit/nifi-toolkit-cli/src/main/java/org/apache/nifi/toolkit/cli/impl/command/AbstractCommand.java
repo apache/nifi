@@ -155,7 +155,6 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
         }
     }
 
-
     protected void print(final String val) {
         output.print(val);
     }

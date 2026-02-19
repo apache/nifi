@@ -63,7 +63,6 @@ public class RollbackOnExceptionIT extends StatelessSystemIT {
         assertFalse(dataflow.isFlowFileQueued());
     }
 
-
     @Test
     public void testFlowFileCompletelyRemovedWhenTransferredToFailurePort() throws IOException, StatelessConfigurationException, InterruptedException {
         final VersionedFlowBuilder builder = new VersionedFlowBuilder();

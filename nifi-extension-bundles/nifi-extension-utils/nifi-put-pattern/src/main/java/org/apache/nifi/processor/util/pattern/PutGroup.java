@@ -32,7 +32,6 @@ import java.util.Objects;
  */
 public class PutGroup<FC, C extends AutoCloseable, FFG extends PartialFunctions.FlowFileGroup> extends Put<FC, C> {
 
-
     public PutGroup() {
         // Just to make a composition valid.
         this.putFlowFile = (context, session, functionContext, connection, inputFlowFile, result) -> {
@@ -82,7 +81,6 @@ public class PutGroup<FC, C extends AutoCloseable, FFG extends PartialFunctions.
     public void putFlowFiles(PutFlowFiles<FC, C, FFG> f) {
         putFlowFiles = f;
     }
-
 
     @Override
     protected void putFlowFiles(ProcessContext context, ProcessSession session, FC functionContext,

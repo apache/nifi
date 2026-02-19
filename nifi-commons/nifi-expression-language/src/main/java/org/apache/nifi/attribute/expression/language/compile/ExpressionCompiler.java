@@ -1364,7 +1364,6 @@ public class ExpressionCompiler {
             lastIndex = range.getEnd() + 1;
         }
 
-
         final Range lastRange = escapedRanges.get(escapedRanges.size() - 1);
         if (lastRange.getEnd() + 1 < literalValue.length()) {
             final String treeText = literalValue.substring(lastRange.getEnd() + 1);

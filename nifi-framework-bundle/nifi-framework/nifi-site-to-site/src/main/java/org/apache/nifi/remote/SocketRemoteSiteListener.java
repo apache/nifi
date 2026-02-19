@@ -134,7 +134,6 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                     LOG.error("Unable to open server socket", e);
                 }
 
-
                 for (Thread thread : threads) {
                     if (thread != null) {
                         thread.interrupt();

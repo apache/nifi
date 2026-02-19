@@ -416,7 +416,6 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         performanceLoggingTimestamp = System.currentTimeMillis();
     }
 
-
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
@@ -1161,7 +1160,6 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         int getTrackedFileCount();
     }
 
-
     interface OperationStatistics {
         long getMin();
         long getMax();
@@ -1251,7 +1249,6 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             return outliers;
         }
     }
-
 
     private static class TimedOperationKey {
         private final DiskOperation operation;

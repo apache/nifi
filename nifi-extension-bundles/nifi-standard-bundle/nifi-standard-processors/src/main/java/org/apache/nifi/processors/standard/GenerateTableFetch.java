@@ -272,7 +272,6 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         }
         maxValueProperties = getDefaultMaxValueProperties(context, fileToProcess);
 
-
         final ComponentLog logger = getLogger();
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);

@@ -266,7 +266,6 @@ public class PeerChannel implements Closeable {
         return 0;
     }
 
-
     /**
      * Encrypts the given buffer of data, writing the result into {@link #destinationBuffer}.
      * @param plaintext the data to encrypt

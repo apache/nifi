@@ -83,7 +83,6 @@ public class AggregateNiFiInstance implements NiFiInstance {
         }
     }
 
-
     @Override
     public boolean isClustered() {
         return true;
@@ -141,7 +140,6 @@ public class AggregateNiFiInstance implements NiFiInstance {
             instance.setProperty(propertyName, propertyValue);
         }
     }
-
 
     @Override
     public void setProperties(final Map<String, String> properties) throws IOException {

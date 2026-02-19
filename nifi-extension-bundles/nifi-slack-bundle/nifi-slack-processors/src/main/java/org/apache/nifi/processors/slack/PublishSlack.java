@@ -233,7 +233,6 @@ public class PublishSlack extends AbstractProcessor {
         METHODS_ENDPOINT_URL_PREFIX
     );
 
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("FlowFiles are routed to success after being successfully sent to Slack")
@@ -305,7 +304,6 @@ public class PublishSlack extends AbstractProcessor {
 
         return new App(appConfig);
     }
-
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -433,7 +431,6 @@ public class PublishSlack extends AbstractProcessor {
         session.getProvenanceReporter().send(flowFile, "https://slack.com/api/chat.postMessage");
         session.transfer(flowFile, REL_SUCCESS);
     }
-
 
     private void publishAsFile(FlowFile flowFile, final String channelId, final ProcessContext context, final ProcessSession session) {
         final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());

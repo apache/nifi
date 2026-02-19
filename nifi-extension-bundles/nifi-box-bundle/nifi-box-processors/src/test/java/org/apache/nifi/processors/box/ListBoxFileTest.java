@@ -99,7 +99,6 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
                         "}" +
                         "]");
 
-
         testRunner.run();
 
         testRunner.assertContents(ListBoxFile.REL_SUCCESS, expectedContents);

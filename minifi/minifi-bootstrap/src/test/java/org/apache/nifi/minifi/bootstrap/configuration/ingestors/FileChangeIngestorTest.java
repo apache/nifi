@@ -57,7 +57,6 @@ public class FileChangeIngestorTest {
     private Differentiator<ByteBuffer> mockDifferentiator;
     private ConfigurationChangeNotifier testNotifier;
 
-
     @BeforeEach
     public void setUp() {
         mockWatchService = mock(WatchService.class);

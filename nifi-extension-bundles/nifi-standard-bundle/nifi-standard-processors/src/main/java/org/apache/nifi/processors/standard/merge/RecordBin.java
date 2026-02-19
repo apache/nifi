@@ -72,7 +72,6 @@ public class RecordBin {
 
     private volatile int requiredRecordCount = -1;
 
-
     public RecordBin(final ProcessContext context, final ProcessSession session, final ComponentLog logger, final RecordBinThresholds thresholds) {
         this.session = session;
         this.writerFactory = context.getProperty(MergeRecord.RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
@@ -258,7 +257,6 @@ public class RecordBin {
             readLock.unlock();
         }
     }
-
 
     public void rollback() {
         complete = true;

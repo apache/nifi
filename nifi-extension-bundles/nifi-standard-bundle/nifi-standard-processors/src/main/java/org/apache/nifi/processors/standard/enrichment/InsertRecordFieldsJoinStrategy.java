@@ -83,7 +83,6 @@ public class InsertRecordFieldsJoinStrategy extends IndexCorrelatedJoinStrategy 
         return originalRecord;
     }
 
-
     @Override
     protected RecordSchema createResultSchema(final Record firstOriginalRecord, final Record firstEnrichmentRecord) {
         final Record combined = combineRecords(firstOriginalRecord, firstEnrichmentRecord, true);

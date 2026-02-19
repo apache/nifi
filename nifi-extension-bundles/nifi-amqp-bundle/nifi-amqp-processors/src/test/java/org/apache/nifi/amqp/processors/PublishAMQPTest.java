@@ -150,7 +150,6 @@ public class PublishAMQPTest {
         expectedHeaders.put("foo2", "bar2");
         expectedHeaders.put("foo3", null);
 
-
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE, "foo=(bar,bar)|foo2=bar2|foo3|foo4=malformed=|foo5=mal=formed");
 

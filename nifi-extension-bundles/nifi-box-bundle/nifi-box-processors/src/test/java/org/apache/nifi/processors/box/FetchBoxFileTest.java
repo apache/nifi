@@ -69,10 +69,8 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
         final BoxFile.Info fetchedFileInfo = createFileInfo(TEST_FOLDER_NAME,  MODIFIED_TIME);
         doReturn(fetchedFileInfo).when(mockBoxFile).getInfo();
 
-
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
-
 
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_SUCCESS);
@@ -89,11 +87,9 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
         final BoxFile.Info fetchedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME);
         doReturn(fetchedFileInfo).when(mockBoxFile).getInfo();
 
-
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
-
 
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_SUCCESS);
@@ -109,11 +105,9 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
 
         doThrow(new RuntimeException("Download failed")).when(mockBoxFile).download(any(OutputStream.class));
 
-
         MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
-
 
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_FAILURE, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_FAILURE);

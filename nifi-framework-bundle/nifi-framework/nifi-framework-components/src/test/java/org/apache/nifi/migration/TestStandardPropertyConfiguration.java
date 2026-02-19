@@ -145,7 +145,6 @@ public class TestStandardPropertyConfiguration {
         assertEquals(originalProperties, config.getProperties());
     }
 
-
     @Test
     public void testRemoveProperty() {
         assertFalse(config.removeProperty("X"));

@@ -352,7 +352,6 @@ public class TestFastCSVRecordReader {
         }
     }
 
-
     @Test
     public void testFieldInSchemaButNotHeader() throws IOException, MalformedRecordException {
         final List<RecordField> fields = getDefaultFields();

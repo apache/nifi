@@ -29,7 +29,6 @@ public enum RolloverState {
 
     SHOULD_NOT_ROLLOVER(false);
 
-
     private final boolean rollover;
 
     public boolean isRollover() {

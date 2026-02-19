@@ -292,7 +292,6 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
                 snapshotCapture = snapshot.prepareSnapshot(nextTransactionId - 1, swapLocations);
             }
 
-
             // Create a new journal. We name the journal file <next transaction id>.journal but it is possible
             // that we could have an empty journal file already created. If this happens, we don't want to create
             // a new file on top of it because it would get deleted below when we clean up old journals. So we
@@ -326,7 +325,6 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
 
         return snapshotCapture.getRecords().size();
     }
-
 
     @Override
     public void shutdown() throws IOException {

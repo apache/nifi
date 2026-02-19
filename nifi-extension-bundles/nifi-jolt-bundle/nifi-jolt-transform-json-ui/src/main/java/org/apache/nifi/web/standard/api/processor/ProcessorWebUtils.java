@@ -65,7 +65,6 @@ class ProcessorWebUtils {
         };
     }
 
-
     private static NiFiWebRequestContext getRequestContext(final String processorId, HttpServletRequest request) {
         return new HttpServletRequestContext(UiExtensionType.ProcessorConfiguration, request) {
             @Override
@@ -74,6 +73,5 @@ class ProcessorWebUtils {
             }
         };
     }
-
 
 }

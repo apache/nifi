@@ -79,7 +79,6 @@ class TestStandardProtobufReader extends StandardProtobufReaderTestBase {
         runAssertionsOnTestProto3Message(recordReader);
     }
 
-
     @Test
     void testSchemaNotFoundRethrown() {
         mockSchemaRegistry.throwSchemaNotFoundWhenCalled(true);

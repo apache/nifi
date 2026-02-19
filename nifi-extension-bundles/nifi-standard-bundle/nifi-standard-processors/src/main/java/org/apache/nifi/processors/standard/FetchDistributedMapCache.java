@@ -278,7 +278,6 @@ public class FetchDistributedMapCache extends AbstractProcessor {
         }
     }
 
-
     public static class CacheValueDeserializer implements Deserializer<byte[]> {
 
         @Override

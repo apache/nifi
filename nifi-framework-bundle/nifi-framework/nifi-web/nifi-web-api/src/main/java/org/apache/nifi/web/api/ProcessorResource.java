@@ -234,7 +234,6 @@ public class ProcessorResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
-
     @POST
     @Consumes({MediaType.APPLICATION_JSON, MediaType.WILDCARD})
     @Produces(MediaType.APPLICATION_JSON)
@@ -274,7 +273,6 @@ public class ProcessorResource extends ApplicationResource {
                     return generateOkResponse(entity).build();
                 });
     }
-
 
     @DELETE
     @Consumes(MediaType.WILDCARD)
@@ -625,7 +623,6 @@ public class ProcessorResource extends ApplicationResource {
         );
     }
 
-
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -685,7 +682,6 @@ public class ProcessorResource extends ApplicationResource {
                 }
         );
     }
-
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -789,7 +785,6 @@ public class ProcessorResource extends ApplicationResource {
         return generateOkResponse(updateRequestEntity).build();
     }
 
-
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
@@ -847,7 +842,6 @@ public class ProcessorResource extends ApplicationResource {
             throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
         }
     }
-
 
     /**
      * Updates the specified processor with the specified values.

@@ -76,7 +76,6 @@ class FetchSmbTest {
         }
     }
 
-
     @Test
     public void shouldUseSmbClientProperly() throws Exception {
         final TestRunner testRunner = createRunner();

@@ -82,7 +82,6 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                     .setConvertRawValue(v -> StringUtils.isEmpty(v) ? "" : SENSITIVE_VALUE_MASK)
     );
 
-
     private static final BiFunction<RemoteGroupPort, String, String> PORT_NAME_CONVERT = (updated, name) -> updated.getName() + "." + name;
     private static final List<ConfigurationRecorder<RemoteGroupPort, RemoteProcessGroupPortDTO>> PORT_CONFIG_RECORDERS = Arrays.asList(
             new ConfigurationRecorder<RemoteGroupPort, RemoteProcessGroupPortDTO>("Transmission",
@@ -449,7 +448,6 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
         remoteProcessGroupDetails.setUri(remoteProcessGroup.getTargetUri());
         return remoteProcessGroupDetails;
     }
-
 
     /**
      * Generates an audit record for the specified remote process group.

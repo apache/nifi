@@ -340,7 +340,6 @@ public enum ProcessorStatusDescriptor {
         return metricTransform.apply(perfStatus);
     }
 
-
     private final MetricDescriptor<ProcessorStatus> descriptor;
     private final boolean visible;
 
@@ -364,8 +363,6 @@ public enum ProcessorStatusDescriptor {
         this.descriptor = new StandardMetricDescriptor<>(this::ordinal, field, label, description, formatter, valueFunction, reducer);
         this.visible = visible;
     }
-
-
 
     public String getField() {
         return descriptor.getField();

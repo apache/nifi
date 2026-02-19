@@ -235,7 +235,6 @@ public class RemoteQueuePartition implements QueuePartition {
         clientRegistry.unregister(flowFileQueue.getIdentifier(), nodeIdentifier);
     }
 
-
     /**
      * Updates the FlowFileRepository, Provenance Repository, and claimant counts in the Content Repository.
      *
@@ -340,7 +339,6 @@ public class RemoteQueuePartition implements QueuePartition {
 
         return dropEvent;
     }
-
 
     @Override
     public synchronized void stop() {

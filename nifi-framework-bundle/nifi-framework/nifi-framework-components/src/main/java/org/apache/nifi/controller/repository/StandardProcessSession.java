@@ -759,7 +759,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
     }
 
-
     private void updateEventRepository(final Checkpoint checkpoint) {
         try {
             // update event repository
@@ -1036,7 +1035,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         provenanceRepo.registerEvents(iterable);
     }
-
 
     private void updateEventContentClaims(final ProvenanceEventBuilder builder, final FlowFile flowFile, final StandardRepositoryRecord repoRecord) {
         final ContentClaim originalClaim = repoRecord.getOriginalClaim();
@@ -1451,7 +1449,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
     }
 
-
     @Override
     public void migrate(final ProcessSession newOwner) {
         final List<FlowFile> allFlowFiles = new ArrayList<>();
@@ -1673,7 +1670,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             provenanceReporter.migrate(newOwner.provenanceReporter, flowFileIds);
         }
     }
-
 
     private String summarizeEvents(final Checkpoint checkpoint) {
         final Map<Relationship, Set<String>> transferMap = new HashMap<>(); // relationship to flowfile ID's
@@ -1956,7 +1952,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         return get((connection, expiredRecords) -> connection.poll(filter, expiredRecords), true);
     }
 
-
     private List<FlowFile> get(final ConnectionPoller poller, final boolean lockAllQueues) {
         List<Connection> connections = context.getPollableConnections();
         final boolean sortConnections = lockAllQueues && connections.size() > 1;
@@ -2140,7 +2135,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         return fFile;
     }
-
 
     @Override
     public FlowFile clone(FlowFile example) {
@@ -3175,7 +3169,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         return newFile;
     }
 
-
     @Override
     public FlowFile append(FlowFile source, final OutputStreamCallback writer) {
         verifyTaskActive();
@@ -3389,7 +3382,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         currentReadClaimStream = null;
         currentReadClaim = null;
     }
-
 
     @Override
     public FlowFile write(FlowFile source, final StreamCallback writer) {
@@ -3757,7 +3749,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final StandardRepositoryRecord existingRecord = getRecord(flowFile);
         return existingRecord == null ? flowFile : existingRecord.getCurrent();
     }
-
 
     /**
      * Returns the attributes that are common to every FlowFile given. The key
@@ -4146,7 +4137,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
             return allLinked;
         }
-
 
         public void clear() {
             linkedIds.clear();

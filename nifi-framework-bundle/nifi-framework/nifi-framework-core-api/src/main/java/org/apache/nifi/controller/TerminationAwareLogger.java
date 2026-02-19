@@ -42,7 +42,6 @@ public class TerminationAwareLogger implements ComponentLog {
         return TERMINATED_TASK_PREFIX + logLevel.name() + " - " + originalMessage;
     }
 
-
     @Override
     public void warn(String msg, Throwable t) {
         if (isTerminated()) {

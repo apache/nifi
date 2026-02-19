@@ -441,7 +441,6 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest {
         runner.assertTransferCount(AbstractPutElasticsearch.REL_SUCCESSFUL, 1);
         runner.assertTransferCount(AbstractPutElasticsearch.REL_ERROR_RESPONSES, 0);
 
-
         // re-run the same test but with schema inference rather
         runner.disableControllerService(reader);
         runner.removeProperty(reader, SchemaAccessUtils.SCHEMA_REGISTRY);

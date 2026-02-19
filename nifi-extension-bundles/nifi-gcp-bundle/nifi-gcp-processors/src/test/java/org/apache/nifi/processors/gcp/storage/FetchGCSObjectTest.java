@@ -299,7 +299,6 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         flowFile.assertAttributeEquals(OWNER_TYPE_ATTR, "group");
     }
 
-
     @Test
     public void testAclOwnerDomain() throws Exception {
         reset(storageOptions, storage);
@@ -334,7 +333,6 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         flowFile.assertAttributeEquals(OWNER_ATTR, OWNER_DOMAIN);
         flowFile.assertAttributeEquals(OWNER_TYPE_ATTR, "domain");
     }
-
 
     @Test
     public void testAclOwnerProject() throws Exception {
@@ -472,12 +470,10 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         assertEquals(KEY, capturedBlobId.getName());
         assertEquals(GENERATION, capturedBlobId.getGeneration());
 
-
         final Set<Storage.BlobSourceOption> blobSourceOptions = new LinkedHashSet<>(blobSourceOptionArgumentCaptor.getAllValues());
         assertTrue(blobSourceOptions.contains(Storage.BlobSourceOption.generationMatch()));
         assertEquals(1, blobSourceOptions.size());
     }
-
 
     @Test
     public void testBlobIdWithEncryption() throws Exception {

@@ -133,7 +133,6 @@ public class PythonControllerInteractionIT {
         }
     }
 
-
     @Test
     public void testStartAndStop() {
         // Do nothing. Just use the @BeforeAll / @AfterAll to handle the start & stop.
@@ -143,7 +142,6 @@ public class PythonControllerInteractionIT {
     public void testPing() throws IOException {
         bridge.ping();
     }
-
 
     @Test
     public void testGetProcessorDetails() {
@@ -200,7 +198,6 @@ public class PythonControllerInteractionIT {
         runner.run(flowFileCount);
         runner.assertAllFlowFilesTransferred("success", flowFileCount);
     }
-
 
     @Test
     public void testSimplePrettyPrint() throws IOException {
@@ -314,7 +311,6 @@ public class PythonControllerInteractionIT {
         runner.assertTransferCount("success", 1);
         runner.getFlowFilesForRelationship("success").getFirst().assertContentEquals("1.25.0");
     }
-
 
     @Test
     public void testControllerService() throws InitializationException {
@@ -472,7 +468,6 @@ public class PythonControllerInteractionIT {
             [{"name":"Jane Doe","number":"8"}]""");
     }
 
-
     @Test
     public void testHashRecordFieldHappyPath() throws InitializationException {
         final TestRunner runner = createRecordTransformRunner("HashRecordField");
@@ -539,7 +534,6 @@ public class PythonControllerInteractionIT {
         out.assertContentEquals("[{\"count\":\"" + expectedHash + "\"}]");
     }
 
-
     private TestRunner createRecordTransformRunner(final String type) throws InitializationException {
         final TestRunner runner = createProcessor(type);
         runner.setValidateExpressionUsage(false);
@@ -556,7 +550,6 @@ public class PythonControllerInteractionIT {
 
         return runner;
     }
-
 
     @Test
     public void testRecordTransformWithInnerRecord() throws InitializationException {
@@ -576,7 +569,6 @@ public class PythonControllerInteractionIT {
         out.assertContentEquals("""
             [{"name":"Jane Doe","father":{"name":"John Doe"}}]""");
     }
-
 
     @Test
     public void testCustomRelationships() {
@@ -639,7 +631,6 @@ public class PythonControllerInteractionIT {
 
         runner.assertTransferCount("success", 7);
     }
-
 
     @Test
     public void testRouteToFailureWithAttributes() {

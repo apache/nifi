@@ -54,7 +54,6 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
     private final File workingDirectory;
     private final List<ExtensionClient> clients;
 
-
     public FileSystemExtensionRepository(final ExtensionDiscoveringManager extensionManager, final StatelessEngineConfiguration engineConfiguration, final NarClassLoaders narClassLoaders,
                                          final List<ExtensionClient> clients) {
         this.extensionManager = extensionManager;

@@ -218,7 +218,6 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
         return schema;
     }
 
-
     protected abstract DataType getDataType(T value);
 
     protected abstract boolean isObject(T value);

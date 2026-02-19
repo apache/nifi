@@ -510,7 +510,6 @@ public class ExtensionBuilder {
         return flowAnalysisRuleNode;
     }
 
-
     private ProcessorNode createProcessorNode(final LoggableComponent<Processor> processor, final String componentType, final boolean extensionMissing) {
         final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider);
 
@@ -771,7 +770,6 @@ public class ExtensionBuilder {
         }
     }
 
-
     private ControllerServiceNode createGhostControllerServiceNode() {
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
         final String componentType = "(Missing) " + simpleClassName;
@@ -810,7 +808,6 @@ public class ExtensionBuilder {
             throw new ProcessorInstantiationException(type, t);
         }
     }
-
 
     private LoggableComponent<ReportingTask> createLoggableReportingTask() throws ReportingTaskInstantiationException {
         try {
@@ -875,7 +872,6 @@ public class ExtensionBuilder {
 
             clientComponent.getComponent().initialize(context);
             return clientComponent;
-
 
         } catch (final Throwable t) {
             throw new FlowRepositoryClientInstantiationException(type, t);

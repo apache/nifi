@@ -487,7 +487,6 @@ public class TestPutSQL {
         }
     }
 
-
     @Test
     public void testUsingSqlDataTypesWithNegativeValues() throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
@@ -809,7 +808,6 @@ public class TestPutSQL {
         final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(timeFormatString);
         java.util.Date parsedDate = Date.from(LocalTime.parse(arg2TS, dateTimeFormatter).atDate(LocalDate.now()).atZone(ZoneId.systemDefault()).toInstant());
 
-
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
         attributes.put("sql.args.1.value", Long.toString(parsedDate.getTime()));
@@ -1115,7 +1113,6 @@ public class TestPutSQL {
             }
         }
     }
-
 
     @Test
     public void testWithNullParameter() throws ProcessException, SQLException {
@@ -1479,7 +1476,6 @@ public class TestPutSQL {
         assertEquals(ACCEPT_AND_CONTINUE, txFilter.filter(ff3));
         assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff4));
 
-
         final FlowFileFilter nonTxFilter = flowFile -> "true".equals(flowFile.getAttribute("accept"))
             ? ACCEPT_AND_CONTINUE
             : REJECT_AND_CONTINUE;
@@ -1683,7 +1679,6 @@ public class TestPutSQL {
         runner.assertAllFlowFilesContainAttribute("sql.args.1.type");
         runner.assertAllFlowFilesContainAttribute("sql.args.1.value");
     }
-
 
     private static void assertErrorAttributesInTransaction(final TestRunner runner, Relationship relationship) {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);

@@ -53,7 +53,6 @@ public class RecordPathFunctions {
         private static final RecordSchema ROOT_RECORD_SCHEMA = new SimpleRecordSchema(List.of(ROOT_RECORD_FIELD));
         private static final RecordField PARENT_RECORD_FIELD = new RecordField("root", RecordFieldType.RECORD.getRecordDataType(ROOT_RECORD_SCHEMA));
 
-
         public Object eval(Object record, String recordPath) {
             if (record == null) {
                 return null;

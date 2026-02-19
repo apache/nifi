@@ -37,7 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FlowAnalysisRuleIT extends NiFiSystemIT {
 
-
     public static final String SENSITIVE_PROPERTY_NAME = "SensitiveProperty";
 
     private static final String SENSITIVE_PROPERTY_VALUE = "SensitiveValue";

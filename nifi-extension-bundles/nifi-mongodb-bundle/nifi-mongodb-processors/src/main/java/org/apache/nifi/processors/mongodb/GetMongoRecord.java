@@ -172,7 +172,6 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
                 throw new RuntimeException(e);
             }
 
-
             output = session.putAllAttributes(output, attributes);
 
             session.getProvenanceReporter().fetch(output, getURI(context));

@@ -415,7 +415,6 @@ class TestJsonTreeRowRecordReader {
             final Object[] fourthRecordValues = reader.nextRecord().getValues();
             assertArrayEquals(new Object[] {4, "Xi Doe", 4820.09, "321 Your Street", "Your City", "NV", "33333", "USA"}, fourthRecordValues);
 
-
             assertNull(reader.nextRecord());
         }
     }
@@ -819,8 +818,6 @@ class TestJsonTreeRowRecordReader {
         assertEquals(List.of("1", "2", "3", "4"), ids);
     }
 
-
-
     @Test
     void testReadUnicodeCharacters() throws Exception {
 
@@ -947,7 +944,6 @@ class TestJsonTreeRowRecordReader {
 
         testReadRecords(jsonPath, expected);
     }
-
 
     @Test
     void testChoseSuboptimalSchemaWhenDataHasExtraFields() throws Exception {
@@ -1207,7 +1203,6 @@ class TestJsonTreeRowRecordReader {
         Set<String> fieldsToCapture = expectedCapturedFields.keySet();
         BiPredicate<String, String> capturePredicate = (fieldName, fieldValue) -> fieldsToCapture.contains(fieldName);
         String startingFieldName = "accounts";
-
 
         SimpleRecordSchema accountRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),

@@ -90,7 +90,6 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
         return activeReferences;
     }
 
-
     @Override
     public <T> List<T> findRecursiveReferences(final Class<T> componentType) {
         return findRecursiveReferences(referenced, componentType, new HashSet<>());

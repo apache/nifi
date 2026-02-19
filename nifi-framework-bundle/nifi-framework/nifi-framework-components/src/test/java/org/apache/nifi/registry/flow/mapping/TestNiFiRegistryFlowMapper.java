@@ -78,8 +78,6 @@ public class TestNiFiRegistryFlowMapper {
         assertNull(versionedProperties.get("Sensitive Property B"));
     }
 
-
-
     @Test
     public void testMappingProcessorWithSensitiveValuesLeavesSensitiveParameterReference() {
         final ExtensionManager extensionManager = mock(ExtensionManager.class);
@@ -136,7 +134,6 @@ public class TestNiFiRegistryFlowMapper {
         testControllerServicesMapsToProperId(false);
     }
 
-
     private void testControllerServicesMapsToProperId(final boolean useVersionedId) {
         final ExtensionManager extensionManager = mock(ExtensionManager.class);
         final FlowMappingOptions mappingOptions = new FlowMappingOptions.Builder()
@@ -168,7 +165,6 @@ public class TestNiFiRegistryFlowMapper {
             assertEquals("1234", idReferenced);
         }
     }
-
 
     private ProcessorNode createProcessorNode(final Map<String, String> properties) {
         final ExpressionLanguageAgnosticParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();

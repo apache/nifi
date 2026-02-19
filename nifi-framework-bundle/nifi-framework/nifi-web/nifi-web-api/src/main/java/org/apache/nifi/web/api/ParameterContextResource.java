@@ -280,7 +280,6 @@ public class ParameterContextResource extends AbstractParameterResource {
                 });
     }
 
-
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -798,7 +797,6 @@ public class ParameterContextResource extends AbstractParameterResource {
         }
     }
 
-
     private void validateAssetReferences(final ParameterContextDTO parameterContextDto) {
         if (parameterContextDto.getParameters() != null) {
             for (final ParameterEntity entity : parameterContextDto.getParameters()) {
@@ -880,7 +878,6 @@ public class ParameterContextResource extends AbstractParameterResource {
 
         return retrieveUpdateRequest("update-requests", contextId, updateRequestId);
     }
-
 
     @DELETE
     @Consumes(MediaType.WILDCARD)
@@ -992,7 +989,6 @@ public class ParameterContextResource extends AbstractParameterResource {
                 });
 
     }
-
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -1150,7 +1146,6 @@ public class ParameterContextResource extends AbstractParameterResource {
 
         return deleteValidationRequest("validation-requests", contextId, validationRequestId, disconnectedNodeAcknowledged.booleanValue());
     }
-
 
     private Response performAsyncValidation(final ParameterContextValidationRequestEntity requestEntity, final NiFiUser user) {
         // Create an asynchronous request that will occur in the background, because this request may

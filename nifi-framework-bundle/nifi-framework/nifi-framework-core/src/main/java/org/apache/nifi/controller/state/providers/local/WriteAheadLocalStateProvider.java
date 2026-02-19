@@ -99,7 +99,6 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         .required(true)
         .build();
 
-
     private WriteAheadRepository<StateMapUpdate> writeAheadLog;
     private AtomicLong versionGenerator;
 
@@ -111,7 +110,6 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
     public synchronized void init(final StateProviderInitializationContext context) throws IOException {
         long checkpointIntervalMillis = context.getProperty(CHECKPOINT_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         alwaysSync = context.getProperty(ALWAYS_SYNC).asBoolean();
-
 
         final File basePath = new File(context.getProperty(PATH).getValue());
 

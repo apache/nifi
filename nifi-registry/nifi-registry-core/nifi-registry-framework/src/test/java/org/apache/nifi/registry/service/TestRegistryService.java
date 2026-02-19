@@ -373,7 +373,6 @@ public class TestRegistryService {
         assertEquals(versionedFlow.getDescription(), createdFlow.getDescription());
     }
 
-
     @Test
     public void testCreateFlowWithCreatedTimestamp() {
         final BucketEntity existingBucket = new BucketEntity();

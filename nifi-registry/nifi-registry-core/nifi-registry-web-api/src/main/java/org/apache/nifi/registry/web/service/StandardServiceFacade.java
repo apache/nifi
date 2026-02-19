@@ -840,7 +840,6 @@ public class StandardServiceFacade implements ServiceFacade {
         return streamingOutput;
     }
 
-
     // ---------------------- Field methods ----------------------------------------------
 
     @Override
@@ -1036,7 +1035,6 @@ public class StandardServiceFacade implements ServiceFacade {
     public CurrentUser getCurrentUser() {
         return authorizationService.getCurrentUser();
     }
-
 
     // ---------------------- Authorization methods -----------------------------
 

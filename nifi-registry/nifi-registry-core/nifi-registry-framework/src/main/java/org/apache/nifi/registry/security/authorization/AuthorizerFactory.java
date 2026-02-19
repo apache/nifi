@@ -139,7 +139,6 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         return accessPolicyProviders.get(identifier);
     }
 
-
     /***** AuthorizerLookup *****/
 
     @Override
@@ -902,7 +901,6 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         }
         return false;
     }
-
 
     /**
      * Checks if another user or group exists with the same identity.

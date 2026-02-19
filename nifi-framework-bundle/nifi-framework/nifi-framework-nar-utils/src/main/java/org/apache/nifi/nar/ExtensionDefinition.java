@@ -120,7 +120,6 @@ public class ExtensionDefinition {
         return "ExtensionDefinition[type=" + extensionType.getSimpleName() + ", implementation=" + implementationClassName + ", bundle=" + bundle + "]";
     }
 
-
     public static class Builder {
         private String implementationClassName;
         private Bundle bundle;

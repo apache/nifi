@@ -132,7 +132,6 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 })
 public class ExecuteSQLRecord extends AbstractExecuteSQL {
 
-
     public static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
             .name("Record Writer")
             .description("Specifies the Controller Service to use for writing results to a FlowFile. The Record Writer may use Inherit Schema to emulate the inferred schema behavior, i.e. "

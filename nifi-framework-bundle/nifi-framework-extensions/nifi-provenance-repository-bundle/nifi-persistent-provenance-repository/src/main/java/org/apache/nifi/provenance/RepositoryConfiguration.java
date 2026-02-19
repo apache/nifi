@@ -379,7 +379,6 @@ public class RepositoryConfiguration {
         this.maintenanceFrequencyMillis = timeUnit.toMillis(period);
     }
 
-
     public static RepositoryConfiguration create(final NiFiProperties nifiProperties) {
         final Map<String, Path> storageDirectories = nifiProperties.getProvenanceRepositoryPaths();
         if (storageDirectories.isEmpty()) {

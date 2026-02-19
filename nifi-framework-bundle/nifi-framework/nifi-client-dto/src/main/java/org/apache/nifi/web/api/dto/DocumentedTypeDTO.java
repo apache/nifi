@@ -104,7 +104,6 @@ public class DocumentedTypeDTO {
         this.deprecationReason = deprecationReason;
     }
 
-
     /**
      * @return The type is the fully-qualified name of a Java class
      */

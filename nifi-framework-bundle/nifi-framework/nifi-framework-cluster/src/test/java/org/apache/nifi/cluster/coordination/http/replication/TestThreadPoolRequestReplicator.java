@@ -462,7 +462,6 @@ public class TestThreadPoolRequestReplicator {
         });
     }
 
-
     @Test
     @Timeout(value = 5)
     public void testMonitorNotifiedOnFailureResponse() {
@@ -511,7 +510,6 @@ public class TestThreadPoolRequestReplicator {
             postNotifyLatch.await();
         }, Status.INTERNAL_SERVER_ERROR, 0L, null);
     }
-
 
     private void withReplicator(final WithReplicator function) {
         withReplicator(function, Response.Status.OK, 0L, null);

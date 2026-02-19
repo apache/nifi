@@ -150,7 +150,6 @@ class TestConnectWebSocket extends TestListenWebSocket {
 
         JettyWebSocketClient client = new JettyWebSocketClient();
 
-
         runner.addControllerService(clientId, client);
         runner.setProperty(client, JettyWebSocketClient.WS_URI, String.format("ws://localhost:%s/${dynamicUrlPart}", listeningPort));
         runner.enableControllerService(client);
@@ -181,7 +180,6 @@ class TestConnectWebSocket extends TestListenWebSocket {
         runner.enqueue(flowFile);
 
         JettyWebSocketClient service = new JettyWebSocketClient();
-
 
         runner.addControllerService(serviceId, service);
         runner.setProperty(service, JettyWebSocketClient.WS_URI, "ws://localhost/${dynamicUrlPart}");
@@ -227,7 +225,6 @@ class TestConnectWebSocket extends TestListenWebSocket {
         runner.enqueue(flowFile);
 
         JettyWebSocketClient client = new JettyWebSocketClient();
-
 
         runner.addControllerService(clientId, client);
         runner.setProperty(client, JettyWebSocketClient.WS_URI, String.format("ws://localhost:%s/${dynamicUrlPart}", listeningPort));

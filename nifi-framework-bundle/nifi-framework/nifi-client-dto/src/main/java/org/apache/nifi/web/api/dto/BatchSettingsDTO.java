@@ -68,5 +68,4 @@ public class BatchSettingsDTO {
         this.duration = duration;
     }
 
-
 }

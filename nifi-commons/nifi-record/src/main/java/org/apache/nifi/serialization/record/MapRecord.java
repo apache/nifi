@@ -305,7 +305,6 @@ public class MapRecord implements Record {
         return DataTypeUtils.toArray(getValue(fieldName), fieldName, null, StandardCharsets.UTF_8);
     }
 
-
     @Override
     public int hashCode() {
         return 31 + 41 * values.hashCode() + 7 * schema.hashCode();
@@ -593,7 +592,6 @@ public class MapRecord implements Record {
 
         schema = new SimpleRecordSchema(schemaFields);
     }
-
 
     private Optional<RecordField> setValueAndGetField(final String fieldName, final Object value) {
         final Optional<RecordField> field = getSchema().getField(fieldName);

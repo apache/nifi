@@ -63,7 +63,6 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
     private final LifecycleStateManager lifecycleStateManager;
     private final StatsTracker statsTracker;
 
-
     private StandardStatelessFlowCurrent(final Builder builder) {
         this.transactionThresholdMeter = builder.transactionThresholdMeter;
         this.commitTracker = builder.commitTracker;
@@ -105,7 +104,6 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
                     // Otherwise, we need to break out of this loop so that we can trigger root connectables or complete dataflow
                     break;
                 }
-
 
                 // We have reached completion if the tracker does not know of any components ready to be triggered AND
                 // we have no data queued in the flow (with the exception of Output Ports).

@@ -100,7 +100,6 @@ public class TestGenerateFlowFile {
         generatedFlowFile.assertAttributeEquals("mime.type", "application/text");
     }
 
-
     @Test
     public void testExpressionLanguageSupport() {
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "${nextInt()}B");

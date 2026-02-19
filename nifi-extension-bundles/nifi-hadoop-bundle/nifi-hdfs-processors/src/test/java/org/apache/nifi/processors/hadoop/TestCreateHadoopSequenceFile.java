@@ -196,7 +196,6 @@ public class TestCreateHadoopSequenceFile {
         MockFlowFile ff = successSeqFiles.getFirst();
         byte[] data = ff.toByteArray();
 
-
         final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);
         // Format of header is SEQ followed by the version (1 byte).
@@ -243,7 +242,6 @@ public class TestCreateHadoopSequenceFile {
         MockFlowFile ff = successSeqFiles.getFirst();
         byte[] data = ff.toByteArray();
 
-
         final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);
         // Format of header is SEQ followed by the version (1 byte).
@@ -289,7 +287,6 @@ public class TestCreateHadoopSequenceFile {
 
         MockFlowFile ff = successSeqFiles.getFirst();
         byte[] data = ff.toByteArray();
-
 
         final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);

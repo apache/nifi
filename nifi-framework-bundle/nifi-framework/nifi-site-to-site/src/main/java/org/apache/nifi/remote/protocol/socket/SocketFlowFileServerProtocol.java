@@ -140,7 +140,6 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
         }
     }
 
-
     @Override
     public RequestType getRequestType(final Peer peer) throws IOException {
         if (!handshakeCompleted) {
@@ -222,7 +221,6 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     public String getResourceName() {
         return RESOURCE_NAME;
     }
-
 
     @Override
     public VersionNegotiator getVersionNegotiator() {

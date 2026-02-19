@@ -48,7 +48,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
     private volatile CompletableFuture<Void> initializationFuture;
     private volatile boolean canceled = false;
 
-
     private StandardPythonProcessorBridge(final Builder builder) {
         this.controller = builder.controller;
         this.creationWorkflow = builder.creationWorkflow;
@@ -271,7 +270,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
 
         return true;
     }
-
 
     public static class Builder {
         private PythonController controller;

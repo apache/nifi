@@ -167,7 +167,6 @@ public class HttpClientTransaction extends AbstractTransaction {
         }
     }
 
-
     @Override
     protected void close() throws IOException {
         if (apiClient != null) {

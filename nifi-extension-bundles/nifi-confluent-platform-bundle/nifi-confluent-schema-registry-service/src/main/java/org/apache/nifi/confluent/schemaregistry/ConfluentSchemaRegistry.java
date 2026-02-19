@@ -72,7 +72,6 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
 
     private static final String REQUEST_HEADER_PREFIX = "request.header.";
 
-
     static final PropertyDescriptor SCHEMA_REGISTRY_URLS = new PropertyDescriptor.Builder()
         .name("Schema Registry URLs")
         .description("A comma-separated list of URLs of the Schema Registry to interact with")
@@ -153,7 +152,6 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
     );
 
     private volatile SchemaRegistryClient client;
-
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

@@ -237,7 +237,6 @@ public class ConnectionLoadBalanceServer {
             }
         }
 
-
         /**
          * Returns {@code true} if any related exception (determined by TLS error status) has occurred within the last
          * {@link #EXCEPTION_THRESHOLD_MILLIS} milliseconds. Does not evaluate the error locally,
@@ -250,7 +249,6 @@ public class ConnectionLoadBalanceServer {
             return now - tlsErrorLastSeen < EXCEPTION_THRESHOLD_MILLIS;
         }
     }
-
 
     private class AcceptConnection implements Runnable {
         private final ServerSocket serverSocket;

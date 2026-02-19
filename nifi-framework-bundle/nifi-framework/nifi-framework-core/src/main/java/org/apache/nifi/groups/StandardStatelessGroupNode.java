@@ -120,7 +120,6 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
     private volatile long schedulingNanos = 1L;
     private ComponentLog logger;
 
-
     private StandardStatelessGroupNode(final Builder builder) {
         this.processGroup = builder.rootGroup;
         this.controllerServiceProvider = builder.controllerServiceProvider;
@@ -442,7 +441,6 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
         }
     }
 
-
     /**
      * When a Stateless Group is stopped, we need to stop all of the Processors within the group, as well as all of the
      * processors that are on the canvas. When the Stateless Group is started, the processors on the canvas are transitioned to a RUNNING
@@ -484,7 +482,6 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
 
         return allStoppedFuture;
     }
-
 
     private void stopPorts() {
         final List<Port> allPorts = new ArrayList<>();
@@ -910,7 +907,6 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
     public String evaluateParameters(final String value) {
         return value;
     }
-
 
     public static class Builder {
         private ProcessGroup rootGroup;

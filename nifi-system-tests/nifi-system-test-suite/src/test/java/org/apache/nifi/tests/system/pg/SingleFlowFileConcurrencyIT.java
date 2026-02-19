@@ -102,7 +102,6 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
         logger.info("Finished test testSingleConcurrency");
     }
 
-
     @Test
     public void testSingleConcurrencyAndBatchOutput() throws NiFiClientException, IOException, InterruptedException {
         logger.info("Beginning test testSingleConcurrencyAndBatchOutput");
@@ -174,7 +173,6 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
 
         logger.info("Finished test testSingleConcurrencyAndBatchOutput");
     }
-
 
     @Test
     public void testBatchOutputHasCorrectNumbersOnRestart() throws NiFiClientException, IOException, InterruptedException {

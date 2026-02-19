@@ -633,7 +633,6 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         return true;
     }
 
-
     @Override
     public String getMimeType() {
         return "application/xml";

@@ -28,7 +28,6 @@ public class RepeatingInputStream extends InputStream {
     private InputStream bais;
     private int repeatCount;
 
-
     public RepeatingInputStream(final byte[] toRepeat, final int iterations) {
         if (iterations < 1) {
             throw new IllegalArgumentException();

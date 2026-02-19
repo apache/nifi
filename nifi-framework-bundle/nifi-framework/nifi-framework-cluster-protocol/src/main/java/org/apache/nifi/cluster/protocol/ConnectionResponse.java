@@ -43,7 +43,6 @@ public class ConnectionResponse {
     private final List<NodeConnectionStatus> nodeStatuses;
     private final ComponentRevisionSnapshot revisionSnapshot;
 
-
     public ConnectionResponse(final NodeIdentifier nodeIdentifier, final DataFlow dataFlow,
         final String instanceId, final List<NodeConnectionStatus> nodeStatuses, final ComponentRevisionSnapshot revisionSnapshot) {
 

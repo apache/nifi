@@ -279,7 +279,6 @@ public class ValidateRecord extends AbstractProcessor {
         return Collections.emptyList();
     }
 
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();

@@ -298,7 +298,6 @@ public final class ResourceFactory {
         }
     };
 
-
     /**
      * Gets the Resource for accessing the Controller. This includes Controller level configuration, bulletins, reporting tasks, and the cluster.
      *

@@ -283,7 +283,6 @@ public class TestWriteCSVResult {
         assertEquals("id,name\n1,\n", output);
     }
 
-
     @Test
     public void testMissingAndExtraFieldWriteRecord() throws IOException {
         final List<RecordField> fields = new ArrayList<>();
@@ -413,7 +412,6 @@ public class TestWriteCSVResult {
 
         assertEquals("id,name,", output);
     }
-
 
     private DateTimeFormatter getFormatter(final String format) {
         return DateTimeFormatter.ofPattern(format);

@@ -222,7 +222,6 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         return new SerDeAndVersion(serde, serdeVersion);
     }
 
-
     // Visible/overrideable for testing.
     protected void createOverflowDirectory(final Path path) throws IOException {
         Files.createDirectories(path);
@@ -343,7 +342,6 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
             streamPool.returnObject(bados);
         }
     }
-
 
     private void checkState() throws IOException {
         final Throwable cause = this.poisonCause;
@@ -584,7 +582,6 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
         return true;
     }
-
 
     @Override
     public synchronized JournalSummary getSummary() {

@@ -50,7 +50,6 @@ public class TestSyslogRecordReader {
     static final String VALID_MESSAGE_RFC3164_1 = "<" + PRI + ">" + TIME + " " + IPV6SRC + " " + BODY + "\n";
     static final String VALID_MESSAGE_RFC3164_2 = "<" + PRI + ">" + TIME + " " + IPV4SRC + " " + BODY + "\n";
 
-
     private static final String expectedVersion = "1";
     private static final String expectedAppName = "d0602076-b14a-4c55-852a-981e7afeed38";
     private static final String expectedHostName = "loggregator";

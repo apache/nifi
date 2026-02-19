@@ -242,7 +242,6 @@ class TestYamlTreeRowRecordReader {
         }
     }
 
-
     @Test
     void testReadRawRecordIncludesFieldsNotInSchema() throws IOException, MalformedRecordException {
         final List<RecordField> fields = new ArrayList<>();
@@ -542,7 +541,6 @@ class TestYamlTreeRowRecordReader {
         }
     }
 
-
     @Test
     void testReadUnicodeCharacters() throws IOException, MalformedRecordException {
 
@@ -667,7 +665,6 @@ class TestYamlTreeRowRecordReader {
 
         testReadRecords(yamlPath, expected);
     }
-
 
     @Test
     void testChoseSuboptimalSchemaWhenDataHasExtraFields() throws Exception {
@@ -944,7 +941,6 @@ class TestYamlTreeRowRecordReader {
         Set<String> fieldsToCapture = expectedCapturedFields.keySet();
         BiPredicate<String, String> capturePredicate = (fieldName, fieldValue) -> fieldsToCapture.contains(fieldName);
         String startingFieldName = "accounts";
-
 
         SimpleRecordSchema accountRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),

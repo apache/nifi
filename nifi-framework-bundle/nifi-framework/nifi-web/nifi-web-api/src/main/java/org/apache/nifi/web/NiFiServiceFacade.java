@@ -225,8 +225,6 @@ public interface NiFiServiceFacade {
      */
     Set<Revision> getRevisionsFromSnippet(String snippetId);
 
-
-
     // ----------------------------------------
     // Controller methods
     // ----------------------------------------
@@ -1419,7 +1417,6 @@ public interface NiFiServiceFacade {
      */
     StatusHistoryEntity getRemoteProcessGroupStatusHistory(String id);
 
-
     /**
      * Verifies that transmission state of all remote process groups within the specified process group can be updated.
      * @param processGroupId The process group in which to verify remote process groups
@@ -1495,7 +1492,6 @@ public interface NiFiServiceFacade {
      */
     RemoteProcessGroupEntity deleteRemoteProcessGroup(Revision revision, String remoteProcessGroupId);
 
-
     /**
      * Create a system bulletin
      *
@@ -1557,7 +1553,6 @@ public interface NiFiServiceFacade {
      * @return snapshot
      */
     FunnelEntity deleteFunnel(Revision revision, String funnelId);
-
 
     // ----------------------------------------
     // Version Control methods
@@ -1979,7 +1974,6 @@ public interface NiFiServiceFacade {
      * @return  the component state
      */
     ComponentStateDTO getRemoteProcessGroupState(String remoteProcessGroupId);
-
 
     // ----------------------------------------
     // Label methods
@@ -2607,7 +2601,6 @@ public interface NiFiServiceFacade {
      */
     Set<VersionedFlowEntity> getFlowsForUser(String registryClientId, String branch, String bucketId);
 
-
     /**
      * Returns the details of a versioned flow from a given bucket of a given registry.
      *
@@ -3108,7 +3101,6 @@ public interface NiFiServiceFacade {
      * @return the clear bulletin result entity
      */
     ClearBulletinsResultEntity clearBulletinsForComponent(String componentId, Instant fromTimestamp);
-
 
     /**
      * Clears bulletins for the specified components.

@@ -237,7 +237,6 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
         }
     }
 
-
     private void enqueueMessage(final WebSocketMessage incomingMessage) {
         final ProcessSession session = processSessionFactory.createSession();
         try {

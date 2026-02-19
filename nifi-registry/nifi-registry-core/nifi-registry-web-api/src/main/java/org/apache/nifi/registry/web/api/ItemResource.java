@@ -57,7 +57,6 @@ public class ItemResource extends ApplicationResource {
         super(serviceFacade, eventService);
     }
 
-
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)

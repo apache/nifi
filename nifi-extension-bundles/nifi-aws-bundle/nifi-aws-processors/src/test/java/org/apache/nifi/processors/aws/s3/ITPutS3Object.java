@@ -87,7 +87,6 @@ public class ITPutS3Object extends AbstractS3IT {
     private static String kmsKeyId = "";
     private static String randomKeyMaterial = "";
 
-
     @BeforeAll
     public static void setupClass() {
         byte[] keyRawBytes = new byte[32];
@@ -319,7 +318,6 @@ public class ITPutS3Object extends AbstractS3IT {
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
     }
-
 
     @Test
     public void testPermissions() throws IOException {
@@ -703,7 +701,6 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(tempByteCount, ff1.getSize());
     }
 
-
     @Test
     public void testObjectTags() throws IOException {
         TestRunner runner = initTestRunner();
@@ -915,7 +912,6 @@ public class ITPutS3Object extends AbstractS3IT {
 
         return runner;
     }
-
 
     @Test
     public void testChunkedEncodingDisabled() throws IOException {

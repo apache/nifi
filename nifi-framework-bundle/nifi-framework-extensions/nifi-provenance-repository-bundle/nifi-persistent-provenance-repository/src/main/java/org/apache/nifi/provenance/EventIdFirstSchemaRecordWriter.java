@@ -84,7 +84,6 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
         queueIdMap = idLookup.invertQueueIdentifiers();
     }
 
-
     @Override
     public Map<ProvenanceEventRecord, StorageSummary> writeRecords(final Iterable<ProvenanceEventRecord> events) throws IOException {
         if (isDirty()) {

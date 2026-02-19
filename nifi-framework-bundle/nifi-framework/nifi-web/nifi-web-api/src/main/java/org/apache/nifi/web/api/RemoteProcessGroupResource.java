@@ -1025,7 +1025,6 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         return dto;
     }
 
-
     private boolean shouldTransmit(RemotePortRunStatusEntity requestRemotePortRunStatusEntity) {
         return "TRANSMITTING".equals(requestRemotePortRunStatusEntity.getState());
     }

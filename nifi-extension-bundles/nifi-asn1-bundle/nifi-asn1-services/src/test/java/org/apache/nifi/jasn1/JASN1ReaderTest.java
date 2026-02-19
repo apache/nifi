@@ -202,7 +202,6 @@ public class JASN1ReaderTest {
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
                 .thenReturn(asnFile);
 
-
         assertThrows(
                 ProcessException.class,
                 () -> testSubject.onEnabled(context)

@@ -137,7 +137,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessorNode.class);
 
-
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
     public static final String DEFAULT_YIELD_PERIOD = "1 sec";
     public static final String DEFAULT_PENALIZATION_PERIOD = "30 sec";
@@ -427,7 +426,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         return Collections.unmodifiableSet(relationships);
     }
-
 
     @Override
     public synchronized void setName(final String name) {
@@ -899,7 +897,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
         return nonSelfDestinations;
     }
-
 
     public Set<Relationship> getUndefinedRelationships() {
         final Set<Relationship> undefined = new HashSet<>();
@@ -1582,7 +1579,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return count;
     }
 
-
     @Override
     public int terminate() {
         verifyCanTerminate();
@@ -1627,7 +1623,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             throw new IllegalStateException("Cannot terminate " + this + " because Processor is not stopped");
         }
     }
-
 
     private void initiateStart(final ScheduledExecutorService taskScheduler, final long administrativeYieldMillis, final long timeoutMillis,
             final AtomicLong startupAttemptCount, final Supplier<ProcessContext> processContextFactory, final SchedulingAgentCallback schedulingAgentCallback,
@@ -2146,7 +2141,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
-
     private void migrateRelationships() {
         final Processor processor = getProcessor();
 
@@ -2155,7 +2149,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             processor.migrateRelationships(relationshipConfig);
         }
     }
-
 
     private void updateControllerServiceReferences() {
         for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : getProperties().entrySet()) {

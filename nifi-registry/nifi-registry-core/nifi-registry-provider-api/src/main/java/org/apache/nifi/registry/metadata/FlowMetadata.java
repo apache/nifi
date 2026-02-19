@@ -31,7 +31,6 @@ public class FlowMetadata {
 
     private List<FlowSnapshotMetadata> flowSnapshotMetadata;
 
-
     public String getIdentifier() {
         return identifier;
     }

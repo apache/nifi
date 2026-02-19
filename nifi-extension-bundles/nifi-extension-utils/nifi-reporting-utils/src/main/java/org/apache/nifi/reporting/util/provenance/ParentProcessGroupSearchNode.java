@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.reporting.util.provenance;
 
-
 public class ParentProcessGroupSearchNode {
 
     private final String id;

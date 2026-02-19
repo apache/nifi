@@ -102,7 +102,6 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
             .collect(Collectors.toSet());
     }
 
-
     private void startComponents(final String processGroupId, final Map<String, Revision> componentRevisions, final Map<String, AffectedComponentEntity> affectedComponents, final Pause pause,
                                  final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
 
@@ -139,7 +138,6 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         // Local and Remote Ports as well as funnels stop immediately.
         waitForComponentState(processGroupId, affectedComponents, ScheduledState.STOPPED, pause, invalidComponentAction);
     }
-
 
     /**
      * Waits for all given Processors to complete validation
@@ -252,7 +250,6 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
             });
     }
 
-
     private boolean isProcessorActionComplete(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents, final ScheduledState desiredState,
                                               final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
 
@@ -362,7 +359,6 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
         return true;
     }
-
 
     private void enableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices,
                                           final Map<String, AffectedComponentEntity> servicesRequiringDesiredState, final Pause pause,
@@ -547,7 +543,6 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         return false;
     }
 
-
     /**
      * Updates the affected controller services in the specified updateRequest with the serviceEntities.
      *
@@ -573,7 +568,6 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
                 }
             });
     }
-
 
     public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;

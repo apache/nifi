@@ -118,7 +118,6 @@ public class TestISPEnrichIP {
 
         when(databaseReader.isp(InetAddress.getByName("1.2.3.4"))).thenReturn(ispResponse);
 
-
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("ip", "1.2.3.4");
 
@@ -197,7 +196,6 @@ public class TestISPEnrichIP {
     public void shouldFlowToNotFoundWhenIOExceptionThrownFromMaxMind() throws Exception {
         testRunner.setProperty(ISPEnrichIP.GEO_DATABASE_FILE, "./");
         testRunner.setProperty(ISPEnrichIP.IP_ADDRESS_ATTRIBUTE, "ip");
-
 
         when(databaseReader.isp(InetAddress.getByName("1.2.3.4"))).thenThrow(IOException.class);
 
@@ -280,7 +278,6 @@ public class TestISPEnrichIP {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-
         return new ObjectMapper().readerFor(IspResponse.class).with(inject).readValue(maxMindIspResponse);
 
     }
@@ -300,7 +297,6 @@ public class TestISPEnrichIP {
         InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
 
         return new ObjectMapper().readerFor(IspResponse.class).with(inject).readValue(maxMindIspResponse);
     }

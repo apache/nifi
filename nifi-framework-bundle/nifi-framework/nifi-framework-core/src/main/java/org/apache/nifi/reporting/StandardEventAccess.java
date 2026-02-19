@@ -69,7 +69,6 @@ public class StandardEventAccess extends AbstractEventAccess implements UserAwar
         this.contentRepository = contentRepository;
     }
 
-
     @Override
     public List<Action> getFlowChanges(final int firstActionId, final int maxActions) {
         final History history = auditService.getActions(firstActionId, maxActions);
@@ -110,7 +109,6 @@ public class StandardEventAccess extends AbstractEventAccess implements UserAwar
         final RepositoryStatusReport repoStatusReport = generateRepositoryStatusReport();
         return getGroupStatus(groupId, repoStatusReport, user, recursiveStatusDepth);
     }
-
 
     /**
      * Returns the status for the components in the specified group with the

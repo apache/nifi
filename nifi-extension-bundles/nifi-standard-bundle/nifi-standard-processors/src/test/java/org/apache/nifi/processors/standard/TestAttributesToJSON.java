@@ -166,7 +166,6 @@ public class TestAttributesToJSON {
         runner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
     }
 
-
     @Test
     public void testAttributes_emptyListUserSpecifiedAttributes() throws Exception {
         runner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
@@ -190,7 +189,6 @@ public class TestAttributesToJSON {
         Map<String, String> val = MAPPER.readValue(json, new TypeReference<>() { });
         assertEquals(TEST_ATTRIBUTE_VALUE, val.get(TEST_ATTRIBUTE_KEY));
     }
-
 
     @Test
     public void testContent_emptyListUserSpecifiedAttributes() {
@@ -235,7 +233,6 @@ public class TestAttributesToJSON {
         assertEquals(1, val.size());
     }
 
-
     @Test
     public void testAttribute_singleUserDefinedAttributeWithWhiteSpace() throws Exception {
         runner.setProperty(AttributesToJSON.ATTRIBUTES_LIST, " " + TEST_ATTRIBUTE_KEY + " ");
@@ -260,7 +257,6 @@ public class TestAttributesToJSON {
         assertEquals(TEST_ATTRIBUTE_VALUE, val.get(TEST_ATTRIBUTE_KEY));
         assertEquals(1, val.size());
     }
-
 
     @Test
     public void testAttribute_singleNonExistingUserDefinedAttribute() throws Exception {

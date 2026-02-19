@@ -51,7 +51,6 @@ public class EventSum {
         return null;
     }
 
-
     public EventSumValue reset(final long ifOlderThan) {
         while (true) {
             final EventSumValue curValue = ref.get();

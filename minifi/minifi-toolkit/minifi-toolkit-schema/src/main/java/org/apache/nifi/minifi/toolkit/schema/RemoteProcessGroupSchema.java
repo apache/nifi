@@ -83,7 +83,6 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
         // This is either a singular URL or a comma separated list
         urls = getRequiredKeyAsType(map, URL_KEY, String.class, wrapperName);
 
-
         inputPorts = convertListToType(getOptionalKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName, new ArrayList<>()), "input port", RemotePortSchema.class, INPUT_PORTS_KEY);
         addIssuesIfNotNull(inputPorts);
 

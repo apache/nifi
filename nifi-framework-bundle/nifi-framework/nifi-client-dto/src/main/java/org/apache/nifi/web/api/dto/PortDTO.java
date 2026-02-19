@@ -135,7 +135,6 @@ public class PortDTO extends ComponentDTO {
         this.validationErrors = validationErrors;
     }
 
-
     /**
      * @return whether this port can be accessed remotely via Site-to-Site protocol.
      */
