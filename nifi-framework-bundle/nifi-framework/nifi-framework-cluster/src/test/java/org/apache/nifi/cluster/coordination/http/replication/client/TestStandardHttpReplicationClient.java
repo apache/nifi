@@ -45,6 +45,7 @@ import java.util.Set;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -68,6 +69,18 @@ class TestStandardHttpReplicationClient {
     private static final String CONTENT_TYPE_LOWERCASED = "content-type";
 
     private static final String APPLICATION_JSON = "application/json";
+
+    private static final String TRANSFER_ENCODING_LOWERCASED = "transfer-encoding";
+
+    private static final String CHUNKED = "chunked";
+
+    private static final String CONNECTION_LOWERCASED = "connection";
+
+    private static final String KEEP_ALIVE = "keep-alive";
+
+    private static final String HOST_LOWERCASED = "host";
+
+    private static final String EXAMPLE_HOST = "example.com";
 
     private static final URI REPLICATE_URI = URI.create("http://localhost/nifi-api/flow/current-user");
 
@@ -193,6 +206,42 @@ class TestStandardHttpReplicationClient {
         final Response response = client.replicate(preparedRequest, REPLICATE_URI);
 
         assertResponseFound(response);
+    }
+
+    @Test
+    void testReplicatePostBodyFilterOutDisallowedHeaders() throws IOException {
+        final Map<String, String> headers = Map.of(
+                CONTENT_TYPE_LOWERCASED, APPLICATION_JSON,
+                TRANSFER_ENCODING_LOWERCASED, CHUNKED,
+                CONNECTION_LOWERCASED, KEEP_ALIVE,
+                HOST_LOWERCASED, EXAMPLE_HOST
+        );
+        final Map<String, String> requestEntity = Collections.emptyMap();
+        final PreparedRequest preparedRequest = client.prepareRequest(POST_METHOD, headers, requestEntity);
+
+        final ArgumentCaptor<String> headerKeyCaptor = ArgumentCaptor.forClass(String.class);
+
+        when(webClientService.method(any())).thenReturn(httpRequestUriSpec);
+        when(httpRequestUriSpec.uri(any())).thenReturn(httpRequestBodySpec);
+        when(httpRequestBodySpec.header(headerKeyCaptor.capture(), anyString())).thenReturn(httpRequestBodySpec);
+        when(httpRequestBodySpec.retrieve()).thenReturn(httpResponseEntity);
+
+        when(httpResponseEntity.statusCode()).thenReturn(HTTP_OK);
+        when(httpResponseEntity.headers()).thenReturn(httpResponseHeaders);
+
+        final ByteArrayInputStream responseBody = new ByteArrayInputStream(EMPTY_MAP_SERIALIZED);
+        when(httpResponseEntity.body()).thenReturn(responseBody);
+
+        final Response response = client.replicate(preparedRequest, REPLICATE_URI);
+
+        assertResponseFound(response);
+
+        final Set<String> disallowedHeaderKeys = Set.of(TRANSFER_ENCODING_LOWERCASED, CONNECTION_LOWERCASED, HOST_LOWERCASED);
+        final List<String> actualHeaderKeys = headerKeyCaptor.getAllValues();
+        assertFalse(
+                actualHeaderKeys.stream().map(String::toLowerCase).anyMatch(disallowedHeaderKeys::contains),
+                () -> "Disallowed headers found in " + actualHeaderKeys
+        );
     }
 
     @Test
