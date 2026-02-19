@@ -932,7 +932,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
             }
 
             final List<ValidationResult> invalidParameterResults = validateParameterReferences(validationContext);
-            invalidParameterResults.addAll(validateConfig());
+            invalidParameterResults.addAll(validateConfig(validationContext));
 
             if (!invalidParameterResults.isEmpty()) {
                 // At this point, we are not able to properly resolve all property values, so we will not attempt to perform
@@ -993,11 +993,12 @@ public abstract class AbstractComponentNode implements ComponentNode {
      * Validates the current configuration, returning ValidationResults for any
      * invalid configuration parameter.
      *
+     * @param validationContext the ValidationContext to use for parameter lookup
      * @return Collection of validation result objects for any invalid findings
      *         only. If the collection is empty then the component is valid. Should guarantee
      *         non-null
      */
-    protected abstract List<ValidationResult> validateConfig();
+    protected abstract List<ValidationResult> validateConfig(ValidationContext validationContext);
 
     private List<ValidationResult> validateParameterReferences(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();

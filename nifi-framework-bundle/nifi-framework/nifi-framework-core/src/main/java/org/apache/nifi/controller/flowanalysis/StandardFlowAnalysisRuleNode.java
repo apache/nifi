@@ -22,6 +22,7 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
@@ -98,7 +99,7 @@ public class StandardFlowAnalysisRuleNode extends AbstractFlowAnalysisRuleNode i
     }
 
     @Override
-    protected List<ValidationResult> validateConfig() {
+    protected List<ValidationResult> validateConfig(final ValidationContext validationContext) {
         return Collections.emptyList();
     }
 

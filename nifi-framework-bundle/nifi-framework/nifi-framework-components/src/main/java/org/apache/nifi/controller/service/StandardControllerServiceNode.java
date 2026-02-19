@@ -619,7 +619,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     }
 
     @Override
-    protected List<ValidationResult> validateConfig() {
+    protected List<ValidationResult> validateConfig(final ValidationContext validationContext) {
         return Collections.emptyList();
     }
 

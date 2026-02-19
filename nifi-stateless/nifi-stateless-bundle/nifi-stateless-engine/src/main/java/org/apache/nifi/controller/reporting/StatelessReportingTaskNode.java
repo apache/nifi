@@ -19,6 +19,7 @@ package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.LoggableComponent;
@@ -50,7 +51,7 @@ public class StatelessReportingTaskNode extends AbstractReportingTaskNode implem
     }
 
     @Override
-    protected List<ValidationResult> validateConfig() {
+    protected List<ValidationResult> validateConfig(final ValidationContext validationContext) {
         return Collections.emptyList();
     }
 
