@@ -18,11 +18,13 @@ package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
+import org.apache.nifi.controller.metrics.GaugeRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.provenance.InternalProvenanceReporter;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +65,10 @@ class StandardProcessSessionTest {
 
     private static final long BYTES_WRITTEN = CONTENT.length;
 
+    private static final String GAUGE_NAME = "freeMemory";
+
+    private static final double GAUGE_VALUE = 64.5;
+
     @Mock
     RepositoryContext repositoryContext;
 
@@ -99,6 +105,9 @@ class StandardProcessSessionTest {
     @Captor
     ArgumentCaptor<FlowFileEvent> flowFileEventCaptor;
 
+    @Captor
+    ArgumentCaptor<GaugeRecord> gaugeRecordCaptor;
+
     StandardProcessSession session;
 
     @BeforeEach
@@ -114,6 +123,7 @@ class StandardProcessSessionTest {
     @Test
     void testExportToPathFlowFileEventBytes() throws IOException {
         setRepositoryContext();
+        when(repositoryContext.getContentRepository()).thenReturn(contentRepository);
 
         final Path destination = getDestination();
         when(contentRepository.exportTo(isNull(), eq(destination), eq(APPEND_DISABLED), anyLong(), anyLong())).thenReturn(EXPECTED_BYTES);
@@ -129,6 +139,7 @@ class StandardProcessSessionTest {
     @Test
     void testExportToOutputStreamFlowFileEventBytes() throws IOException {
         setRepositoryContext();
+        when(repositoryContext.getContentRepository()).thenReturn(contentRepository);
 
         FlowFile flowFile = session.create();
 
@@ -148,6 +159,31 @@ class StandardProcessSessionTest {
         assertFlowFileEventMatched(BYTES_READ, BYTES_WRITTEN);
     }
 
+    @Test
+    void testRecordGaugeNow() {
+        session.recordGauge(GAUGE_NAME, GAUGE_VALUE, CommitTiming.NOW);
+
+        verify(repositoryContext).recordGauge(gaugeRecordCaptor.capture());
+        final GaugeRecord gaugeRecord = gaugeRecordCaptor.getValue();
+
+        assertEquals(GAUGE_NAME, gaugeRecord.name());
+        assertEquals(GAUGE_VALUE, gaugeRecord.value());
+    }
+
+    @Test
+    void testRecordGaugeSessionCommitted() {
+        session.recordGauge(GAUGE_NAME, GAUGE_VALUE, CommitTiming.SESSION_COMMITTED);
+
+        setRepositoryContext();
+        session.commit();
+
+        verify(repositoryContext).recordGauge(gaugeRecordCaptor.capture());
+        final GaugeRecord gaugeRecord = gaugeRecordCaptor.getValue();
+
+        assertEquals(GAUGE_NAME, gaugeRecord.name());
+        assertEquals(GAUGE_VALUE, gaugeRecord.value());
+    }
+
     private void assertFlowFileEventMatched(final long bytesRead, final long bytesWritten) throws IOException {
         verify(flowFileEventRepository).updateRepository(flowFileEventCaptor.capture(), anyString());
         final FlowFileEvent flowFileEvent = flowFileEventCaptor.getValue();
@@ -157,7 +193,6 @@ class StandardProcessSessionTest {
     }
 
     private void setRepositoryContext() {
-        when(repositoryContext.getContentRepository()).thenReturn(contentRepository);
         when(repositoryContext.getProvenanceRepository()).thenReturn(provenanceRepository);
         when(repositoryContext.getFlowFileRepository()).thenReturn(flowFileRepository);
         when(repositoryContext.getFlowFileEventRepository()).thenReturn(flowFileEventRepository);
