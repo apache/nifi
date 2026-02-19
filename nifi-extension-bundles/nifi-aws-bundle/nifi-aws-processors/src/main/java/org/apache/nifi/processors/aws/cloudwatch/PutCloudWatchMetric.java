@@ -336,6 +336,9 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
                     .build();
 
             putMetricData(context, metricDataRequest);
+            final String namespace = context.getProperty(NAMESPACE).evaluateAttributeExpressions(flowFile).getValue();
+            final String metricName = context.getProperty(METRIC_NAME).evaluateAttributeExpressions(flowFile).getValue();
+            session.getProvenanceReporter().send(flowFile, "cloudwatch://%s/%s".formatted(namespace, metricName));
             session.transfer(flowFile, REL_SUCCESS);
             getLogger().info("Successfully published cloudwatch metric for {}", flowFile);
         } catch (final Exception e) {

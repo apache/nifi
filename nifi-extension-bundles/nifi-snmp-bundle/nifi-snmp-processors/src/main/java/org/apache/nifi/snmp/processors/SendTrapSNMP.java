@@ -157,6 +157,9 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
                 snmpHandler.sendTrap(attributes, v2TrapConfiguration, target);
             }
             flowFile = processSession.putAllAttributes(flowFile, attributes);
+            final String managerHost = context.getProperty(SNMP_MANAGER_HOST).evaluateAttributeExpressions(flowFile).getValue();
+            final String managerPort = context.getProperty(SNMP_MANAGER_PORT).evaluateAttributeExpressions(flowFile).getValue();
+            processSession.getProvenanceReporter().send(flowFile, "snmp://%s:%s".formatted(managerHost, managerPort));
             processSession.transfer(flowFile, REL_SUCCESS);
         } catch (IOException e) {
             getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.", e);

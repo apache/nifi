@@ -41,4 +41,12 @@ public interface RedisConnectionPool extends ControllerService {
      */
     RedisType getRedisType();
 
+    /**
+     * Returns the connection string used to connect to Redis. The format depends on the Redis mode:
+     * standalone (hostname:port), sentinel (comma-separated list of sentinels), or clustered (comma-separated list of cluster masters).
+     *
+     * @return the Redis connection string
+     */
+    String getConnectionString();
+
 }
