@@ -17,11 +17,15 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Future;
 
 public interface ConnectorRepository {
@@ -127,5 +131,51 @@ public interface ConnectorRepository {
 
     FrameworkConnectorInitializationContextBuilder createInitializationContextBuilder();
 
-    ConnectorAssetRepository getAssetRepository();
+    /**
+     * Stores an asset for the given connector. If a {@link ConnectorConfigurationProvider} is configured,
+     * the asset is also uploaded to the external store and a mapping between the NiFi asset ID and the
+     * external ID is recorded. If the provider upload fails, the local asset is rolled back.
+     *
+     * @param connectorId the identifier of the connector that owns the asset
+     * @param assetId the NiFi-assigned asset identifier (UUID)
+     * @param assetName the filename of the asset
+     * @param content the binary content of the asset
+     * @return the stored Asset
+     * @throws IOException if an I/O error occurs during storage
+     */
+    Asset storeAsset(String connectorId, String assetId, String assetName, InputStream content) throws IOException;
+
+    /**
+     * Retrieves an asset by its NiFi-assigned identifier.
+     *
+     * @param assetId the NiFi-assigned asset identifier (UUID)
+     * @return an Optional containing the asset if found, or empty if no asset exists with the given ID
+     */
+    Optional<Asset> getAsset(String assetId);
+
+    /**
+     * Retrieves all assets belonging to the given connector.
+     *
+     * @param connectorId the identifier of the connector
+     * @return the list of assets for the connector
+     */
+    List<Asset> getAssets(String connectorId);
+
+    /**
+     * Deletes all assets belonging to the given connector from the local store and,
+     * if a {@link ConnectorConfigurationProvider} is configured, from the external store as well.
+     *
+     * @param connectorId the identifier of the connector whose assets should be deleted
+     */
+    void deleteAssets(String connectorId);
+
+    /**
+     * Ensures that asset binaries for the given connector are available locally by downloading
+     * any missing or changed assets from the external {@link ConnectorConfigurationProvider}.
+     * This is a no-op if no provider is configured. This method should be called before operations
+     * that need local asset files to be present, such as configuration verification.
+     *
+     * @param connector the connector whose assets should be synced
+     */
+    void syncAssetsFromProvider(ConnectorNode connector);
 }

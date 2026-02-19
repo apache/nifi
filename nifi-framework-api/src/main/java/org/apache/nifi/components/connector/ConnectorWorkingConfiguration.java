@@ -28,6 +28,10 @@ import java.util.List;
  * <p>This is a mutable POJO used as the input/output for {@link ConnectorConfigurationProvider}
  * operations. The style follows the same pattern as {@link VersionedConfigurationStep} and other
  * versioned types in the NiFi API.</p>
+ *
+ * <p>Asset references in {@code workingFlowConfiguration} use NiFi UUIDs in the {@code assetIds}
+ * fields. The {@link ConnectorConfigurationProvider} is responsible for translating between NiFi
+ * UUIDs and any external asset identifiers used by the external store.</p>
  */
 public class ConnectorWorkingConfiguration {
     private String name;

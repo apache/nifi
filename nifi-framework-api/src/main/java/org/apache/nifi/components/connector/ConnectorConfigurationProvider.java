@@ -17,12 +17,13 @@
 
 package org.apache.nifi.components.connector;
 
+import java.io.InputStream;
 import java.util.Optional;
 
 /**
- * Extension point interface for external management of Connector working configuration.
- * Implementations of this interface allow a Connector's name and working flow configuration
- * to be persisted in an external store (such as a database) and to be externally modified.
+ * Extension point interface for external management of Connector working configuration and assets.
+ * Implementations allow a Connector's name, working flow configuration, and binary assets to be
+ * persisted in an external store and to be externally modified.
  *
  * <p>When a ConnectorConfigurationProvider is configured, the framework will:
  * <ul>
@@ -31,6 +32,13 @@ import java.util.Optional;
  *   <li>On discard: notify the provider that the working configuration has been discarded</li>
  *   <li>On delete: notify the provider that the connector has been removed</li>
  * </ul>
+ *
+ * <p>Asset management: the provider owns the mapping between NiFi asset UUIDs and external asset
+ * identifiers. The {@link #load} method must return {@link ConnectorWorkingConfiguration} with
+ * NiFi UUIDs in {@code assetIds} fields. The {@link #save} method receives NiFi UUIDs and the
+ * provider translates to external identifiers when persisting. The local state of assets
+ * (NiFi UUID mapping and digest tracking) is managed by the provider using the
+ * {@link org.apache.nifi.asset.AssetManager} provided via the initialization context.</p>
  */
 public interface ConnectorConfigurationProvider {
 
@@ -90,4 +98,43 @@ public interface ConnectorConfigurationProvider {
      * @param connectorId the identifier of the connector to be created
      */
     void verifyCreate(String connectorId);
+
+    /**
+     * Stores an asset to the local {@link org.apache.nifi.asset.AssetManager} and to the external
+     * store. The provider records the NiFi UUID to external identifier mapping in its local state.
+     * If the external store upload fails, the provider must roll back the local asset and throw.
+     *
+     * @param connectorId the identifier of the connector that owns the asset
+     * @param nifiUuid the NiFi-assigned UUID for this asset
+     * @param assetName the filename of the asset (e.g., "postgresql-42.6.0.jar")
+     * @param content the binary content of the asset
+     * @throws java.io.IOException if the asset cannot be stored
+     */
+    void storeAsset(String connectorId, String nifiUuid, String assetName, InputStream content) throws java.io.IOException;
+
+    /**
+     * Deletes an asset from the local {@link org.apache.nifi.asset.AssetManager} and from the
+     * external store. The provider uses the NiFi UUID to look up the external identifier from its
+     * local state, then cleans up both stores and removes the mapping entry.
+     *
+     * @param connectorId the identifier of the connector that owns the asset
+     * @param nifiUuid the NiFi-assigned UUID of the asset to delete
+     */
+    void deleteAsset(String connectorId, String nifiUuid);
+
+    /**
+     * Ensures that local asset binaries are up to date with the external store. For each asset
+     * tracked in the provider's local state, this method compares the external store's current
+     * content digest to the last-known digest. If changed or missing locally, the binary is
+     * downloaded via the {@link org.apache.nifi.asset.AssetManager} using a new UUID so that
+     * any existing local file for a running connector is not overwritten. The local state file
+     * is updated with the new UUID and digest. This method does not modify the external store's
+     * configuration.
+     *
+     * <p>After this method returns, callers should invoke {@link #load} to obtain the updated
+     * working configuration reflecting any new NiFi UUIDs assigned during sync.</p>
+     *
+     * @param connectorId the identifier of the connector whose assets should be synced
+     */
+    void syncAssets(String connectorId);
 }

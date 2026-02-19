@@ -19,6 +19,7 @@ package org.apache.nifi.components.connector;
 
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
@@ -31,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,7 +55,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
     private volatile ExtensionManager extensionManager;
     private volatile ConnectorRequestReplicator requestReplicator;
     private volatile SecretsManager secretsManager;
-    private volatile ConnectorAssetRepository assetRepository;
+    private volatile AssetManager assetManager;
     private volatile ConnectorConfigurationProvider configurationProvider;
 
     @Override
@@ -62,7 +64,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
         this.extensionManager = context.getExtensionManager();
         this.requestReplicator = context.getRequestReplicator();
         this.secretsManager = context.getSecretsManager();
-        this.assetRepository = new StandardConnectorAssetRepository(context.getAssetManager());
+        this.assetManager = context.getAssetManager();
         this.configurationProvider = context.getConnectorConfigurationProvider();
         logger.debug("Successfully initialized ConnectorRepository with configurationProvider={}", configurationProvider != null ? configurationProvider.getClass().getSimpleName() : "null");
     }
@@ -172,9 +174,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
         final ConnectorState initialDesiredState = connector.getDesiredState();
         logger.info("Applying update to Connector {}", connector);
 
-        // Sync the working configuration from the external provider before applying the update,
-        // so that the update is applied using the latest externally managed configuration.
-        syncFromProvider(connector);
+        // Sync asset binaries first (provider downloads changed assets, assigns new UUIDs),
+        // then load the updated configuration (which will reflect any new NiFi UUIDs).
+        syncAssetsFromProvider(connector);
 
         // Transition the connector's state to PREPARING_FOR_UPDATE before starting the background process.
         // This allows us to ensure that if we poll and see the state in the same state it was in before that
@@ -262,22 +264,28 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     private void cleanUpAssets(final ConnectorNode connector) {
+        final String connectorId = connector.getIdentifier();
         final Set<String> referencedAssetIds = new HashSet<>();
         collectReferencedAssetIds(connector.getActiveFlowContext(), referencedAssetIds);
         collectReferencedAssetIds(connector.getWorkingFlowContext(), referencedAssetIds);
 
-        logger.debug("Found {} assets referenced for Connector [{}]", referencedAssetIds.size(), connector.getIdentifier());
+        logger.debug("Found {} assets referenced for Connector [{}]", referencedAssetIds.size(), connectorId);
 
-        final ConnectorAssetRepository assetRepository = getAssetRepository();
-        final List<Asset> allConnectorAssets = assetRepository.getAssets(connector.getIdentifier());
+        final List<Asset> allConnectorAssets = assetManager.getAssets(connectorId);
         for (final Asset asset : allConnectorAssets) {
             final String assetId = asset.getIdentifier();
             if (!referencedAssetIds.contains(assetId)) {
                 try {
-                    logger.info("Deleting unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier());
-                    assetRepository.deleteAsset(assetId);
+                    logger.info("Deleting unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connectorId);
+
+                    if (configurationProvider != null) {
+                        // Provider deletes from external store and local AssetManager
+                        configurationProvider.deleteAsset(connectorId, assetId);
+                    } else {
+                        assetManager.deleteAsset(assetId);
+                    }
                 } catch (final Exception e) {
-                    logger.warn("Unable to delete unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier(), e);
+                    logger.warn("Unable to delete unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connectorId, e);
                 }
             }
         }
@@ -368,8 +376,66 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
-    public ConnectorAssetRepository getAssetRepository() {
-        return assetRepository;
+    public Asset storeAsset(final String connectorId, final String assetId, final String assetName, final InputStream content) throws IOException {
+        if (configurationProvider == null) {
+            return assetManager.saveAsset(connectorId, assetId, assetName, content);
+        }
+
+        // When a provider is configured, delegate entirely to the provider, which should write to the AssetManager and sync to the external store.
+        try {
+            configurationProvider.storeAsset(connectorId, assetId, assetName, content);
+        } catch (final IOException e) {
+            throw e;
+        } catch (final Exception e) {
+            throw new IOException("Failed to store asset [" + assetName + "] to provider for connector [" + connectorId + "]", e);
+        }
+        logger.debug("Stored asset [nifiId={}, name={}] for connector [{}]", assetId, assetName, connectorId);
+
+        return assetManager.getAsset(assetId)
+                .orElseThrow(() -> new IOException("Asset [" + assetId + "] not found after storing for connector [" + connectorId + "]"));
+    }
+
+    @Override
+    public Optional<Asset> getAsset(final String assetId) {
+        return assetManager.getAsset(assetId);
+    }
+
+    @Override
+    public List<Asset> getAssets(final String connectorId) {
+        return assetManager.getAssets(connectorId);
+    }
+
+    @Override
+    public void deleteAssets(final String connectorId) {
+        final List<Asset> assets = assetManager.getAssets(connectorId);
+        for (final Asset asset : assets) {
+            try {
+                if (configurationProvider != null) {
+                    // When a provider is configured, delegate entirely to the provider, which should delete from the AssetManager and sync to the external store.
+                    configurationProvider.deleteAsset(connectorId, asset.getIdentifier());
+                } else {
+                    assetManager.deleteAsset(asset.getIdentifier());
+                }
+            } catch (final Exception e) {
+                logger.warn("Failed to delete asset [nifiUuid={}] for connector [{}]", asset.getIdentifier(), connectorId, e);
+            }
+        }
+    }
+
+    @Override
+    public void syncAssetsFromProvider(final ConnectorNode connector) {
+        if (configurationProvider == null) {
+            return;
+        }
+
+        final String connectorId = connector.getIdentifier();
+
+        // Step 1: Sync Connector Assets from Provider
+        logger.debug("Syncing assets from provider for connector [{}]", connectorId);
+        configurationProvider.syncAssets(connectorId);
+
+        // Step 2: Sync ConnectorNode Configuration from Provider
+        syncFromProvider(connector);
     }
 
     private void syncFromProvider(final ConnectorNode connector) {
@@ -377,7 +443,8 @@ public class StandardConnectorRepository implements ConnectorRepository {
             return;
         }
 
-        final Optional<ConnectorWorkingConfiguration> externalConfig = configurationProvider.load(connector.getIdentifier());
+        final String connectorId = connector.getIdentifier();
+        final Optional<ConnectorWorkingConfiguration> externalConfig = configurationProvider.load(connectorId);
         if (externalConfig.isEmpty()) {
             return;
         }

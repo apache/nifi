@@ -25,6 +25,9 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -528,6 +531,245 @@ public class TestStandardConnectorRepository {
 
         assertThrows(IllegalStateException.class, () -> repository.verifyCreate("connector-1"));
         verify(provider, never()).verifyCreate(anyString());
+    }
+
+    // --- Asset Lifecycle Tests ---
+
+    @Test
+    public void testStoreAssetDelegatesToProviderAndReturnsStoredAsset() throws IOException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(provider, assetManager);
+
+        final Asset storedAsset = mock(Asset.class);
+        when(storedAsset.getIdentifier()).thenReturn("nifi-uuid-1");
+        // After the provider stores the asset locally, the framework retrieves it via getAsset()
+        when(assetManager.getAsset("nifi-uuid-1")).thenReturn(Optional.of(storedAsset));
+
+        final InputStream content = new ByteArrayInputStream("test-content".getBytes());
+        final Asset result = repository.storeAsset("connector-1", "nifi-uuid-1", "driver.jar", content);
+
+        assertNotNull(result);
+        assertEquals("nifi-uuid-1", result.getIdentifier());
+        // Provider handles both local storage and external upload -- no direct assetManager.saveAsset() call
+        verify(provider).storeAsset(eq("connector-1"), eq("nifi-uuid-1"), eq("driver.jar"), any(InputStream.class));
+        verify(assetManager, never()).saveAsset(any(), any(), any(), any());
+    }
+
+    @Test
+    public void testStoreAssetWrapsProviderFailureAsIOException() throws IOException {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(provider, assetManager);
+
+        doThrow(new RuntimeException("Provider upload failed"))
+                .when(provider).storeAsset(eq("connector-1"), eq("nifi-uuid-1"), eq("driver.jar"), any(InputStream.class));
+
+        final InputStream content = new ByteArrayInputStream("test-content".getBytes());
+        assertThrows(IOException.class, () -> repository.storeAsset("connector-1", "nifi-uuid-1", "driver.jar", content));
+
+        // Rollback of local storage is the provider's responsibility; the framework does not call deleteAsset
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testStoreAssetWithoutProviderDelegatesToAssetManagerOnly() throws IOException {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        final Asset localAsset = mock(Asset.class);
+        when(localAsset.getIdentifier()).thenReturn("nifi-uuid-1");
+        when(assetManager.saveAsset(eq("connector-1"), eq("nifi-uuid-1"), eq("driver.jar"), any(InputStream.class)))
+                .thenReturn(localAsset);
+
+        final Asset result = repository.storeAsset("connector-1", "nifi-uuid-1", "driver.jar",
+                new ByteArrayInputStream("content".getBytes()));
+        assertNotNull(result);
+        verify(assetManager).saveAsset(eq("connector-1"), eq("nifi-uuid-1"), eq("driver.jar"), any(InputStream.class));
+    }
+
+    @Test
+    public void testGetAssetDelegatesToAssetManager() {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        final Asset mockAsset = mock(Asset.class);
+        when(mockAsset.getIdentifier()).thenReturn("asset-1");
+        when(assetManager.getAsset("asset-1")).thenReturn(Optional.of(mockAsset));
+
+        final Optional<Asset> result = repository.getAsset("asset-1");
+        assertTrue(result.isPresent());
+        assertEquals("asset-1", result.get().getIdentifier());
+    }
+
+    @Test
+    public void testGetAssetsDelegatesToAssetManager() {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        final Asset asset1 = mock(Asset.class);
+        final Asset asset2 = mock(Asset.class);
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of(asset1, asset2));
+
+        final List<Asset> result = repository.getAssets("connector-1");
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    public void testDeleteAssetsDelegatesToProviderByNifiUuid() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(provider, assetManager);
+
+        final Asset asset = mock(Asset.class);
+        when(asset.getIdentifier()).thenReturn("nifi-uuid-1");
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of(asset));
+
+        repository.deleteAssets("connector-1");
+
+        // Provider receives NiFi UUID; provider handles external cleanup and local deletion
+        verify(provider).deleteAsset("connector-1", "nifi-uuid-1");
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testDeleteAssetsWithoutProviderDelegatesToAssetManager() {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        final Asset asset = mock(Asset.class);
+        when(asset.getIdentifier()).thenReturn("nifi-uuid-1");
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of(asset));
+
+        repository.deleteAssets("connector-1");
+
+        verify(assetManager).deleteAsset("nifi-uuid-1");
+    }
+
+    @Test
+    public void testSyncFromProviderAppliesNifiUuidsDirectly() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final MutableConnectorConfigurationContext workingConfigContext = mock(MutableConnectorConfigurationContext.class);
+        final ConnectorNode connector = createConnectorNodeWithWorkingConfig("connector-1", "Test Connector", workingConfigContext);
+        repository.addConnector(connector);
+
+        // Provider returns config with NiFi UUIDs (no translation needed in framework)
+        final VersionedConnectorValueReference assetRef = new VersionedConnectorValueReference();
+        assetRef.setValueType("ASSET_REFERENCE");
+        assetRef.setAssetIds(Set.of("nifi-uuid-from-provider"));
+        final VersionedConfigurationStep step = createVersionedStep("step1", Map.of("driver", assetRef));
+
+        final ConnectorWorkingConfiguration config = new ConnectorWorkingConfiguration();
+        config.setName("Test Connector");
+        config.setWorkingFlowConfiguration(List.of(step));
+        when(provider.load("connector-1")).thenReturn(Optional.of(config));
+
+        repository.getConnector("connector-1");
+
+        // Working config is updated with NiFi UUIDs as-is -- no translation in the repository
+        verify(workingConfigContext).replaceProperties(eq("step1"), any(StepConfiguration.class));
+    }
+
+    @Test
+    public void testSyncAssetsFromProviderCallsSyncAssetsThenReloads() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final StandardConnectorRepository repository = createRepositoryWithProvider(provider);
+
+        final MutableConnectorConfigurationContext workingConfigContext = mock(MutableConnectorConfigurationContext.class);
+        final ConnectorNode connector = createConnectorNodeWithWorkingConfig("connector-1", "Test Connector", workingConfigContext);
+        repository.addConnector(connector);
+
+        final ConnectorWorkingConfiguration config = new ConnectorWorkingConfiguration();
+        config.setName("Test Connector");
+        config.setWorkingFlowConfiguration(List.of());
+        when(provider.load("connector-1")).thenReturn(Optional.of(config));
+
+        repository.syncAssetsFromProvider(connector);
+
+        // Step 1: provider.syncAssets() called
+        verify(provider).syncAssets("connector-1");
+        // Step 2: provider.load() called to reload updated config (may also have been called during addConnector)
+        verify(provider, org.mockito.Mockito.atLeastOnce()).load("connector-1");
+    }
+
+    @Test
+    public void testSyncAssetsFromProviderNoOpWithoutProvider() {
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        final ConnectorNode connector = createSimpleConnectorNode("connector-1", "Test");
+        repository.addConnector(connector);
+
+        repository.syncAssetsFromProvider(connector);
+
+        verifyNoInteractions(assetManager);
+    }
+
+    @Test
+    public void testCleanUpAssetsCallsProviderDeleteForUnreferencedAssets() {
+        final ConnectorConfigurationProvider provider = mock(ConnectorConfigurationProvider.class);
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(provider, assetManager);
+
+        final String connectorId = "connector-1";
+        final String referencedAssetId = "referenced-uuid";
+        final String unreferencedAssetId = "unreferenced-uuid";
+
+        final Asset referencedAsset = mock(Asset.class);
+        when(referencedAsset.getIdentifier()).thenReturn(referencedAssetId);
+        when(referencedAsset.getName()).thenReturn("referenced.jar");
+
+        final Asset unreferencedAsset = mock(Asset.class);
+        when(unreferencedAsset.getIdentifier()).thenReturn(unreferencedAssetId);
+        when(unreferencedAsset.getName()).thenReturn("unreferenced.jar");
+
+        final MutableConnectorConfigurationContext activeConfigContext = mock(MutableConnectorConfigurationContext.class);
+        final ConnectorConfiguration activeConfig = new ConnectorConfiguration(Set.of(
+            new NamedStepConfiguration("step1", new StepConfiguration(
+                Map.of("prop", new AssetReference(Set.of(referencedAssetId)))))
+        ));
+        when(activeConfigContext.toConnectorConfiguration()).thenReturn(activeConfig);
+        final FrameworkFlowContext activeFlowContext = mock(FrameworkFlowContext.class);
+        when(activeFlowContext.getConfigurationContext()).thenReturn(activeConfigContext);
+
+        final MutableConnectorConfigurationContext workingConfigContext = mock(MutableConnectorConfigurationContext.class);
+        final ConnectorConfiguration workingConfig = new ConnectorConfiguration(Set.of());
+        when(workingConfigContext.toConnectorConfiguration()).thenReturn(workingConfig);
+        final FrameworkFlowContext workingFlowContext = mock(FrameworkFlowContext.class);
+        when(workingFlowContext.getConfigurationContext()).thenReturn(workingConfigContext);
+
+        final ConnectorNode connector = mock(ConnectorNode.class);
+        when(connector.getIdentifier()).thenReturn(connectorId);
+        when(connector.getActiveFlowContext()).thenReturn(activeFlowContext);
+        when(connector.getWorkingFlowContext()).thenReturn(workingFlowContext);
+
+        when(assetManager.getAssets(connectorId)).thenReturn(List.of(referencedAsset, unreferencedAsset));
+        when(provider.load(connectorId)).thenReturn(Optional.empty());
+        repository.addConnector(connector);
+
+        repository.discardWorkingConfiguration(connector);
+
+        // Provider.deleteAsset called with NiFi UUID for unreferenced asset
+        verify(provider).deleteAsset(connectorId, unreferencedAssetId);
+        // Referenced asset is not deleted
+        verify(provider, never()).deleteAsset(connectorId, referencedAssetId);
+        // AssetManager.deleteAsset NOT called directly since provider handles local deletion
+        verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    // --- Helper Methods ---
+
+    private StandardConnectorRepository createRepositoryWithProviderAndAssetManager(
+            final ConnectorConfigurationProvider provider, final AssetManager assetManager) {
+        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
+        when(initContext.getAssetManager()).thenReturn(assetManager);
+        when(initContext.getConnectorConfigurationProvider()).thenReturn(provider);
+        repository.initialize(initContext);
+        return repository;
     }
 
     private StandardConnectorRepository createRepositoryWithProvider(final ConnectorConfigurationProvider provider) {

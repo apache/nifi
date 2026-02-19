@@ -17,6 +17,8 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.asset.AssetManager;
+
 import java.util.Map;
 
 /**
@@ -37,4 +39,12 @@ public interface ConnectorConfigurationProviderInitializationContext {
      * @return a map of property names to values
      */
     Map<String, String> getProperties();
+
+    /**
+     * Returns the {@link AssetManager} that the provider should use for local asset storage.
+     * The provider uses this to create, save, and delete asset files on the local NiFi filesystem.
+     *
+     * @return the AssetManager for connector assets
+     */
+    AssetManager getAssetManager();
 }

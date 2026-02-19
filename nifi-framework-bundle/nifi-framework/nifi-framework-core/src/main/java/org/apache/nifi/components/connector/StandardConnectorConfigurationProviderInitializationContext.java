@@ -17,19 +17,28 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.asset.AssetManager;
+
 import java.util.Map;
 import java.util.Objects;
 
 public class StandardConnectorConfigurationProviderInitializationContext implements ConnectorConfigurationProviderInitializationContext {
 
     private final Map<String, String> properties;
+    private final AssetManager assetManager;
 
-    public StandardConnectorConfigurationProviderInitializationContext(final Map<String, String> properties) {
+    public StandardConnectorConfigurationProviderInitializationContext(final Map<String, String> properties, final AssetManager assetManager) {
         this.properties = Map.copyOf(Objects.requireNonNull(properties, "Properties is required"));
+        this.assetManager = Objects.requireNonNull(assetManager, "AssetManager is required");
     }
 
     @Override
     public Map<String, String> getProperties() {
         return properties;
+    }
+
+    @Override
+    public AssetManager getAssetManager() {
+        return assetManager;
     }
 }

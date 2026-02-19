@@ -18,7 +18,6 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
-import org.apache.nifi.components.connector.ConnectorAssetRepository;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
@@ -29,22 +28,24 @@ import org.apache.nifi.components.connector.MutableConnectorConfigurationContext
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -69,9 +70,6 @@ class StandardConnectorDAOTest {
     private ConnectorUpdateContext connectorUpdateContext;
 
     @Mock
-    private ConnectorAssetRepository connectorAssetRepository;
-
-    @Mock
     private FrameworkFlowContext frameworkFlowContext;
 
     @Mock
@@ -90,7 +88,6 @@ class StandardConnectorDAOTest {
         connectorDAO.setFlowController(flowController);
 
         when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
-        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
 
         final MutableConnectorConfigurationContext configContext = mock(MutableConnectorConfigurationContext.class);
         when(configContext.toConnectorConfiguration()).thenReturn(mock(ConnectorConfiguration.class));
@@ -102,13 +99,6 @@ class StandardConnectorDAOTest {
     @Test
     void testApplyConnectorUpdate() throws Exception {
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
-        when(connectorNode.getActiveFlowContext()).thenReturn(frameworkFlowContext);
-        when(frameworkFlowContext.getConfigurationContext()).thenReturn(configurationContext);
-        when(configurationContext.toConnectorConfiguration()).thenReturn(connectorConfiguration);
-        when(connectorConfiguration.getNamedStepConfigurations()).thenReturn(Collections.emptySet());
-        when(connectorNode.getIdentifier()).thenReturn(CONNECTOR_ID);
-        when(connectorAssetRepository.getAssets(CONNECTOR_ID)).thenReturn(Collections.emptyList());
 
         connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext);
 
@@ -251,25 +241,35 @@ class StandardConnectorDAOTest {
     }
 
     @Test
-    void testDeleteConnectorRemovesConnectorAndAssets() {
-        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
+    void testVerifyConfigurationStepSyncsAssetsBeforeVerification() {
+        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        final ConfigurationStepConfigurationDTO stepConfigDto = new ConfigurationStepConfigurationDTO();
 
-        connectorDAO.deleteConnector(CONNECTOR_ID);
+        connectorDAO.verifyConfigurationStep(CONNECTOR_ID, STEP_NAME, stepConfigDto);
 
-        verify(connectorRepository).removeConnector(CONNECTOR_ID);
-        verify(connectorAssetRepository).deleteAssets(CONNECTOR_ID);
+        final InOrder inOrder = inOrder(connectorRepository, connectorNode);
+        inOrder.verify(connectorRepository).syncAssetsFromProvider(connectorNode);
+        inOrder.verify(connectorNode).verifyConfigurationStep(any(), any());
     }
 
     @Test
-    void testDeleteConnectorDoesNotDeleteAssetsWhenRemovalFails() {
-        doThrow(new RuntimeException("Removal failed")).when(connectorRepository).removeConnector(CONNECTOR_ID);
+    void testDeleteConnectorRemovesAssetsAndConnector() {
+        connectorDAO.deleteConnector(CONNECTOR_ID);
+
+        verify(connectorRepository).deleteAssets(CONNECTOR_ID);
+        verify(connectorRepository).removeConnector(CONNECTOR_ID);
+    }
+
+    @Test
+    void testDeleteConnectorDoesNotRemoveConnectorWhenAssetDeletionFails() {
+        doThrow(new RuntimeException("Asset deletion failed")).when(connectorRepository).deleteAssets(CONNECTOR_ID);
 
         assertThrows(RuntimeException.class, () ->
             connectorDAO.deleteConnector(CONNECTOR_ID)
         );
 
-        verify(connectorRepository).removeConnector(CONNECTOR_ID);
-        verify(connectorAssetRepository, never()).deleteAssets(any());
+        verify(connectorRepository).deleteAssets(CONNECTOR_ID);
+        verify(connectorRepository, never()).removeConnector(any());
     }
 
     @Test
