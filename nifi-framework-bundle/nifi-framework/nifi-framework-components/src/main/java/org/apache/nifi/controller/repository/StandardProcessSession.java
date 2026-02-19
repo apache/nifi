@@ -301,7 +301,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             this.checkpoint = new Checkpoint();
         }
 
-        if (records.isEmpty() && (countersOnCommit == null || countersOnCommit.isEmpty())) {
+        if (records.isEmpty()
+                && (countersOnCommit == null || countersOnCommit.isEmpty())
+                && (gaugeRecordsSessionCommitted == null || gaugeRecordsSessionCommitted.isEmpty())
+        ) {
             LOG.trace("{} checkpointed, but no events were performed by this ProcessSession", this);
             checkpoint.checkpoint(this, Collections.emptyList(), copyCollections);
             return;
@@ -4029,6 +4032,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             mergeMapsWithMutableValue(this.connectionCounts, session.connectionCounts, (destination, toMerge) -> destination.add(toMerge));
             mergeMaps(this.countersOnCommit, session.countersOnCommit, Long::sum);
             mergeMaps(this.immediateCounters, session.immediateCounters, Long::sum);
+            this.gaugeRecordsSessionCommitted.addAll(session.gaugeRecordsSessionCommitted);
 
             this.deleteOnCommit.putAll(session.deleteOnCommit);
             this.removedFlowFiles.addAll(session.removedFlowFiles);
