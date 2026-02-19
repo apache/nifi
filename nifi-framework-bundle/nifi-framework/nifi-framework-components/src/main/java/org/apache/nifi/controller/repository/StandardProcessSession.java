@@ -4032,7 +4032,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             mergeMapsWithMutableValue(this.connectionCounts, session.connectionCounts, (destination, toMerge) -> destination.add(toMerge));
             mergeMaps(this.countersOnCommit, session.countersOnCommit, Long::sum);
             mergeMaps(this.immediateCounters, session.immediateCounters, Long::sum);
-            this.gaugeRecordsSessionCommitted.addAll(session.gaugeRecordsSessionCommitted);
+
+            if (session.gaugeRecordsSessionCommitted != null) {
+                this.gaugeRecordsSessionCommitted.addAll(session.gaugeRecordsSessionCommitted);
+            }
 
             this.deleteOnCommit.putAll(session.deleteOnCommit);
             this.removedFlowFiles.addAll(session.removedFlowFiles);
