@@ -156,6 +156,21 @@ public interface GitRepositoryClient {
     InputStream deleteContent(String filePath, String commitMessage, String branch) throws FlowRegistryException, IOException;
 
     /**
+     * Creates a new branch in the repository.
+     *
+     * @param newBranchName the name of the branch to create
+     * @param sourceBranch the name of the source branch
+     * @param sourceCommitSha optional commit SHA to use as the starting point for the new branch. If empty, the head commit of the source branch should be used.
+     * @throws IOException if an I/O error occurs
+     * @throws FlowRegistryException if a non-I/O error occurs
+     * @throws UnsupportedOperationException if the repository implementation does not support branch creation
+     */
+    default void createBranch(final String newBranchName, final String sourceBranch, final Optional<String> sourceCommitSha)
+            throws IOException, FlowRegistryException {
+        throw new UnsupportedOperationException("Branch creation is not supported");
+    }
+
+    /**
      * Closes any resources held by the client.
      *
      * @throws IOException if an I/O error occurs closing the client

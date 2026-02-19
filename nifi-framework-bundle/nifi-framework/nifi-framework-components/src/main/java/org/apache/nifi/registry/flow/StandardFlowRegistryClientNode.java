@@ -247,6 +247,15 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
+    public void createBranch(final FlowRegistryClientUserContext context, final FlowVersionLocation sourceLocation, final String newBranchName)
+            throws FlowRegistryException, IOException {
+        execute(() -> {
+            client.get().getComponent().createBranch(getConfigurationContext(context), sourceLocation, newBranchName);
+            return null;
+        });
+    }
+
+    @Override
     public FlowSnapshotContainer getFlowContents(final FlowRegistryClientUserContext context, final FlowVersionLocation flowVersionLocation, final boolean fetchRemoteFlows)
             throws FlowRegistryException, IOException {
         final RegisteredFlowSnapshot flowSnapshot = execute(() -> client.get().getComponent().getFlowContents(getConfigurationContext(context), flowVersionLocation));

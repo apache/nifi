@@ -53,6 +53,7 @@ public interface FlowRegistryClientNode extends ComponentNode {
 
     RegisteredFlow getFlow(FlowRegistryClientUserContext context, FlowLocation flowLocation) throws FlowRegistryException, IOException;
     Set<RegisteredFlow> getFlows(FlowRegistryClientUserContext context, BucketLocation bucketLocation) throws FlowRegistryException, IOException;
+    void createBranch(FlowRegistryClientUserContext context, FlowVersionLocation sourceLocation, String newBranchName) throws FlowRegistryException, IOException;
 
     FlowSnapshotContainer getFlowContents(FlowRegistryClientUserContext context, FlowVersionLocation flowVersionLocation, boolean fetchRemoteFlows) throws FlowRegistryException, IOException;
     RegisteredFlowSnapshot registerFlowSnapshot(
