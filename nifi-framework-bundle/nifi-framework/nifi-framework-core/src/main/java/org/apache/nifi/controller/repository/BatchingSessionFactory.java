@@ -27,6 +27,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,6 +114,11 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         @Override
         public void adjustCounter(String name, long delta, boolean immediate) {
             session.adjustCounter(name, delta, immediate);
+        }
+
+        @Override
+        public void recordGauge(final String name, final double value, final CommitTiming commitTiming) {
+            session.recordGauge(name, value, commitTiming);
         }
 
         @Override
