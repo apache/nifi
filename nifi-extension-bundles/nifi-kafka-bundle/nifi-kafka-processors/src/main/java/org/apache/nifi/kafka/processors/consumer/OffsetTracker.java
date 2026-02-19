@@ -64,4 +64,10 @@ public class OffsetTracker {
         }
         return pollingSummary;
     }
+
+    public void clear() {
+        offsets.clear();
+        recordCounts.clear();
+        totalRecordSize.set(0);
+    }
 }
