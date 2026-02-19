@@ -116,6 +116,8 @@ public class StandardKustoIngestService extends AbstractControllerService implem
 
     private static final Map<String, String> NIFI_SINK = Map.of("processor", StandardKustoIngestService.class.getSimpleName());
 
+    private volatile String clusterUri;
+
     private volatile QueuedIngestClient queuedIngestClient;
 
     private volatile ManagedStreamingIngestClient managedStreamingIngestClient;
@@ -132,7 +134,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         final String applicationClientId = context.getProperty(APPLICATION_CLIENT_ID).getValue();
         final String applicationKey = context.getProperty(APPLICATION_KEY).getValue();
         final String applicationTenantId = context.getProperty(APPLICATION_TENANT_ID).getValue();
-        final String clusterUri = context.getProperty(CLUSTER_URI).getValue();
+        this.clusterUri = context.getProperty(CLUSTER_URI).getValue();
         final KustoAuthenticationStrategy kustoAuthenticationStrategy = KustoAuthenticationStrategy.valueOf(context.getProperty(AUTHENTICATION_STRATEGY).getValue());
 
         this.queuedIngestClient = createKustoQueuedIngestClient(clusterUri, applicationClientId, applicationKey, applicationTenantId, kustoAuthenticationStrategy);
@@ -163,6 +165,12 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         if (this.executionClient != null) {
             this.executionClient = null;
         }
+        this.clusterUri = null;
+    }
+
+    @Override
+    public String getClusterUri() {
+        return clusterUri;
     }
 
 

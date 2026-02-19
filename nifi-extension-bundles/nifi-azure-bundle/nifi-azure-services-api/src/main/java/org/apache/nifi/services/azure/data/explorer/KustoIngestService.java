@@ -46,4 +46,11 @@ public interface KustoIngestService extends ControllerService {
      * @return Table Readable status
      */
     boolean isTableReadable(String databaseName, String table);
+
+    /**
+     * Returns the Azure Data Explorer cluster URI used for ingestion
+     *
+     * @return the cluster URI
+     */
+    String getClusterUri();
 }

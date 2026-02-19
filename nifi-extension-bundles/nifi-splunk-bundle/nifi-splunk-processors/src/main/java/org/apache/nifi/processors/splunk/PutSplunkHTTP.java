@@ -174,10 +174,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
 
                     if (successResponse.getCode() == 0) {
                         flowFile = enrichFlowFile(session, flowFile, successResponse.getAckId());
-                        final String scheme = context.getProperty(SCHEME).getValue();
-                        final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
-                        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-                        session.getProvenanceReporter().send(flowFile, "%s://%s:%d%s".formatted(scheme, hostname, port, endpoint));
+                        session.getProvenanceReporter().send(flowFile, getTransitBaseUri() + endpoint);
                         success = true;
                     } else {
                         flowFile = session.putAttribute(flowFile, "splunk.response.code", String.valueOf(successResponse.getCode()));

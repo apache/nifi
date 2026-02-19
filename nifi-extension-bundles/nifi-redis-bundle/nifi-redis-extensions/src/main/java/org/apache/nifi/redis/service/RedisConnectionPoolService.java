@@ -43,6 +43,7 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
 
     private volatile PropertyContext context;
     private volatile RedisType redisType;
+    private volatile String connectionString;
     private volatile JedisConnectionFactory connectionFactory;
     private volatile SSLContext sslContext;
 
@@ -66,6 +67,7 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
 
         final String redisMode = context.getProperty(RedisUtils.REDIS_MODE).getValue();
         this.redisType = RedisType.fromDisplayName(redisMode);
+        this.connectionString = context.getProperty(RedisUtils.CONNECTION_STRING).evaluateAttributeExpressions().getValue();
     }
 
     @OnDisabled
@@ -74,6 +76,7 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
             connectionFactory.destroy();
             connectionFactory = null;
             redisType = null;
+            connectionString = null;
             context = null;
             sslContext = null;
         }
@@ -82,6 +85,11 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
     @Override
     public RedisType getRedisType() {
         return redisType;
+    }
+
+    @Override
+    public String getConnectionString() {
+        return connectionString;
     }
 
     @Override

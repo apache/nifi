@@ -145,6 +145,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
     }
 
     protected final AtomicReference<Session> session = new AtomicReference<>(null);
+    private volatile String transitUri;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -159,6 +160,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             final String username = context.getProperty(USERNAME).getValue();
             final String password = context.getProperty(PASSWORD).getValue();
 
+            transitUri = "iotdb://%s:%d".formatted(host, port);
             session.set(new Session.Builder()
                     .host(host)
                     .port(port)
@@ -179,6 +181,11 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             }
             session.set(null);
         }
+        transitUri = null;
+    }
+
+    protected String getTransitUri() {
+        return transitUri;
     }
 
     @Override
