@@ -836,6 +836,38 @@ then the following Expressions will result in the following values:
 |=========================================================================
 
 
+[.function]
+=== unique
+
+*Description*: [.description]#Returns the unique values from a delimited string while preserving the order of first occurrence. The function takes a delimiter as an argument and returns the deduplicated values joined by the same delimiter.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_delimiter_# : [.argDesc]#The delimiter used to split and join the subject string#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "tags" attribute has the value "red,blue,red,green,blue,yellow", then the following
+Expressions will result in the following values:
+
+.Unique Examples
+|===================================================================
+| Expression | Value
+| `${tags:unique(',')}` | `red,blue,green,yellow`
+| `${tags:unique(';')}` | `red,blue,red,green,blue,yellow`
+|===================================================================
+
+If the "paths" attribute has the value "C:\Users\test;D:\Data;C:\Users\test;E:\Backup", then:
+
+.Path Deduplication
+|===================================================================
+| Expression | Value
+| `${paths:unique(';')}` | `C:\Users\test;D:\Data;E:\Backup`
+|===================================================================
+
+*Special Cases*: If the subject is null, returns null. If the delimiter is null or empty, returns the original subject unchanged. Empty values are preserved (e.g., "a,,b,,c" becomes "a,,b,c").
 
 
 [.function]
