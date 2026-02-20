@@ -21,6 +21,7 @@ import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.aws.kinesis.ReaderRecordProcessor.ProcessingResult;
+import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ConsumeRecordsResult;
 import org.apache.nifi.processors.aws.kinesis.converter.ValueRecordConverter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
@@ -51,6 +52,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.APPROXIMATE_ARRIVAL_TIMESTAMP;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.CURRENT_LAG;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SUB_SEQUENCE_NUMBER;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SEQUENCE_NUMBER;
@@ -65,6 +67,7 @@ import static org.apache.nifi.processors.aws.kinesis.JsonRecordAssert.assertFlow
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReaderRecordProcessorTest {
@@ -118,7 +121,7 @@ class ReaderRecordProcessorTest {
                 .build();
         final List<KinesisClientRecord> records = List.of(record);
 
-        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, consumeResult(records));
 
         assertEquals(1, result.successFlowFiles().size());
         assertEquals(0, result.parseFailureFlowFiles().size());
@@ -150,7 +153,7 @@ class ReaderRecordProcessorTest {
                 createKinesisRecord(USER_JSON_3, "3")
         );
 
-        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, consumeResult(records));
 
         assertEquals(1, result.successFlowFiles().size());
         assertEquals(0, result.parseFailureFlowFiles().size());
@@ -170,7 +173,7 @@ class ReaderRecordProcessorTest {
 
     @Test
     void testEmptyRecordsList() {
-        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, Collections.emptyList());
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, ConsumeRecordsResult.empty());
 
         assertEquals(0, result.successFlowFiles().size());
         assertEquals(0, result.parseFailureFlowFiles().size());
@@ -183,7 +186,7 @@ class ReaderRecordProcessorTest {
                 createKinesisRecord(CITY_JSON_1, "2")
         );
 
-        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, consumeResult(records));
 
         assertEquals(2, result.successFlowFiles().size()); // Two different schemas = two FlowFiles
         assertEquals(0, result.parseFailureFlowFiles().size());
@@ -206,7 +209,7 @@ class ReaderRecordProcessorTest {
                 createKinesisRecord(CITY_JSON_2, "4")
         );
 
-        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, consumeResult(records));
 
         assertEquals(2, result.successFlowFiles().size());
         assertEquals(0, result.parseFailureFlowFiles().size());
@@ -226,7 +229,7 @@ class ReaderRecordProcessorTest {
                 createKinesisRecord(INVALID_JSON, "1")
         );
 
-        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, consumeResult(records));
 
         assertEquals(0, result.successFlowFiles().size());
         assertEquals(1, result.parseFailureFlowFiles().size());
@@ -250,7 +253,7 @@ class ReaderRecordProcessorTest {
                 createKinesisRecord(USER_JSON_3, "5")
         );
 
-        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, consumeResult(records));
 
         assertEquals(1, result.successFlowFiles().size());
         assertEquals(2, result.parseFailureFlowFiles().size());
@@ -284,7 +287,7 @@ class ReaderRecordProcessorTest {
         final KinesisClientRecord record = createKinesisRecord(USER_JSON_1, "1");
         final List<KinesisClientRecord> records = List.of(record);
 
-        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, consumeResult(records));
 
         assertEquals(0, result.successFlowFiles().size());
         assertEquals(1, result.parseFailureFlowFiles().size());
@@ -301,7 +304,7 @@ class ReaderRecordProcessorTest {
         final KinesisClientRecord record = createKinesisRecord(USER_JSON_1, "1");
         final List<KinesisClientRecord> records = Collections.singletonList(record);
 
-        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, consumeResult(records));
 
         assertEquals(0, result.successFlowFiles().size());
         assertEquals(1, result.parseFailureFlowFiles().size());
@@ -323,7 +326,7 @@ class ReaderRecordProcessorTest {
                 createKinesisRecord("{\"category\":\"electronics\",\"price\":99.99}", "7") // Schema C
         );
 
-        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, records);
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, consumeResult(records));
 
         assertEquals(3, result.successFlowFiles().size());
         assertEquals(2, result.parseFailureFlowFiles().size());
@@ -361,6 +364,45 @@ class ReaderRecordProcessorTest {
         assertNotNull(secondFailureFlowFile.getAttribute(RECORD_ERROR_MESSAGE));
         assertEquals(TEST_SHARD_ID, secondFailureFlowFile.getAttribute(SHARD_ID));
         secondFailureFlowFile.assertContentEquals(KinesisRecordPayload.extract(records.get(4)), UTF_8);
+    }
+
+    @Test
+    void testCurrentLagAttributeOnSuccessAndFailure() {
+        final List<KinesisClientRecord> records = List.of(
+                createKinesisRecord(USER_JSON_1, "1"),
+                createKinesisRecord(INVALID_JSON, "2")
+        );
+        final long millis = 5000L;
+        final ConsumeRecordsResult consumeResult = new ConsumeRecordsResult(records, millis);
+
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, consumeResult);
+
+        assertEquals(1, result.successFlowFiles().size());
+        assertEquals(1, result.parseFailureFlowFiles().size());
+
+        final FlowFile successFlowFile = result.successFlowFiles().getFirst();
+        assertEquals(String.valueOf(millis), successFlowFile.getAttribute(CURRENT_LAG));
+
+        final FlowFile failureFlowFile = result.parseFailureFlowFiles().getFirst();
+        assertEquals(String.valueOf(millis), failureFlowFile.getAttribute(CURRENT_LAG));
+    }
+
+    @Test
+    void testNullCurrentLagAttributeNotSet() {
+        final List<KinesisClientRecord> records = List.of(
+                createKinesisRecord(USER_JSON_1, "1")
+        );
+
+        final ProcessingResult result = processor.processRecords(session, TEST_STREAM_NAME, TEST_SHARD_ID, new ConsumeRecordsResult(records, null));
+
+        assertEquals(1, result.successFlowFiles().size());
+
+        final FlowFile successFlowFile = result.successFlowFiles().getFirst();
+        assertNull(successFlowFile.getAttribute(CURRENT_LAG));
+    }
+
+    private static ConsumeRecordsResult consumeResult(final List<KinesisClientRecord> records) {
+        return new ConsumeRecordsResult(records, 1771251062274L);
     }
 
     private static KinesisClientRecord createKinesisRecord(final String data, final String sequenceNumber) {
