@@ -705,8 +705,6 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
     }
 
-
-
     private void processRecordsFromBuffer(final ProcessSession session, final Lease lease) {
         try {
             final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
