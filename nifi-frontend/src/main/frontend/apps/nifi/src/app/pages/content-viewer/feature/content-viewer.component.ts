@@ -255,7 +255,7 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
                     const supportedContentViewer = this.supportedContentViewerLookup.get(supportedMimeTypeId);
                     if (supportedContentViewer) {
                         const supportsMimeType = supportedContentViewer.supportedMimeTypes.mimeTypes.some(
-                            (supportedMimeType) => mimeType.startsWith(supportedMimeType)
+                            (supportedMimeType) => this.isMediaTypeCompatible(mimeType, supportedMimeType)
                         );
 
                         if (supportsMimeType) {
@@ -267,6 +267,34 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
         }
 
         return null;
+    }
+
+    /**
+     * Checks if a MIME type is compatible with a supported media type pattern.
+     * Supports patterns like "application/*+xml" which match "application/fhir+xml".
+     */
+    private isMediaTypeCompatible(mimeType: string, supportedMimeType: string): boolean {
+        // Check for exact match or startsWith match
+        if (mimeType === supportedMimeType || mimeType.startsWith(supportedMimeType)) {
+            return true;
+        }
+
+        // Check for wildcard patterns like "application/*+xml"
+        if (supportedMimeType.includes('/*+')) {
+            // Parse pattern: "application/*+xml" -> type="application", suffix="+xml"
+            const patternMatch = supportedMimeType.match(/^([^/]+)\/\*(\+.+)$/);
+            if (patternMatch) {
+                const [, patternType, patternSuffix] = patternMatch;
+                // Parse mimeType: "application/fhir+xml" -> type="application", suffix="+xml"
+                const mimeMatch = mimeType.match(/^([^/]+)\/[^+]+(\+.+)$/);
+                if (mimeMatch) {
+                    const [, mimeTypeType, mimeTypeSuffix] = mimeMatch;
+                    return patternType === mimeTypeType && patternSuffix === mimeTypeSuffix;
+                }
+            }
+        }
+
+        return false;
     }
 
     viewAsChanged(event: MatSelectChange): void {
