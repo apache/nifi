@@ -20,6 +20,7 @@ import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionKey;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
+import org.apache.iceberg.data.InternalRecordWrapper;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.FileAppenderFactory;
 import org.apache.iceberg.io.FileIO;
@@ -32,6 +33,7 @@ import org.apache.iceberg.io.PartitionedFanoutWriter;
 public class ParquetPartitionedWriter extends PartitionedFanoutWriter<Record> {
 
     private final PartitionKey partitionKey;
+    private final InternalRecordWrapper recordWrapper;
 
     public ParquetPartitionedWriter(
             final PartitionSpec spec,
@@ -43,11 +45,12 @@ public class ParquetPartitionedWriter extends PartitionedFanoutWriter<Record> {
     ) {
         super(spec, FileFormat.PARQUET, appenderFactory, fileFactory, io, targetFileSize);
         this.partitionKey = new PartitionKey(spec, schema);
+        this.recordWrapper = new InternalRecordWrapper(schema.asStruct());
     }
 
     @Override
     protected PartitionKey partition(final Record record) {
-        partitionKey.partition(record);
+        partitionKey.partition(recordWrapper.wrap(record));
         return partitionKey;
     }
 }

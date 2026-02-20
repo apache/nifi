@@ -50,6 +50,11 @@
             <groupId>org.apache.iceberg</groupId>
             <artifactId>iceberg-parquet</artifactId>
         </dependency>
+        <!-- Iceberg Data dependencies -->
+        <dependency>
+            <groupId>org.apache.iceberg</groupId>
+            <artifactId>iceberg-data</artifactId>
+        </dependency>
         <!-- Override Parquet version from iceberg-parquet -->
         <dependency>
             <groupId>org.apache.parquet</groupId>
