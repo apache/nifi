@@ -21,7 +21,7 @@ import { By } from '@angular/platform-browser';
 import { ChangeVersionDialog } from './change-version-dialog';
 import { ChangeVersionDialogRequest } from '../../../../../state/flow';
 import { VersionedFlowSnapshotMetadata } from '../../../../../../../state/shared';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -33,6 +33,7 @@ import { currentUserFeatureKey } from '../../../../../../../state/current-user';
 import { canvasFeatureKey } from '../../../../../state';
 import { flowFeatureKey } from '../../../../../state/flow';
 import { Sort } from '@angular/material/sort';
+import { FlowDiffDialog } from '../flow-diff-dialog/flow-diff-dialog';
 
 interface SetupOptions {
     dialogData?: ChangeVersionDialogRequest;
@@ -92,6 +93,7 @@ describe('ChangeVersionDialog', () => {
     async function setup(options: SetupOptions = {}) {
         const dialogData = options.dialogData || createMockDialogData();
         const timeOffset = options.timeOffset || 0;
+        const matDialogOpen = jest.fn();
 
         await TestBed.configureTestingModule({
             imports: [ChangeVersionDialog, NoopAnimationsModule],
@@ -112,7 +114,13 @@ describe('ChangeVersionDialog', () => {
                         }
                     ]
                 }),
-                { provide: MatDialogRef, useValue: null }
+                { provide: MatDialogRef, useValue: null },
+                {
+                    provide: MatDialog,
+                    useValue: {
+                        open: matDialogOpen
+                    }
+                }
             ]
         }).compileComponents();
 
@@ -120,7 +128,7 @@ describe('ChangeVersionDialog', () => {
         const component = fixture.componentInstance;
         fixture.detectChanges();
 
-        return { fixture, component, dialogData };
+        return { fixture, component, dialogData, matDialogOpen };
     }
 
     beforeEach(() => {
@@ -131,6 +139,12 @@ describe('ChangeVersionDialog', () => {
         const { component } = await setup();
 
         expect(component).toBeTruthy();
+    });
+
+    it('should include flow diff action column', async () => {
+        const { component } = await setup();
+
+        expect(component.displayedColumns).toContain('actions');
     });
 
     describe('Component Initialization', () => {
@@ -211,6 +225,34 @@ describe('ChangeVersionDialog', () => {
             const version = component.dataSource.data[0];
 
             expect(component.isSelected(version)).toBe(false);
+        });
+    });
+
+    describe('Flow Diff', () => {
+        it('should open the flow diff dialog when the action is triggered', async () => {
+            const { fixture, matDialogOpen, dialogData } = await setup();
+            const diffButton = fixture.debugElement.query(By.css('[data-qa="view-flow-diff-button"]'));
+            const mockEvent = {
+                preventDefault: jest.fn(),
+                stopPropagation: jest.fn()
+            } as unknown as MouseEvent;
+
+            diffButton.triggerEventHandler('click', mockEvent);
+
+            expect(mockEvent.preventDefault).toHaveBeenCalled();
+            expect(mockEvent.stopPropagation).toHaveBeenCalled();
+            const icon = diffButton.query(By.css('i'));
+            expect(icon.nativeElement.classList).toContain('fa-exchange');
+            expect(matDialogOpen).toHaveBeenCalledWith(
+                FlowDiffDialog,
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        versionControlInformation: dialogData.versionControlInformation,
+                        currentVersion: dialogData.versionControlInformation.version,
+                        selectedVersion: dialogData.versions[0].versionedFlowSnapshotMetadata.version
+                    })
+                })
+            );
         });
     });
 
