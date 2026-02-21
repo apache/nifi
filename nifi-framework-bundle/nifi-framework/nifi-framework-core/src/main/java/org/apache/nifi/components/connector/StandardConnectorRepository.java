@@ -171,6 +171,12 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public void applyUpdate(final ConnectorNode connector, final ConnectorUpdateContext context) throws FlowUpdateException {
         logger.debug("Applying update to {}", connector);
+
+        if (configurationProvider != null && !configurationProvider.shouldApplyUpdate(connector.getIdentifier())) {
+            logger.info("ConnectorConfigurationProvider indicated framework should not apply update for {}; skipping framework update process", connector);
+            return;
+        }
+
         final ConnectorState initialDesiredState = connector.getDesiredState();
         logger.info("Applying update to Connector {}", connector);
 
