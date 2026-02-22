@@ -20,7 +20,6 @@ import org.apache.iceberg.DataFile;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.TaskWriter;
 import org.apache.nifi.services.iceberg.IcebergRowWriter;
-import org.apache.nifi.services.iceberg.parquet.io.recordconverters.IcebergParquetRecordWriterConverter;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -30,8 +29,6 @@ import java.util.Objects;
  */
 public class ParquetIcebergRowWriter implements IcebergRowWriter {
     private final TaskWriter<Record> writer;
-    private final IcebergRecordConverter icebergParquetRecordWriterConverter =
-            new IcebergParquetRecordWriterConverter();
 
     public ParquetIcebergRowWriter(final TaskWriter<Record> writer) {
         this.writer = Objects.requireNonNull(writer, "Writer required");
@@ -39,7 +36,6 @@ public class ParquetIcebergRowWriter implements IcebergRowWriter {
 
     @Override
     public void write(final Record row) throws IOException {
-        this.icebergParquetRecordWriterConverter.convertRecord(row);
         writer.write(row);
     }
 
