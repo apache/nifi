@@ -24,6 +24,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.engine.FlowEngine;
@@ -537,6 +538,22 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
     }
 
+    @Test
+    public void testApplyUpdateWithNpeResultsInUpdateFailedAndInvalid() throws FlowUpdateException {
+        final NpeOnApplyUpdateConnector connector = new NpeOnApplyUpdateConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(connector);
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+
+        final FlowUpdateException cause = assertThrows(FlowUpdateException.class, connectorNode::applyUpdate);
+        connectorNode.abortUpdate(cause);
+
+        assertEquals(ConnectorState.UPDATE_FAILED, connectorNode.getCurrentState());
+        assertEquals(ConnectorState.UPDATE_FAILED, connectorNode.getDesiredState());
+        assertEquals(ValidationStatus.INVALID, connectorNode.getValidationStatus());
+    }
+
     private StandardConnectorNode createConnectorNode() throws FlowUpdateException {
         final SleepingConnector sleepingConnector = new SleepingConnector(Duration.ofMillis(1));
         return createConnectorNode(sleepingConnector);
@@ -842,6 +859,39 @@ public class TestStandardConnectorNode {
 
         public boolean wasStopCalled() {
             return stopCalled;
+        }
+    }
+
+    /**
+     * Test connector whose applyUpdate throws a NullPointerException to simulate an unexpected failure
+     */
+    private static class NpeOnApplyUpdateConnector extends AbstractConnector {
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            return List.of();
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+            throw new NullPointerException("Simulated NPE in applyUpdate");
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
         }
     }
 
