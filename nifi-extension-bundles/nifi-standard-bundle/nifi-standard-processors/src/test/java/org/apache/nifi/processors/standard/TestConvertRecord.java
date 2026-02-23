@@ -628,4 +628,41 @@ public class TestConvertRecord {
         final List<String> actualAttributeValuesFromSecondff = JsonPath.read(secondFlowFile.getContent(), jsonPath);
         assertEquals(expectedAttributeValues, actualAttributeValuesFromSecondff);
     }
+
+    @Test
+    public void testXMLReaderhasNoDefaultFieldNameWhenContentNameFieldNameNotSet() throws InitializationException {
+        final XMLReader xmlReader = new XMLReader();
+        runner.addControllerService(READER_ID, xmlReader);
+        runner.setProperty(xmlReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+        runner.setProperty(xmlReader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        runner.setProperty(xmlReader, XMLReader.PARSE_XML_ATTRIBUTES, "true");
+        runner.enableControllerService(xmlReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService(WRITER_ID, jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        runner.setProperty(jsonWriter, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(ConvertRecord.RECORD_READER, READER_ID);
+        runner.setProperty(ConvertRecord.RECORD_WRITER, WRITER_ID);
+        final String xml = """
+                <note>
+                    <to alias="TK">Kyle</to>
+                    <from>Stan</from>
+                    <heading>Reminder</heading>
+                    <body>Don't forget me this weekend!</body>
+                </note>
+                """;
+        runner.enqueue(xml);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 1);
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
+        final String jsonPath = "$[0].to";
+        final Map<String, String> toObject = JsonPath.read(firstFlowFile.getContent(), jsonPath);
+
+        assertFalse(toObject.containsKey("value"));
+    }
 }
