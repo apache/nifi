@@ -129,7 +129,7 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
             return new XmlTextNode(nodeName, content.toString().trim());
         } else {
             final String textContent = content.toString().trim();
-            if (!textContent.equals("")) {
+            if (!textContent.isEmpty() && contentFieldName != null) {
                 childNodes.put(contentFieldName, new XmlTextNode(contentFieldName, textContent));
             }
 

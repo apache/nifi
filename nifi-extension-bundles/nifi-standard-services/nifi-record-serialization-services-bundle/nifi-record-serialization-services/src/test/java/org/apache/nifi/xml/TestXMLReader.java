@@ -18,8 +18,13 @@
 package org.apache.nifi.xml;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.PropertyMigrationResult;
@@ -28,7 +33,12 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -48,7 +58,9 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.OBSOLETE_SCHEMA_CACHE;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
+@ExtendWith(MockitoExtension.class)
 class TestXMLReader {
 
     private static final String CONTENT_NAME = "content_field";
@@ -233,6 +245,27 @@ class TestXMLReader {
         final MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).getFirst();
         final String actualContent = out.getContent();
         assertEquals(expectedContent, actualContent);
+    }
+
+    @Test
+    void testNoDefaultFieldWhenInferSchemaAndContentFieldNameNotSet(@Mock ComponentLog log) throws Exception {
+        final Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        xmlReaderProperties.put(XMLReader.PARSE_XML_ATTRIBUTES, "true");
+        final MockConfigurationContext configurationContext = new MockConfigurationContext(reader, xmlReaderProperties, null, Map.of());
+        reader.onEnabled(configurationContext);
+        reader.storeSchemaAccessStrategy(configurationContext);
+
+        final String content = Files.readString(personRecord);
+        final byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+        final RecordReader recordReader = reader.createRecordReader(null, inputStream, bytes.length, log);
+        final Record nextRecord = recordReader.nextRecord();
+        final Record subRecord = nextRecord.getAsRecord("software", nextRecord.getSchema());
+        final RecordSchema subRecordSchema = subRecord.getSchema();
+
+        assertFalse(subRecordSchema.getFieldNames().contains("value"));
     }
 
     @Test
