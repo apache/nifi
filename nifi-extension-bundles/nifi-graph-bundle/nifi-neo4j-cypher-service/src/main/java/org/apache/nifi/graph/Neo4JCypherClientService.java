@@ -30,6 +30,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.Tuple;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Config;
 import org.neo4j.driver.Driver;
@@ -57,7 +58,8 @@ import static org.neo4j.driver.Config.TrustStrategy.trustCustomCertificateSigned
         "the Neo4J driver that corresponds to most of the settings for this service can be found here: " +
         "https://neo4j.com/docs/driver-manual/current/client-applications/#driver-configuration. This service was created as a " +
         "result of the break in driver compatibility between Neo4J 3.X and 4.X and might be renamed in the future if and when " +
-        "Neo4J should break driver compatibility between 4.X and a future release.")
+        "Neo4J should break driver compatibility between 4.X and a future release. NOTE: When generating Cypher statements for node/edge properties, " +
+        "special characters in the property names will be changed to underscores ('_') in the graph")
 public class Neo4JCypherClientService extends AbstractControllerService implements GraphClientService {
     public static final PropertyDescriptor CONNECTION_URL = new PropertyDescriptor.Builder()
             .name("Neo4j Connection URL")
@@ -295,5 +297,97 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     @Override
     public String getTransitUrl() {
         return connectionUrl;
+    }
+
+    @Override
+    public String generateSetPropertiesStatement(final String componentType,
+                                                 final List<Tuple<String, String>> identifiersAndValues,
+                                                 final String nodeType,
+                                                 final Map<String, Object> propertyMap) {
+
+        StringBuilder queryBuilder = switch (componentType) {
+            case GraphClientService.NODES_TYPE -> getNodeQueryBuilder(identifiersAndValues, nodeType);
+            case GraphClientService.EDGES_TYPE -> getEdgeQueryBuilder(identifiersAndValues, nodeType);
+            default -> throw new ProcessException("Unsupported component type: " + componentType);
+        };
+
+        queryBuilder.append(")\n")
+                .append("ON MATCH SET ");
+
+        List<String> setClauses = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : propertyMap.entrySet()) {
+            StringBuilder setClause = new StringBuilder("n.")
+                    .append(getNormalizedName(entry.getKey()))
+                    .append(" = ");
+            if (entry.getValue() == null) {
+                setClause.append(" NULL");
+            } else {
+                setClause.append("'")
+                        .append(entry.getValue())
+                        .append("'");
+            }
+            setClauses.add(setClause.toString());
+        }
+        String setClauseString = String.join(", ", setClauses);
+        queryBuilder.append(setClauseString)
+                .append("\nON CREATE SET ")
+                .append(setClauseString);
+
+        return queryBuilder.toString();
+    }
+
+    private static StringBuilder getNodeQueryBuilder(List<Tuple<String, String>> identifiersAndValues, String nodeType) {
+        StringBuilder queryBuilder = new StringBuilder("MERGE (n");
+        if (nodeType != null && !nodeType.isEmpty()) {
+            queryBuilder.append(":").append(nodeType);
+        }
+
+        buildMatchClause(identifiersAndValues, queryBuilder);
+        return queryBuilder;
+    }
+
+    private static StringBuilder getEdgeQueryBuilder(List<Tuple<String, String>> identifiersAndValues, String edgeType) {
+        StringBuilder queryBuilder = new StringBuilder("MERGE (n)<-[e:");
+
+        if (edgeType == null || edgeType.isEmpty()) {
+            throw new ProcessException("Edge type must not be null or empty");
+        }
+        queryBuilder.append(edgeType);
+
+        buildMatchClause(identifiersAndValues, queryBuilder);
+        queryBuilder.append("]-> (x)");
+        return queryBuilder;
+    }
+
+    private static void buildMatchClause(List<Tuple<String, String>> identifiersAndValues, StringBuilder queryBuilder) {
+        if (!identifiersAndValues.isEmpty()) {
+            queryBuilder.append(" {");
+
+            List<String> identifierNamesAndValues = new ArrayList<>();
+            for (Tuple<String, String> identifierAndValue : identifiersAndValues) {
+                if (identifierAndValue == null || identifierAndValue.getKey() == null || identifierAndValue.getValue() == null) {
+                    throw new ProcessException("Identifiers and values must not be null");
+                }
+
+                final String identifierName = identifierAndValue.getKey();
+                final Object identifierObject = identifierAndValue.getValue();
+                if (identifierObject != null) {
+                    identifierNamesAndValues.add(getNormalizedName(identifierName) + ": '" + identifierObject + "'");
+                }
+            }
+            queryBuilder.append(String.join(", ", identifierNamesAndValues))
+                    .append("}");
+        }
+    }
+    /*
+    merge(d:Disease {id:'EFO_0000279'})-[e:ASSOCIATED_WITH]-> (t:Target) on match set e.test = 'myLabel'
+     */
+
+    private static String getNormalizedName(String identifierName) {
+        StringBuilder normalizedName = new StringBuilder(identifierName.replaceAll("[^A-Za-z0-9_]", "_"));
+        if (Character.isDigit(normalizedName.charAt(0))) {
+            normalizedName.append("_").append(normalizedName);
+        }
+        return normalizedName.toString();
     }
 }
