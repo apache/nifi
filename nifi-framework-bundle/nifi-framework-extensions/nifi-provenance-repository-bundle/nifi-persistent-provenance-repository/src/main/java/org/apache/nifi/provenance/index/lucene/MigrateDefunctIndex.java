@@ -128,13 +128,14 @@ public class MigrateDefunctIndex implements Runnable {
 
             final StopWatch stopWatch = new StopWatch(true);
 
-            Optional<ProvenanceEventRecord> optionalEvent;
-            while ((optionalEvent = eventIterator.nextEvent()).isPresent()) {
+            Optional<ProvenanceEventRecord> optionalEvent = eventIterator.nextEvent();
+            while (optionalEvent.isPresent()) {
                 final ProvenanceEventRecord event = optionalEvent.get();
 
                 final Document document = eventConverter.convert(event, event.getEventId());
                 writer.index(document, Integer.MAX_VALUE);
                 successCount++;
+                optionalEvent = eventIterator.nextEvent();
             }
 
             writer.commit();

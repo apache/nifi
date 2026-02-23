@@ -108,9 +108,7 @@ class TestFileStatusIterator {
 
         assertEquals(0, fileStatusIterable.getTotalFileCount());
 
-        for (FileStatus ignored : fileStatusIterable) {
-            // count files
-        }
+        fileStatusIterable.forEach(status -> { });
 
         assertEquals(3, fileStatusIterable.getTotalFileCount());
     }

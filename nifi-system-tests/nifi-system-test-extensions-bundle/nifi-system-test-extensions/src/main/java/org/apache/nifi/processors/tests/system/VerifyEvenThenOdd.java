@@ -71,9 +71,10 @@ public class VerifyEvenThenOdd extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final List<FlowFile> allFlowFiles = new ArrayList<>();
-        List<FlowFile> batch;
-        while (!(batch = session.get(1000)).isEmpty()) {
+        List<FlowFile> batch = session.get(1000);
+        while (!batch.isEmpty()) {
             allFlowFiles.addAll(batch);
+            batch = session.get(1000);
         }
 
         boolean oddSeen = false;

@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Timeout;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -172,7 +173,9 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
             int polledCount = 0;
             int maxAttempts = 20;
             while (polledCount < 15 && maxAttempts-- > 0) {
-                for (ByteRecord ignored : service.poll(Duration.ofSeconds(2))) {
+                final Iterator<ByteRecord> iterator = service.poll(Duration.ofSeconds(2)).iterator();
+                while (iterator.hasNext()) {
+                    iterator.next();
                     polledCount++;
                 }
             }
@@ -239,7 +242,9 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
             // Poll and iterate through records - this tracks offsets internally
             int maxAttempts = 20;
             while (recordsPolledByFirstConsumer < totalMessages && maxAttempts-- > 0) {
-                for (ByteRecord ignored : service1.poll(Duration.ofSeconds(2))) {
+                final Iterator<ByteRecord> iterator = service1.poll(Duration.ofSeconds(2)).iterator();
+                while (iterator.hasNext()) {
+                    iterator.next();
                     recordsPolledByFirstConsumer++;
                 }
             }
@@ -268,7 +273,9 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
             int emptyPolls = 0;
             while (emptyPolls < 5) {
                 boolean hasRecords = false;
-                for (ByteRecord ignored : service2.poll(Duration.ofSeconds(2))) {
+                final Iterator<ByteRecord> iterator = service2.poll(Duration.ofSeconds(2)).iterator();
+                while (iterator.hasNext()) {
+                    iterator.next();
                     hasRecords = true;
                     recordsPolledBySecondConsumer++;
                 }

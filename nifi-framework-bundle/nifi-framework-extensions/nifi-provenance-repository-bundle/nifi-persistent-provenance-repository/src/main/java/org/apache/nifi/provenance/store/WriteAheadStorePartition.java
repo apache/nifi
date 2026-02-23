@@ -405,12 +405,13 @@ public class WriteAheadStorePartition implements EventStorePartition {
     public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxEvents, final EventAuthorizer authorizer) throws IOException {
         final List<ProvenanceEventRecord> events = new ArrayList<>(Math.min(maxEvents, 1000));
         try (final EventIterator iterator = createEventIterator(firstRecordId)) {
-            Optional<ProvenanceEventRecord> eventOption;
-            while ((eventOption = iterator.nextEvent()).isPresent() && events.size() < maxEvents) {
+            Optional<ProvenanceEventRecord> eventOption = iterator.nextEvent();
+            while (eventOption.isPresent() && events.size() < maxEvents) {
                 final ProvenanceEventRecord event = eventOption.get();
                 if (authorizer.isAuthorized(event)) {
                     events.add(event);
                 }
+                eventOption = iterator.nextEvent();
             }
         }
 

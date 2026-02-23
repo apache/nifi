@@ -25,31 +25,25 @@ public class TestStandardFunnel {
 
     @Test
     public void testSetFlowFileLimit() {
-        {
-            StandardFunnel funnel = getStandardFunnel(1, 100000);
-            assertEquals(1, funnel.getMaxConcurrentTasks());
-            assertEquals(100, funnel.maxIterations);
-        }
-        {
-            StandardFunnel funnel = getStandardFunnel(1, 100001);
-            assertEquals(1, funnel.getMaxConcurrentTasks());
-            assertEquals(101, funnel.maxIterations);
-        }
-        {
-            StandardFunnel funnel = getStandardFunnel(1, 99999);
-            assertEquals(1, funnel.getMaxConcurrentTasks());
-            assertEquals(100, funnel.maxIterations);
-        }
-        {
-            StandardFunnel funnel = getStandardFunnel(1, 0);
-            assertEquals(1, funnel.getMaxConcurrentTasks());
-            assertEquals(1, funnel.maxIterations);
-        }
-        {
-            StandardFunnel funnel = getStandardFunnel(1, 1);
-            assertEquals(1, funnel.getMaxConcurrentTasks());
-            assertEquals(1, funnel.maxIterations);
-        }
+        StandardFunnel funnel = getStandardFunnel(1, 100000);
+        assertEquals(1, funnel.getMaxConcurrentTasks());
+        assertEquals(100, funnel.maxIterations);
+
+        funnel = getStandardFunnel(1, 100001);
+        assertEquals(1, funnel.getMaxConcurrentTasks());
+        assertEquals(101, funnel.maxIterations);
+
+        funnel = getStandardFunnel(1, 99999);
+        assertEquals(1, funnel.getMaxConcurrentTasks());
+        assertEquals(100, funnel.maxIterations);
+
+        funnel = getStandardFunnel(1, 0);
+        assertEquals(1, funnel.getMaxConcurrentTasks());
+        assertEquals(1, funnel.maxIterations);
+
+        funnel = getStandardFunnel(1, 1);
+        assertEquals(1, funnel.getMaxConcurrentTasks());
+        assertEquals(1, funnel.maxIterations);
     }
 
     private StandardFunnel getStandardFunnel(final int maxConcurrentTasks, final int maxBatchSize) {

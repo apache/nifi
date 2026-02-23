@@ -134,5 +134,10 @@
         <module name="GenericWhitespace"/>
         <module name="ParenPad"/>
         <module name="TypecastParenPad"/>
+        <module name="UnusedLocalVariable"/>
+        <module name="InnerAssignment"/>
+        <module name="AvoidNestedBlocks">
+            <property name="allowInSwitchCase" value="true"/>
+        </module>
     </module>
 </module>
