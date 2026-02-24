@@ -549,8 +549,8 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
             throw new BadRequestException(e);
         } catch (final IOException | FlowFileAccessException e) {
             // The content length filter might be blocking the transmission
-            final String REQUEST_TOO_LONG_MSG = "Request input stream longer than";
-            if (e.getMessage() != null && e.getMessage().contains(REQUEST_TOO_LONG_MSG)) {
+            final String requestTooLongMsg = "Request input stream longer than";
+            if (e.getMessage() != null && e.getMessage().contains(requestTooLongMsg)) {
                 logger.error("The content length filter (configured with {}) is blocking the site-to-site connection: {}", NiFiProperties.WEB_MAX_CONTENT_SIZE, e.getMessage());
                 // Perhaps BRE causes the sender to back off?
                 throw new BadRequestException(e);

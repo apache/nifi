@@ -132,17 +132,17 @@ public class TestVolatileProvenanceRepository {
         builder.setComponentId("1234");
         builder.setComponentType("dummy processor");
 
-        final String uuid_prefix = "00000000-0000-0000-0000-000000000000";
+        final String uuidPrefix = "00000000-0000-0000-0000-000000000000";
 
         for (int i = 0; i < 2; i++) {
-            attributes.put("uuid", uuid_prefix + i);
+            attributes.put("uuid", uuidPrefix + i);
             attributes.put("file.owner", "testOwner1");
             builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
             repo.registerEvent(builder.build());
         }
 
         for (int i = 2; i < 10; i++) {
-            attributes.put("uuid", uuid_prefix + i);
+            attributes.put("uuid", uuidPrefix + i);
             attributes.put("file.owner", "testOwner2");
             builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
             repo.registerEvent(builder.build());

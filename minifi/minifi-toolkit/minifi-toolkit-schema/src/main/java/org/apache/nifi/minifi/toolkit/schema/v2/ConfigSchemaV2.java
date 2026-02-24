@@ -63,7 +63,7 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_PROCESSOR_IDS = "Found the following duplicate processor ids: ";
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_CONNECTION_IDS = "Found the following duplicate connection ids: ";
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_FUNNEL_IDS = "Found the following duplicate funnel ids: ";
-    public static String TOP_LEVEL_NAME = "top level";
+    public static final String TOP_LEVEL_NAME = "top level";
 
     private FlowControllerSchema flowControllerProperties;
     private CorePropertiesSchemaV2 coreProperties;

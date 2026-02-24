@@ -86,19 +86,19 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
             }
         }
         List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>();
-        List<PropertyDescriptor> _temp = new ArrayList<>();
-        _temp.addAll(scriptingComponentHelper.getDescriptors());
-        _temp.remove(scriptingComponentHelper.SCRIPT_ENGINE);
+        List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.addAll(scriptingComponentHelper.getDescriptors());
+        descriptors.remove(scriptingComponentHelper.scriptEngine);
 
         PropertyDescriptor.Builder engineProp = new PropertyDescriptor
-                .Builder().fromPropertyDescriptor(scriptingComponentHelper.SCRIPT_ENGINE);
+                .Builder().fromPropertyDescriptor(scriptingComponentHelper.scriptEngine);
         List<AllowableValue> filtered = scriptingComponentHelper.getScriptEngineAllowableValues()
                 .stream()
                 .collect(Collectors.toList());
         engineProp.allowableValues(filtered.toArray(new AllowableValue[filtered.size()]));
 
         supportedPropertyDescriptors.add(engineProp.build());
-        supportedPropertyDescriptors.addAll(_temp);
+        supportedPropertyDescriptors.addAll(descriptors);
 
         final ConfigurableComponent instance = lookupService.get();
         if (instance != null) {
@@ -160,14 +160,14 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
         if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)
                 || ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)
                 || ScriptingComponentUtils.MODULES.equals(descriptor)
-                || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+                || scriptingComponentHelper.scriptEngine.equals(descriptor)) {
 
             // Update the ScriptingComponentHelper's value(s)
             if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)) {
                 scriptingComponentHelper.setScriptPath(newValue);
             } else if (ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)) {
                 scriptingComponentHelper.setScriptBody(newValue);
-            } else if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+            } else if (scriptingComponentHelper.scriptEngine.equals(descriptor)) {
                 scriptingComponentHelper.setScriptEngineName(newValue);
             }
 
@@ -203,7 +203,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
             return scriptingComponentHelperResults;
         }
 
-        scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.SCRIPT_ENGINE).getValue());
+        scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.scriptEngine).getValue());
         scriptingComponentHelper.setScriptPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
         scriptingComponentHelper.setScriptBody(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue());
         final ResourceReferences resourceReferences = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources();

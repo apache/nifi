@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRecordSetWriterLookup {
-    private final String DEFAULT_ATTRIBUTE_NAME = "recordsetwriter.name";
+    private static final String DEFAULT_ATTRIBUTE_NAME = "recordsetwriter.name";
 
     private MockRecordSetWriterFactory recordSetWriterA;
     private MockRecordSetWriterFactory recordSetWriterB;

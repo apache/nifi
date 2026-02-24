@@ -42,7 +42,7 @@ public class Duplicate extends AbstractProcessor {
         .defaultValue("2")
         .build();
 
-    public Relationship REL_SUCCESS = new Relationship.Builder()
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .build();
 

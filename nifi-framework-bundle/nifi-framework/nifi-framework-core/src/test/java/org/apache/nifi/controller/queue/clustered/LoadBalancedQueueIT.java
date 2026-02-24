@@ -104,8 +104,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class LoadBalancedQueueIT {
-    private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = (sslSocket) -> sslSocket == null ? null : "authorized.mydomain.com";
-    private final LoadBalanceAuthorizer NEVER_AUTHORIZED = (sslSocket) -> {
+    private static final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = (sslSocket) -> sslSocket == null ? null : "authorized.mydomain.com";
+    private static final LoadBalanceAuthorizer NEVER_AUTHORIZED = (sslSocket) -> {
         throw new NotAuthorizedException("Intentional Unit Test Failure - Not Authorized");
     };
 

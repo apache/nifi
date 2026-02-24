@@ -72,7 +72,7 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("Service supporting SSL communication configuration. The service is using one-way SSL, so only the trust store properties will be used.")
             .identifiesControllerService(SSLContextService.class)

@@ -37,7 +37,7 @@ import java.util.Set;
                        "to the success relationship. Note that this Processor will not work properly if it is scheduled to run while its incoming queue(s) are being populated. " +
                        "This is meant to be used only for purposes of testing in a Stateless execution engine and makes use of FlowFileFilters.")
 public class ReOrderFlowFiles extends AbstractProcessor {
-    protected static PropertyDescriptor FIRST_SELECTION_CRITERIA = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor FIRST_SELECTION_CRITERIA = new PropertyDescriptor.Builder()
         .name("First Group Selection Criteria")
         .description("An Expression Language expression that evaluates to true or false. FlowFiles that evaluate to true will be transferred first; others " +
                      "will be transferred after.")

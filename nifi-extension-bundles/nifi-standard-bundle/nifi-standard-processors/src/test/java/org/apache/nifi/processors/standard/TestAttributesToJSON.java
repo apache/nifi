@@ -93,8 +93,8 @@ public class TestAttributesToJSON {
     @Test
     public void testNullValueForEmptyAttribute() throws Exception {
         runner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
-        final String NON_PRESENT_ATTRIBUTE_KEY = "NonExistingAttributeKey";
-        runner.setProperty(AttributesToJSON.ATTRIBUTES_LIST, NON_PRESENT_ATTRIBUTE_KEY);
+        final String nonPresentAttributeKey = "NonExistingAttributeKey";
+        runner.setProperty(AttributesToJSON.ATTRIBUTES_LIST, nonPresentAttributeKey);
         runner.setProperty(AttributesToJSON.NULL_VALUE_FOR_EMPTY_STRING, "true");
 
         ProcessSession session = runner.getProcessSessionFactory().createSession();
@@ -115,14 +115,14 @@ public class TestAttributesToJSON {
 
         Map<String, String> val = MAPPER.readValue(json, new TypeReference<>() { });
 
-        assertNull(val.get(NON_PRESENT_ATTRIBUTE_KEY));
+        assertNull(val.get(nonPresentAttributeKey));
     }
 
     @Test
     public void testEmptyStringValueForEmptyAttribute() throws Exception {
         runner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
-        final String NON_PRESENT_ATTRIBUTE_KEY = "NonExistingAttributeKey";
-        runner.setProperty(AttributesToJSON.ATTRIBUTES_LIST, NON_PRESENT_ATTRIBUTE_KEY);
+        final String nonPresentAttributeKey = "NonExistingAttributeKey";
+        runner.setProperty(AttributesToJSON.ATTRIBUTES_LIST, nonPresentAttributeKey);
         runner.setProperty(AttributesToJSON.NULL_VALUE_FOR_EMPTY_STRING, "false");
 
         ProcessSession session = runner.getProcessSessionFactory().createSession();
@@ -143,7 +143,7 @@ public class TestAttributesToJSON {
 
         Map<String, String> val = MAPPER.readValue(json, new TypeReference<>() { });
 
-        assertEquals(val.get(NON_PRESENT_ATTRIBUTE_KEY), "");
+        assertEquals(val.get(nonPresentAttributeKey), "");
     }
 
     @Test

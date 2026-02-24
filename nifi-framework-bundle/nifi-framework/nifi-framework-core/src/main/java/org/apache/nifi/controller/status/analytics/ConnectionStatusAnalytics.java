@@ -58,13 +58,13 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     private double scoreThreshold = .90;
     private Map<String, Long> predictions;
 
-    private static String TIME_TO_BYTE_BACKPRESSURE_MILLIS = "timeToBytesBackpressureMillis";
-    private static String TIME_TO_COUNT_BACKPRESSURE_MILLIS = "timeToCountBackpressureMillis";
-    private static String NEXT_INTERVAL_BYTES = "nextIntervalBytes";
-    private static String NEXT_INTERVAL_COUNT = "nextIntervalCount";
-    private static String NEXT_INTERVAL_PERCENTAGE_USE_COUNT = "nextIntervalPercentageUseCount";
-    private static String NEXT_INTERVAL_PERCENTAGE_USE_BYTES = "nextIntervalPercentageUseBytes";
-    private static String INTERVAL_TIME_MILLIS = "intervalTimeMillis";
+    private static final String TIME_TO_BYTE_BACKPRESSURE_MILLIS = "timeToBytesBackpressureMillis";
+    private static final String TIME_TO_COUNT_BACKPRESSURE_MILLIS = "timeToCountBackpressureMillis";
+    private static final String NEXT_INTERVAL_BYTES = "nextIntervalBytes";
+    private static final String NEXT_INTERVAL_COUNT = "nextIntervalCount";
+    private static final String NEXT_INTERVAL_PERCENTAGE_USE_COUNT = "nextIntervalPercentageUseCount";
+    private static final String NEXT_INTERVAL_PERCENTAGE_USE_BYTES = "nextIntervalPercentageUseBytes";
+    private static final String INTERVAL_TIME_MILLIS = "intervalTimeMillis";
 
     public ConnectionStatusAnalytics(StatusHistoryRepository statusHistoryRepository, FlowManager flowManager,
                                      Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap, String connectionIdentifier, Boolean supportOnlineLearning) {

@@ -59,12 +59,12 @@ public class ByteCountingInputStreamTest {
     @Test
     public void testAvailableShouldReturnCorrectCount() throws Exception {
         // Arrange
-        final String ALPHABET = "abcdefghijklmnopqrstuvwxyz";
-        final ByteArrayInputStream inputStream = new ByteArrayInputStream(ALPHABET.getBytes(StandardCharsets.UTF_8));
+        final String alphabet = "abcdefghijklmnopqrstuvwxyz";
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(alphabet.getBytes(StandardCharsets.UTF_8));
         final ByteCountingInputStream bcis = new ByteCountingInputStream(inputStream);
         int tmp;
         int initialAvailableBytes = bcis.available();
-        assertEquals(ALPHABET.length(), initialAvailableBytes);
+        assertEquals(alphabet.length(), initialAvailableBytes);
 
         // Act
         /* verify first 2 bytes */
@@ -74,7 +74,7 @@ public class ByteCountingInputStreamTest {
         assertEquals(tmp, 98);
 
         int availableBytes = bcis.available();
-        assertEquals(ALPHABET.length() - 2, availableBytes);
+        assertEquals(alphabet.length() - 2, availableBytes);
 
         final long expectedSkip = 24;
         final long actualSkip = bcis.skip(expectedSkip);

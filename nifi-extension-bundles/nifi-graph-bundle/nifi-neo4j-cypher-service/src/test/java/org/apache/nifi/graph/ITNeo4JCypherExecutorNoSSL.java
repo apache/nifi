@@ -54,7 +54,7 @@ public class ITNeo4JCypherExecutorNoSSL {
     protected String password = "testing1234";
 
     private GraphClientService clientService;
-    private GraphQueryResultCallback EMPTY_CALLBACK = (record, hasMore) -> { };
+    private static final GraphQueryResultCallback EMPTY_CALLBACK = (record, hasMore) -> { };
 
     @BeforeAll
     public static void start() {

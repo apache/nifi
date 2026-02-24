@@ -38,9 +38,9 @@ public class OperationAuthorizableTest {
     private static final StandardNiFiUser USER = new StandardNiFiUser.Builder()
             .identity(AUTH_USER.getIdentity())
             .build();
-    private final MockProcessGroup ROOT_PG = new MockProcessGroup("root", null);
-    private final MockProcessGroup PG1 = new MockProcessGroup("pg-1", ROOT_PG);
-    private final Authorizable PROCESSOR = new MockProcessor("component-1", PG1);
+    private final MockProcessGroup rootProcessGroup = new MockProcessGroup("root", null);
+    private final MockProcessGroup processGroup1 = new MockProcessGroup("pg-1", rootProcessGroup);
+    private final Authorizable processor = new MockProcessor("component-1", processGroup1);
 
     private class MockProcessGroup implements Authorizable {
         private final String identifier;
@@ -111,13 +111,13 @@ public class OperationAuthorizableTest {
 
         // The user should not be able to access the component in any way.
         shouldBeDenied("Component WRITE should be denied",
-                () -> PROCESSOR.authorize(authorizer, WRITE, USER));
+                () -> processor.authorize(authorizer, WRITE, USER));
 
         shouldBeDenied("Component READ should be denied",
-                () -> PROCESSOR.authorize(authorizer, READ, USER));
+                () -> processor.authorize(authorizer, READ, USER));
 
         shouldBeDenied("Operation should be denied",
-                () -> OperationAuthorizable.authorizeOperation(PROCESSOR, authorizer, USER));
+                () -> OperationAuthorizable.authorizeOperation(processor, authorizer, USER));
     }
 
     @Test()
@@ -131,14 +131,14 @@ public class OperationAuthorizableTest {
                 .action(READ)
                 .build());
 
-        PROCESSOR.authorize(authorizer, READ, USER);
+        processor.authorize(authorizer, READ, USER);
 
         // If the user has only READ access to the base component WRITE and operation should be denied
         shouldBeDenied("Component WRITE should be denied",
-                () -> PROCESSOR.authorize(authorizer, WRITE, USER));
+                () -> processor.authorize(authorizer, WRITE, USER));
 
         shouldBeDenied("Operation WRITE should be denied",
-                () -> OperationAuthorizable.authorizeOperation(PROCESSOR, authorizer, USER));
+                () -> OperationAuthorizable.authorizeOperation(processor, authorizer, USER));
     }
 
     @Test()
@@ -153,12 +153,12 @@ public class OperationAuthorizableTest {
                 .build());
 
         // If the user has WRITE access to the base component, operation access should be allowed, too
-        PROCESSOR.authorize(authorizer, WRITE, USER);
-        OperationAuthorizable.authorizeOperation(PROCESSOR, authorizer, USER);
+        processor.authorize(authorizer, WRITE, USER);
+        OperationAuthorizable.authorizeOperation(processor, authorizer, USER);
 
         // But READ should be denied
         shouldBeDenied("Component READ should be denied",
-                () -> PROCESSOR.authorize(authorizer, READ, USER));
+                () -> processor.authorize(authorizer, READ, USER));
     }
 
     @Test()
@@ -173,12 +173,12 @@ public class OperationAuthorizableTest {
                 .build());
 
         // If the user has WRITE access to the base component, operation access should be allowed, too
-        PROCESSOR.authorize(authorizer, WRITE, USER);
-        OperationAuthorizable.authorizeOperation(PROCESSOR, authorizer, USER);
+        processor.authorize(authorizer, WRITE, USER);
+        OperationAuthorizable.authorizeOperation(processor, authorizer, USER);
 
         // But READ should be denied
         shouldBeDenied("Component READ should be denied",
-                () -> PROCESSOR.authorize(authorizer, READ, USER));
+                () -> processor.authorize(authorizer, READ, USER));
 
     }
 
@@ -194,13 +194,13 @@ public class OperationAuthorizableTest {
                 .build());
 
         // Operation should be allowed, too.
-        OperationAuthorizable.authorizeOperation(PROCESSOR, authorizer, USER);
+        OperationAuthorizable.authorizeOperation(processor, authorizer, USER);
 
         // If the user only has the operation permissions, then component access should be denied.
         shouldBeDenied("Component READ should be denied",
-                () -> PROCESSOR.authorize(authorizer, READ, USER));
+                () -> processor.authorize(authorizer, READ, USER));
         shouldBeDenied("Component WRITE should be denied",
-                () -> PROCESSOR.authorize(authorizer, WRITE, USER));
+                () -> processor.authorize(authorizer, WRITE, USER));
     }
 
     @Test()
@@ -215,12 +215,12 @@ public class OperationAuthorizableTest {
                 .build());
 
         // Operation should be allowed.
-        OperationAuthorizable.authorizeOperation(PROCESSOR, authorizer, USER);
+        OperationAuthorizable.authorizeOperation(processor, authorizer, USER);
 
         // If the user only has the operation permissions, then component access should be denied.
         shouldBeDenied("Component READ should be denied",
-                () -> PROCESSOR.authorize(authorizer, READ, USER));
+                () -> processor.authorize(authorizer, READ, USER));
         shouldBeDenied("Component WRITE should be denied",
-                () -> PROCESSOR.authorize(authorizer, WRITE, USER));
+                () -> processor.authorize(authorizer, WRITE, USER));
     }
 }

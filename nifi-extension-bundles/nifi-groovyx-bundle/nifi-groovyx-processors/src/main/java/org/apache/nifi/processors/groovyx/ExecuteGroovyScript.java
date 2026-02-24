@@ -114,7 +114,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
-    public static String[] VALID_FAIL_STRATEGY = {"rollback", "transfer to failure"};
+    public static final String[] VALID_FAIL_STRATEGY = {"rollback", "transfer to failure"};
     public static final PropertyDescriptor FAIL_STRATEGY = new PropertyDescriptor.Builder()
             .name("Failure Strategy")
             .description("What to do with unhandled exceptions. If you want to manage exception by code then keep the default value `rollback`."
@@ -368,8 +368,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * init SQL variables from DBCP services
      */
-    private void onInitSQL(Map<String, Object> SQL, Map<String, String> attributes) throws SQLException {
-        for (Map.Entry<String, Object> e : SQL.entrySet()) {
+    private void onInitSQL(Map<String, Object> sqlMap, Map<String, String> attributes) throws SQLException {
+        for (Map.Entry<String, Object> e : sqlMap.entrySet()) {
             DBCPService s = (DBCPService) e.getValue();
             OSql sql = new OSql(s.getConnection(attributes));
             //try to set autocommit to false
@@ -391,8 +391,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * before commit SQL services
      */
-    private void onCommitSQL(Map<String, Object> SQL) throws SQLException {
-        for (Map.Entry<String, Object> e : SQL.entrySet()) {
+    private void onCommitSQL(Map<String, Object> sqlMap) throws SQLException {
+        for (Map.Entry<String, Object> e : sqlMap.entrySet()) {
             OSql sql = (OSql) e.getValue();
             if (!sql.getConnection().getAutoCommit()) {
                 sql.commit();
@@ -403,8 +403,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * finalize SQL services. no exceptions should be thrown.
      */
-    private void onFinitSQL(Map<String, Object> SQL) {
-        for (Map.Entry<String, Object> e : SQL.entrySet()) {
+    private void onFinitSQL(Map<String, Object> sqlMap) {
+        for (Map.Entry<String, Object> e : sqlMap.entrySet()) {
             OSql sql = (OSql) e.getValue();
             try {
                 if (!sql.getConnection().getAutoCommit()) {
@@ -429,8 +429,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * exception SQL services
      */
-    private void onFailSQL(Map<String, Object> SQL) {
-        for (Map.Entry<String, Object> e : SQL.entrySet()) {
+    private void onFailSQL(Map<String, Object> sqlMap) {
+        for (Map.Entry<String, Object> e : sqlMap.entrySet()) {
             OSql sql = (OSql) e.getValue();
             try {
                 if (!sql.getConnection().getAutoCommit()) {
@@ -443,16 +443,16 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession _session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession processSession) throws ProcessException {
         boolean toFailureOnError = VALID_FAIL_STRATEGY[1].equals(context.getProperty(FAIL_STRATEGY).getValue());
         //create wrapped session to control list of newly created and files got from this session.
         //so transfer original input to failure will be possible
-        GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(_session, toFailureOnError);
+        GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(processSession, toFailureOnError);
 
-        Map<String, Object> CTL = new AccessMap("CTL");
-        Map<String, Object> SQL = new AccessMap("SQL");
-        Map<String, Object> RECORD_READER = new AccessMap("RecordReader");
-        Map<String, Object> RECORD_SET_WRITER = new AccessMap("RecordSetWriter");
+        Map<String, Object> ctl = new AccessMap("CTL");
+        Map<String, Object> sql = new AccessMap("SQL");
+        Map<String, Object> recordReader = new AccessMap("RecordReader");
+        Map<String, Object> recordSetWriter = new AccessMap("RecordSetWriter");
 
         try {
             Script script = getGroovyScript(); //compilation must be moved to validation
@@ -466,19 +466,19 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 if (property.getKey().isDynamic()) {
                     if (property.getKey().getName().startsWith("CTL.")) {
                         //get controller service
-                        ControllerService ctl = context.getProperty(property.getKey()).asControllerService(ControllerService.class);
-                        CTL.put(property.getKey().getName().substring(4), ctl);
+                        ControllerService ctlService = context.getProperty(property.getKey()).asControllerService(ControllerService.class);
+                        ctl.put(property.getKey().getName().substring(4), ctlService);
                     } else if (property.getKey().getName().startsWith("SQL.")) {
                         DBCPService dbcp = context.getProperty(property.getKey()).asControllerService(DBCPService.class);
-                        SQL.put(property.getKey().getName().substring(4), dbcp);
+                        sql.put(property.getKey().getName().substring(4), dbcp);
                     } else if (property.getKey().getName().startsWith("RecordReader.")) {
                         // Get RecordReaderFactory controller service
-                        RecordReaderFactory recordReader = context.getProperty(property.getKey()).asControllerService(RecordReaderFactory.class);
-                        RECORD_READER.put(property.getKey().getName().substring(13), recordReader);
+                        RecordReaderFactory readerFactory = context.getProperty(property.getKey()).asControllerService(RecordReaderFactory.class);
+                        recordReader.put(property.getKey().getName().substring(13), readerFactory);
                     } else if (property.getKey().getName().startsWith("RecordWriter.")) {
                         // Get RecordWriterFactory controller service
                         RecordSetWriterFactory recordWriter = context.getProperty(property.getKey()).asControllerService(RecordSetWriterFactory.class);
-                        RECORD_SET_WRITER.put(property.getKey().getName().substring(13), recordWriter);
+                        recordSetWriter.put(property.getKey().getName().substring(13), recordWriter);
                     } else {
                         // Add the dynamic property bound to its full PropertyValue to the script engine
                         if (property.getValue() != null) {
@@ -488,26 +488,26 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                     }
                 }
             }
-            onInitSQL(SQL, attributes);
+            onInitSQL(sql, attributes);
 
             bindings.put("session", session);
             bindings.put("context", context);
             bindings.put("log", getLogger());
             bindings.put("REL_SUCCESS", REL_SUCCESS);
             bindings.put("REL_FAILURE", REL_FAILURE);
-            bindings.put("CTL", CTL);
-            bindings.put("SQL", SQL);
-            bindings.put("RecordReader", RECORD_READER);
-            bindings.put("RecordWriter", RECORD_SET_WRITER);
+            bindings.put("CTL", ctl);
+            bindings.put("SQL", sql);
+            bindings.put("RecordReader", recordReader);
+            bindings.put("RecordWriter", recordSetWriter);
 
             script.run();
             bindings.clear();
 
-            onCommitSQL(SQL);
+            onCommitSQL(sql);
             session.commitAsync();
         } catch (Throwable t) {
             getLogger().error(t.toString(), t);
-            onFailSQL(SQL);
+            onFailSQL(sql);
             if (toFailureOnError) {
                 //transfer all received to failure with two new attributes: ERROR_MESSAGE and ERROR_STACKTRACE.
                 session.revertReceivedTo(REL_FAILURE, StackTraceUtils.deepSanitize(t));
@@ -515,7 +515,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                 session.rollback(true);
             }
         } finally {
-            onFinitSQL(SQL);
+            onFinitSQL(sql);
         }
 
     }

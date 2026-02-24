@@ -43,8 +43,8 @@ import static org.mockito.Mockito.mock;
 
 public class EventBatcherTest {
 
-    final String MESSAGE_DATA_1 = "some message data";
-    final String MESSAGE_DATA_2 = "some more data";
+    static final String MESSAGE_DATA_1 = "some message data";
+    static final String MESSAGE_DATA_2 = "some more data";
     Processor processor;
     final AtomicLong idGenerator = new AtomicLong(0L);
     final ComponentLog logger = mock(ComponentLog.class);

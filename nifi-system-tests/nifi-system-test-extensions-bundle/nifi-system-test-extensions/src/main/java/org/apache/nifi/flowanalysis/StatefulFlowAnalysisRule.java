@@ -30,8 +30,8 @@ import java.util.Map;
 
 @Stateful(scopes = Scope.LOCAL, description = "Stores the timestamp of the last initialization")
 public class StatefulFlowAnalysisRule extends AbstractFlowAnalysisRule {
-    private final String LAST_ANALYIZE_COMPONENT_TIMESTAMP = "last.analyze.component.timestamp";
-    private final String LAST_ANALYIZE_PROCESS_GROUP_TIMESTAMP = "last.analyze.component.timestamp";
+    private static final String LAST_ANALYIZE_COMPONENT_TIMESTAMP = "last.analyze.component.timestamp";
+    private static final String LAST_ANALYIZE_PROCESS_GROUP_TIMESTAMP = "last.analyze.component.timestamp";
 
     @Override
     public Collection<ComponentAnalysisResult> analyzeComponent(VersionedComponent component, FlowAnalysisRuleContext context) {

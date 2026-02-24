@@ -78,7 +78,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
         assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
-        runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DATABASE_NAME);
+        runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, databaseName);
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
 
@@ -665,17 +665,17 @@ public class PutMongoIT extends MongoWriteTestBase {
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setProperty(PutMongo.UPSERT, "true");
 
-        final int LIMIT = 2;
+        final int limit = 2;
 
         for (int index = 0; index < upserts.size(); index++) {
             Document upsert = upserts.get(index);
             runner.setProperty(PutMongo.UPDATE_QUERY_KEY, updateKeyProps[index]);
-            for (int x = 0; x < LIMIT; x++) {
+            for (int x = 0; x < limit; x++) {
                 runner.enqueue(upsert.toJson());
             }
-            runner.run(LIMIT, true, true);
+            runner.run(limit, true, true);
             runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
-            runner.assertTransferCount(PutMongo.REL_SUCCESS, LIMIT);
+            runner.assertTransferCount(PutMongo.REL_SUCCESS, limit);
 
             Document query = new Document(updateKeyProps[index], updateKeys[index]);
             Document result = collection.find(query).first();

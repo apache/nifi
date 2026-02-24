@@ -72,8 +72,8 @@ public class ExecuteGroovyScriptTest {
     protected MockRecordParser recordParser = null;
     protected RecordSetWriterFactory recordWriter = null;
     protected ExecuteGroovyScript proc;
-    public final String TEST_RESOURCE_LOCATION = "target/test/resources/groovy/";
-    private final String TEST_CSV_DATA = """
+    public static final String TEST_RESOURCE_LOCATION = "target/test/resources/groovy/";
+    private static final String TEST_CSV_DATA = """
             gender,title,first,last
             female,miss,marlene,shaw
             male,mr,todd,graham""";

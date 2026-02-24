@@ -62,7 +62,7 @@ public class ScriptingComponentHelper {
     private static final String SCRIPT_ENGINE_PROPERTY_NAME = "Script Engine";
     private static final String SCRIPT_LANGUAGE_PROPERTY_NAME = "Script Language";
 
-    public PropertyDescriptor SCRIPT_ENGINE;
+    public PropertyDescriptor scriptEngine;
 
     public final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
@@ -216,8 +216,8 @@ public class ScriptingComponentHelper {
                 enginePropertyBuilder.defaultValue(engines[0].getValue());
             }
 
-            SCRIPT_ENGINE = enginePropertyBuilder.build();
-            descriptors.add(SCRIPT_ENGINE);
+            scriptEngine = enginePropertyBuilder.build();
+            descriptors.add(scriptEngine);
         }
 
         descriptors.add(ScriptingComponentUtils.SCRIPT_FILE);
@@ -291,7 +291,7 @@ public class ScriptingComponentHelper {
     }
 
     public void setupVariables(final PropertyContext context) {
-        scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
+        scriptEngineName = context.getProperty(scriptEngine).getValue();
         scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
         modules = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources().flattenRecursively();

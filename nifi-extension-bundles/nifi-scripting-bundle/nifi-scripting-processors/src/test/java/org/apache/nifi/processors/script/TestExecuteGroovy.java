@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExecuteGroovy extends BaseScriptTest {
 
-    private final String TEST_CSV_DATA = """
+    private static final String TEST_CSV_DATA = """
             gender,title,first,last
             female,miss,marlene,shaw
             male,mr,todd,graham""";
@@ -49,7 +49,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptFile() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/test_onTrigger.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/groovy");
 
@@ -69,7 +69,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testNoIncomingFlowFile() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/test_onTrigger.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/groovy");
 
@@ -87,7 +87,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testInvalidConfiguration() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION);
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "body");
 
@@ -101,7 +101,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testCreateNewFlowFileWithScriptFile() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/test_onTrigger_newFlowFile.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, TEST_RESOURCE_LOCATION + "groovy");
 
@@ -123,7 +123,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testCreateNewFlowFileWithNoInputFile() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY,
                 getFileContentsAsString(TEST_RESOURCE_LOCATION + "groovy/testCreateNewFlowFileWithNoInputFile.groovy")
         );
@@ -143,7 +143,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testDynamicProperties() {
         runner.setValidateExpressionUsage(true);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/test_dynamicProperties.groovy");
         runner.setProperty("myProp", "${myAttr}");
 
@@ -163,7 +163,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testChangeFlowFileWithScriptFile() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/groovy/test_onTrigger_changeContent.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/groovy");
 
@@ -185,7 +185,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptBody() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "groovy/testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptBody.groovy")
         );
@@ -208,7 +208,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptBodyNoModules() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "groovy/testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptBodyNoModules.groovy")
         );
@@ -228,7 +228,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testScriptNoTransfer() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "groovy/testScriptNoTransfer.groovy")
         );
@@ -245,7 +245,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileCustomAttribute() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "groovy/testReadFlowFileContentAndStoreInFlowFileCustomAttribute.groovy")
         );
@@ -268,7 +268,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
     @Test
     public void testScriptException() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(TEST_RESOURCE_LOCATION + "groovy/testScriptException.groovy"));
 
         runner.assertValid();

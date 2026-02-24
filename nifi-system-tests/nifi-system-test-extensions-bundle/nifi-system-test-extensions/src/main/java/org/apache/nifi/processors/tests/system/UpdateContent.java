@@ -54,7 +54,7 @@ public class UpdateContent extends AbstractProcessor {
         .defaultValue("Replace")
         .build();
 
-    private final Relationship REL_SUCCESS = new Relationship.Builder()
+    private static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .build();
 

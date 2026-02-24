@@ -25,7 +25,7 @@ import jakarta.xml.bind.annotation.XmlType;
 @XmlType(name = "reportingTaskRunStatus")
 public class ReportingTaskRunStatusEntity extends ComponentRunStatusEntity {
 
-    private static String[] SUPPORTED_STATE = {"RUNNING", "STOPPED"};
+    private static final String[] SUPPORTED_STATE = {"RUNNING", "STOPPED"};
 
     @Override
     protected String[] getSupportedState() {

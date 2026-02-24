@@ -28,7 +28,7 @@ import java.util.List;
 
 public class EventIdFirstHeaderSchema {
 
-    public static RecordSchema SCHEMA = buildSchema();
+    public static final RecordSchema SCHEMA = buildSchema();
 
     public static final class FieldNames {
         public static final String FIRST_EVENT_ID = "First Event ID";

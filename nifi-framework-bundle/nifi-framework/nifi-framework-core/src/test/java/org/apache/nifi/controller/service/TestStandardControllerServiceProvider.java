@@ -556,37 +556,37 @@ public class TestStandardControllerServiceProvider {
 
         Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
-        ControllerServiceNode A = createControllerService(ServiceA.class.getName(), "A", systemBundle.getBundleDetails().getCoordinate(), provider);
-        ControllerServiceNode B = createControllerService(ServiceA.class.getName(), "B", systemBundle.getBundleDetails().getCoordinate(), provider);
-        ControllerServiceNode C = createControllerService(ServiceA.class.getName(), "C", systemBundle.getBundleDetails().getCoordinate(), provider);
-        ControllerServiceNode D = createControllerService(ServiceB.class.getName(), "D", systemBundle.getBundleDetails().getCoordinate(), provider);
-        ControllerServiceNode E = createControllerService(ServiceA.class.getName(), "E", systemBundle.getBundleDetails().getCoordinate(), provider);
-        ControllerServiceNode F = createControllerService(ServiceB.class.getName(), "F", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceA = createControllerService(ServiceA.class.getName(), "A", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceB = createControllerService(ServiceA.class.getName(), "B", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceC = createControllerService(ServiceA.class.getName(), "C", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceD = createControllerService(ServiceB.class.getName(), "D", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceE = createControllerService(ServiceA.class.getName(), "E", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceF = createControllerService(ServiceB.class.getName(), "F", systemBundle.getBundleDetails().getCoordinate(), provider);
 
-        procGroup.addControllerService(A);
-        procGroup.addControllerService(B);
-        procGroup.addControllerService(C);
-        procGroup.addControllerService(D);
-        procGroup.addControllerService(E);
-        procGroup.addControllerService(F);
+        procGroup.addControllerService(serviceA);
+        procGroup.addControllerService(serviceB);
+        procGroup.addControllerService(serviceC);
+        procGroup.addControllerService(serviceD);
+        procGroup.addControllerService(serviceE);
+        procGroup.addControllerService(serviceF);
 
-        setProperty(A, ServiceA.OTHER_SERVICE.getName(), "B");
-        setProperty(B, ServiceA.OTHER_SERVICE.getName(), "D");
-        setProperty(C, ServiceA.OTHER_SERVICE.getName(), "B");
-        setProperty(C, ServiceA.OTHER_SERVICE_2.getName(), "D");
-        setProperty(E, ServiceA.OTHER_SERVICE.getName(), "A");
-        setProperty(E, ServiceA.OTHER_SERVICE_2.getName(), "F");
+        setProperty(serviceA, ServiceA.OTHER_SERVICE.getName(), "B");
+        setProperty(serviceB, ServiceA.OTHER_SERVICE.getName(), "D");
+        setProperty(serviceC, ServiceA.OTHER_SERVICE.getName(), "B");
+        setProperty(serviceC, ServiceA.OTHER_SERVICE_2.getName(), "D");
+        setProperty(serviceE, ServiceA.OTHER_SERVICE.getName(), "A");
+        setProperty(serviceE, ServiceA.OTHER_SERVICE_2.getName(), "F");
 
-        final List<ControllerServiceNode> serviceNodes = Arrays.asList(A, B, C, D, E, F);
+        final List<ControllerServiceNode> serviceNodes = Arrays.asList(serviceA, serviceB, serviceC, serviceD, serviceE, serviceF);
         serviceNodes.stream().forEach(ControllerServiceNode::performValidation);
         provider.enableControllerServices(serviceNodes);
 
-        assertTrue(A.isActive());
-        assertTrue(B.isActive());
-        assertTrue(C.isActive());
-        assertTrue(D.isActive());
-        assertTrue(E.isActive());
-        assertTrue(F.isActive());
+        assertTrue(serviceA.isActive());
+        assertTrue(serviceB.isActive());
+        assertTrue(serviceC.isActive());
+        assertTrue(serviceD.isActive());
+        assertTrue(serviceE.isActive());
+        assertTrue(serviceF.isActive());
     }
 
     /**
@@ -605,35 +605,35 @@ public class TestStandardControllerServiceProvider {
 
         Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
-        ControllerServiceNode A = createControllerService(ServiceC.class.getName(), "A", systemBundle.getBundleDetails().getCoordinate(), provider);
-        ControllerServiceNode B = createControllerService(ServiceA.class.getName(), "B", systemBundle.getBundleDetails().getCoordinate(), provider);
-        ControllerServiceNode C = createControllerService(ServiceB.class.getName(), "C", systemBundle.getBundleDetails().getCoordinate(), provider);
-        ControllerServiceNode D = createControllerService(ServiceA.class.getName(), "D", systemBundle.getBundleDetails().getCoordinate(), provider);
-        ControllerServiceNode F = createControllerService(ServiceA.class.getName(), "F", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceA = createControllerService(ServiceC.class.getName(), "A", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceB = createControllerService(ServiceA.class.getName(), "B", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceC = createControllerService(ServiceB.class.getName(), "C", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceD = createControllerService(ServiceA.class.getName(), "D", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceF = createControllerService(ServiceA.class.getName(), "F", systemBundle.getBundleDetails().getCoordinate(), provider);
 
-        procGroup.addControllerService(A);
-        procGroup.addControllerService(B);
-        procGroup.addControllerService(C);
-        procGroup.addControllerService(D);
-        procGroup.addControllerService(F);
+        procGroup.addControllerService(serviceA);
+        procGroup.addControllerService(serviceB);
+        procGroup.addControllerService(serviceC);
+        procGroup.addControllerService(serviceD);
+        procGroup.addControllerService(serviceF);
 
-        setProperty(A, ServiceC.REQ_SERVICE_1.getName(), "B");
-        setProperty(A, ServiceC.REQ_SERVICE_2.getName(), "D");
-        setProperty(B, ServiceA.OTHER_SERVICE.getName(), "C");
+        setProperty(serviceA, ServiceC.REQ_SERVICE_1.getName(), "B");
+        setProperty(serviceA, ServiceC.REQ_SERVICE_2.getName(), "D");
+        setProperty(serviceB, ServiceA.OTHER_SERVICE.getName(), "C");
 
-        setProperty(F, ServiceA.OTHER_SERVICE.getName(), "D");
-        setProperty(D, ServiceA.OTHER_SERVICE.getName(), "C");
+        setProperty(serviceF, ServiceA.OTHER_SERVICE.getName(), "D");
+        setProperty(serviceD, ServiceA.OTHER_SERVICE.getName(), "C");
 
-        final List<ControllerServiceNode> services = Arrays.asList(C, F, A, B, D);
+        final List<ControllerServiceNode> services = Arrays.asList(serviceC, serviceF, serviceA, serviceB, serviceD);
         services.forEach(ControllerServiceNode::performValidation);
 
         provider.enableControllerServices(services);
 
-        assertTrue(A.isActive());
-        assertTrue(B.isActive());
-        assertTrue(C.isActive());
-        assertTrue(D.isActive());
-        assertTrue(F.isActive());
+        assertTrue(serviceA.isActive());
+        assertTrue(serviceB.isActive());
+        assertTrue(serviceC.isActive());
+        assertTrue(serviceD.isActive());
+        assertTrue(serviceF.isActive());
     }
 
     @Test

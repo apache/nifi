@@ -67,7 +67,7 @@ public class NiFiPythonGateway extends Gateway {
     // Guarded by synchronized methods
     private final List<InvocationBindings> activeInvocations = new ArrayList<>();
 
-    private final ReturnObject END_OF_ITERATOR_OBJECT = ReturnObject.getErrorReturnObject(new NoSuchElementException());
+    private static final ReturnObject END_OF_ITERATOR_OBJECT = ReturnObject.getErrorReturnObject(new NoSuchElementException());
     private final Method freeMethod;
     private final Method pingMethod;
 

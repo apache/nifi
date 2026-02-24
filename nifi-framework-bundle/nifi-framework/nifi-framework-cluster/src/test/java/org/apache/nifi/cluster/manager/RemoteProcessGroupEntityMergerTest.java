@@ -51,21 +51,21 @@ public class RemoteProcessGroupEntityMergerTest {
         final RemoteProcessGroupStatusDTO status = new RemoteProcessGroupStatusDTO();
         status.setAggregateSnapshot(new RemoteProcessGroupStatusSnapshotDTO());
 
-        final RemoteProcessGroupPortDTO in1_1 = new RemoteProcessGroupPortDTO();
-        in1_1.setName("in1");
+        final RemoteProcessGroupPortDTO inputPort1a = new RemoteProcessGroupPortDTO();
+        inputPort1a.setName("in1");
 
-        final RemoteProcessGroupPortDTO in1_2 = new RemoteProcessGroupPortDTO();
-        in1_2.setName("in2");
+        final RemoteProcessGroupPortDTO inputPort1b = new RemoteProcessGroupPortDTO();
+        inputPort1b.setName("in2");
 
         final Set<RemoteProcessGroupPortDTO> inputs1 = new HashSet<>();
-        inputs1.add(in1_1);
-        inputs1.add(in1_2);
+        inputs1.add(inputPort1a);
+        inputs1.add(inputPort1b);
 
-        final RemoteProcessGroupPortDTO out1_1 = new RemoteProcessGroupPortDTO();
-        out1_1.setName("out1");
+        final RemoteProcessGroupPortDTO outputPort1a = new RemoteProcessGroupPortDTO();
+        outputPort1a.setName("out1");
 
         final Set<RemoteProcessGroupPortDTO> outputs1 = new HashSet<>();
-        outputs1.add(out1_1);
+        outputs1.add(outputPort1a);
 
         final RemoteProcessGroupContentsDTO contents1 = new RemoteProcessGroupContentsDTO();
         contents1.setInputPorts(inputs1);
@@ -80,21 +80,21 @@ public class RemoteProcessGroupEntityMergerTest {
         entity1.setStatus(status);
         entity1.setComponent(rpg1);
 
-        final RemoteProcessGroupPortDTO in2_1 = new RemoteProcessGroupPortDTO();
-        in2_1.setName("in1");
+        final RemoteProcessGroupPortDTO inputPort2a = new RemoteProcessGroupPortDTO();
+        inputPort2a.setName("in1");
 
         final Set<RemoteProcessGroupPortDTO> inputs2 = new HashSet<>();
-        inputs2.add(in2_1);
+        inputs2.add(inputPort2a);
 
-        final RemoteProcessGroupPortDTO out2_1 = new RemoteProcessGroupPortDTO();
-        out2_1.setName("out1");
+        final RemoteProcessGroupPortDTO outputPort2a = new RemoteProcessGroupPortDTO();
+        outputPort2a.setName("out1");
 
-        final RemoteProcessGroupPortDTO out2_2 = new RemoteProcessGroupPortDTO();
-        out2_2.setName("out2");
+        final RemoteProcessGroupPortDTO outputPort2b = new RemoteProcessGroupPortDTO();
+        outputPort2b.setName("out2");
 
         final Set<RemoteProcessGroupPortDTO> outputs2 = new HashSet<>();
-        outputs2.add(out2_1);
-        outputs2.add(out2_2);
+        outputs2.add(outputPort2a);
+        outputs2.add(outputPort2b);
 
         final RemoteProcessGroupContentsDTO contents2 = new RemoteProcessGroupContentsDTO();
         contents2.setInputPorts(inputs2);
@@ -139,21 +139,21 @@ public class RemoteProcessGroupEntityMergerTest {
         final RemoteProcessGroupStatusDTO status = new RemoteProcessGroupStatusDTO();
         status.setAggregateSnapshot(new RemoteProcessGroupStatusSnapshotDTO());
 
-        final RemoteProcessGroupPortDTO in1_1 = new RemoteProcessGroupPortDTO();
-        in1_1.setName("in1");
+        final RemoteProcessGroupPortDTO inputPort1a = new RemoteProcessGroupPortDTO();
+        inputPort1a.setName("in1");
 
-        final RemoteProcessGroupPortDTO in1_2 = new RemoteProcessGroupPortDTO();
-        in1_2.setName("in2");
+        final RemoteProcessGroupPortDTO inputPort1b = new RemoteProcessGroupPortDTO();
+        inputPort1b.setName("in2");
 
         final Set<RemoteProcessGroupPortDTO> inputs1 = new HashSet<>();
-        inputs1.add(in1_1);
-        inputs1.add(in1_2);
+        inputs1.add(inputPort1a);
+        inputs1.add(inputPort1b);
 
-        final RemoteProcessGroupPortDTO out1_1 = new RemoteProcessGroupPortDTO();
-        out1_1.setName("out1");
+        final RemoteProcessGroupPortDTO outputPort1a = new RemoteProcessGroupPortDTO();
+        outputPort1a.setName("out1");
 
         final Set<RemoteProcessGroupPortDTO> outputs1 = new HashSet<>();
-        outputs1.add(out1_1);
+        outputs1.add(outputPort1a);
 
         final RemoteProcessGroupContentsDTO contents1 = new RemoteProcessGroupContentsDTO();
         contents1.setInputPorts(inputs1);

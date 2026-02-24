@@ -147,11 +147,11 @@ public class MonitorMemory extends AbstractReportingTask {
     private static final List<PropertyDescriptor> propertyDescriptors;
 
     static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.add(MEMORY_POOL_PROPERTY);
-        _propertyDescriptors.add(THRESHOLD_PROPERTY);
-        _propertyDescriptors.add(REPORTING_INTERVAL);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+        List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(MEMORY_POOL_PROPERTY);
+        descriptors.add(THRESHOLD_PROPERTY);
+        descriptors.add(REPORTING_INTERVAL);
+        propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
     @Override

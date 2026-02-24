@@ -82,7 +82,7 @@ import java.util.stream.Collectors;
 public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProvider.class);
-    private final String EMAIL_CLAIM = "email";
+    private static final String EMAIL_CLAIM = "email";
 
     private NiFiRegistryProperties properties;
     private JwtService jwtService;

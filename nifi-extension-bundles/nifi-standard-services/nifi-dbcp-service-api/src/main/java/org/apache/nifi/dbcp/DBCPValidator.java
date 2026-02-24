@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 public class DBCPValidator {
 
     public static final Validator CUSTOM_TIME_PERIOD_VALIDATOR = new Validator() {
-        private final Pattern TIME_DURATION_PATTERN = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
+        private static final Pattern TIME_DURATION_PATTERN = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {

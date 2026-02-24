@@ -57,10 +57,10 @@ public class DatabaseParameterProvider extends AbstractParameterProvider impleme
 
     public static final PropertyDescriptor DATABASE_DIALECT_SERVICE = DatabaseAdapterDescriptor.getDatabaseDialectServiceDescriptor(DB_TYPE);
 
-    static AllowableValue GROUPING_BY_COLUMN = new AllowableValue("grouping-by-column", "Column",
+    static final AllowableValue GROUPING_BY_COLUMN = new AllowableValue("grouping-by-column", "Column",
             "A single table is partitioned by the 'Parameter Group Name Column'.  All rows with the same value in this column will " +
                     "map to a group of the same name.");
-    static AllowableValue GROUPING_BY_TABLE_NAME = new AllowableValue("grouping-by-table-name", "Table Name",
+    static final AllowableValue GROUPING_BY_TABLE_NAME = new AllowableValue("grouping-by-table-name", "Table Name",
             "An entire table maps to a Parameter Group.  The group name will be the table name.");
 
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()

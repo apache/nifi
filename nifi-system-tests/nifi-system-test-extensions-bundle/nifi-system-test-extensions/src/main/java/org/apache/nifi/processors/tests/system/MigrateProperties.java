@@ -32,7 +32,7 @@ import java.util.Set;
 
 public class MigrateProperties extends AbstractProcessor {
 
-    static PropertyDescriptor INGEST = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor INGEST = new PropertyDescriptor.Builder()
             .name("ingest-data")
             .displayName("Ingest Data")
             .allowableValues("true", "false")
@@ -40,14 +40,14 @@ public class MigrateProperties extends AbstractProcessor {
             .required(true)
             .build();
 
-    static PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
             .name("attr-to-add")
             .displayName("Attribute to add")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static PropertyDescriptor ATTRIBUTE_VALUE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ATTRIBUTE_VALUE = new PropertyDescriptor.Builder()
             .name("attr-value")
             .displayName("Attribute Value")
             .required(true)
@@ -55,15 +55,15 @@ public class MigrateProperties extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static PropertyDescriptor IGNORED = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor IGNORED = new PropertyDescriptor.Builder()
             .name("ignored")
             .displayName("Ignored")
             .required(false)
             .addValidator(Validator.VALID)
             .build();
 
-    static Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
-    static Relationship REL_FAILURE = new Relationship.Builder().name("failure").build();
+    static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
+    static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").build();
 
     private static final Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_FAILURE);
     private static final List<PropertyDescriptor> properties = List.of(

@@ -233,12 +233,12 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     @Override
     protected final Collection<ValidationResult> customValidate(ValidationContext context) {
         final Collection<ValidationResult> results = new ArrayList<>();
-        final String support_transactions = context.getProperty(SUPPORT_TRANSACTIONS).getValue();
-        final String rollback_on_failure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).getValue();
-        final String auto_commit = context.getProperty(AUTO_COMMIT).getValue();
+        final String supportTransactions = context.getProperty(SUPPORT_TRANSACTIONS).getValue();
+        final String rollbackOnFailure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).getValue();
+        final String autoCommit = context.getProperty(AUTO_COMMIT).getValue();
 
-        if (auto_commit.equalsIgnoreCase("true")) {
-            if (support_transactions.equalsIgnoreCase("true")) {
+        if (autoCommit.equalsIgnoreCase("true")) {
+            if (supportTransactions.equalsIgnoreCase("true")) {
                 results.add(new ValidationResult.Builder()
                                 .subject(SUPPORT_TRANSACTIONS.getDisplayName())
                                 .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'."
@@ -246,7 +246,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                                         SUPPORT_TRANSACTIONS.getDisplayName(), AUTO_COMMIT.getDisplayName()))
                                 .build());
             }
-            if (rollback_on_failure.equalsIgnoreCase("true")) {
+            if (rollbackOnFailure.equalsIgnoreCase("true")) {
                 results.add(new ValidationResult.Builder()
                         .subject(RollbackOnFailure.ROLLBACK_ON_FAILURE.getDisplayName())
                         .explanation(format("'%s' cannot be set to 'true' when '%s' is also set to 'true'."

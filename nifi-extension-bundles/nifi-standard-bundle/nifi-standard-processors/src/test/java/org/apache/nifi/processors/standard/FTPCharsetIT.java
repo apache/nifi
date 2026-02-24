@@ -80,8 +80,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class FTPCharsetIT {
     private static final String SERVER_OVERRIDE = System.getProperty(FTPCharsetIT.class.getSimpleName());
-    private static final boolean EMBED_FTP_SERVER = (SERVER_OVERRIDE == null);
-    private static FtpServer FTP_SERVER;
+    private static final boolean EMBED_ftpServer = (SERVER_OVERRIDE == null);
+    private static FtpServer ftpServer;
 
     private static final String USE_UTF8 = Boolean.TRUE.toString();
     private static final String USER = "ftpuser";
@@ -89,9 +89,9 @@ public class FTPCharsetIT {
     private static final String TIMEOUT = "3 secs";
 
     @TempDir
-    private static File FOLDER_FTP;
+    private static File folderFtp;
     @TempDir
-    private static File FOLDER_USER_PROPERTIES;
+    private static File folderUserProperties;
 
     private static int listeningPort;
 
@@ -120,7 +120,7 @@ public class FTPCharsetIT {
 
     @BeforeAll
     static void startEmbeddedServer() throws IOException, FtpException {
-        if (!EMBED_FTP_SERVER) {
+        if (!EMBED_ftpServer) {
             return;
         }
 
@@ -130,8 +130,8 @@ public class FTPCharsetIT {
         userProperties.setProperty("ftpserver.user.ftpuser.enableflag", Boolean.TRUE.toString());
         userProperties.setProperty("ftpserver.user.ftpuser.userpassword", PASSWORD);
         userProperties.setProperty("ftpserver.user.ftpuser.writepermission", Boolean.TRUE.toString());
-        userProperties.setProperty("ftpserver.user.ftpuser.homedirectory", FOLDER_FTP.getAbsolutePath());
-        final File userPropertiesFile = new File(FOLDER_USER_PROPERTIES, "user.properties");
+        userProperties.setProperty("ftpserver.user.ftpuser.homedirectory", folderFtp.getAbsolutePath());
+        final File userPropertiesFile = new File(folderUserProperties, "user.properties");
         try (final FileOutputStream fos = new FileOutputStream(userPropertiesFile)) {
             userProperties.store(fos, "ftp-user-properties");
         }
@@ -149,13 +149,13 @@ public class FTPCharsetIT {
         final FtpFile workingDirectory = view.getWorkingDirectory();
         final Object physicalFile = workingDirectory.getPhysicalFile();
         assertInstanceOf(File.class, physicalFile);
-        assertEquals(FOLDER_FTP.getAbsolutePath(), ((File) physicalFile).getAbsolutePath());
+        assertEquals(folderFtp.getAbsolutePath(), ((File) physicalFile).getAbsolutePath());
 
         final ListenerFactory factory = new ListenerFactory();
         factory.setPort(0);
         serverFactory.addListener("default", factory.createListener());
-        FTP_SERVER = serverFactory.createServer();
-        FTP_SERVER.start();
+        ftpServer = serverFactory.createServer();
+        ftpServer.start();
 
         final Collection<Listener> listeners = serverFactory.getListeners().values();
         listeningPort = listeners.isEmpty() ? 0 : listeners.iterator().next().getPort();
@@ -163,8 +163,8 @@ public class FTPCharsetIT {
 
     @AfterAll
     static void stopEmbeddedServer() {
-        if (EMBED_FTP_SERVER) {
-            FTP_SERVER.stop();
+        if (EMBED_ftpServer) {
+            ftpServer.stop();
         }
     }
 

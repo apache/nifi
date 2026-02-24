@@ -171,7 +171,7 @@ public class ExtractMediaMetadata extends AbstractProcessor {
         try {
             session.read(flowFile, in -> {
                 try {
-                    Map<String, String> results = tika_parse(in, prefix, maxAttribCount, maxAttribLength);
+                    Map<String, String> results = tikaParse(in, prefix, maxAttribCount, maxAttribLength);
                     value.set(results);
                 } catch (SAXException | TikaException e) {
                     throw new IOException(e);
@@ -193,7 +193,7 @@ public class ExtractMediaMetadata extends AbstractProcessor {
         }
     }
 
-    private Map<String, String> tika_parse(InputStream sourceStream, String prefix, Integer maxAttribs,
+    private Map<String, String> tikaParse(InputStream sourceStream, String prefix, Integer maxAttribs,
                                            Integer maxAttribLen) throws IOException, TikaException, SAXException {
         final Metadata metadata = new Metadata();
         final TikaInputStream tikaInputStream = TikaInputStream.get(sourceStream);

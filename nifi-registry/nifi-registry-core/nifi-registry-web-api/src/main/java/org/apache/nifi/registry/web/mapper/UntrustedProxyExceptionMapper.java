@@ -32,7 +32,7 @@ import org.springframework.stereotype.Component;
 @Provider
 public class UntrustedProxyExceptionMapper implements ExceptionMapper<UntrustedProxyException> {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(UntrustedProxyException.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(UntrustedProxyException.class);
 
     @Override
     public Response toResponse(final UntrustedProxyException exception) {

@@ -175,7 +175,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .description("Successfully created FlowFile from SQL query result set.")
             .build();
 
-    protected static Set<Relationship> RELATIONSHIPS = Set.of(
+    protected static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS
     );
 

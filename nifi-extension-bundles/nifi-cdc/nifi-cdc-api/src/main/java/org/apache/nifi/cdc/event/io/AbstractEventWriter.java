@@ -28,7 +28,7 @@ import java.io.OutputStream;
  */
 public abstract class AbstractEventWriter<T extends EventInfo> implements EventWriter<T> {
 
-    private final JsonFactory JSON_FACTORY = new JsonFactory();
+    private static final JsonFactory JSON_FACTORY = new JsonFactory();
     protected JsonGenerator jsonGenerator;
 
     // Common method to create a JSON generator and start the root object. Should be called by sub-classes unless they need their own generator and such.

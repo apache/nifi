@@ -472,23 +472,23 @@ public class TestXMLRecordReader {
 
         Record first = reader.nextRecord(true, true);
         assertInstanceOf(Record.class, first.getValue("NAME"));
-        Record first_nested1 = (Record) first.getValue("NAME");
+        Record firstNested1 = (Record) first.getValue("NAME");
         assertInstanceOf(Record.class, first.getValue("AGE"));
-        Record first_nested2 = (Record) first.getValue("AGE");
-        assertEquals("name1", first_nested1.getValue("ID"));
-        assertEquals("Cleve Butler", first_nested1.getValue("CONTENT"));
-        assertEquals("age1", first_nested2.getValue("ID"));
-        assertEquals(42, first_nested2.getValue("CONTENT"));
+        Record firstNested2 = (Record) first.getValue("AGE");
+        assertEquals("name1", firstNested1.getValue("ID"));
+        assertEquals("Cleve Butler", firstNested1.getValue("CONTENT"));
+        assertEquals("age1", firstNested2.getValue("ID"));
+        assertEquals(42, firstNested2.getValue("CONTENT"));
 
         Record second = reader.nextRecord(true, true);
         assertInstanceOf(Record.class, second.getValue("NAME"));
-        Record second_nested1 = (Record) second.getValue("NAME");
+        Record secondNested1 = (Record) second.getValue("NAME");
         assertInstanceOf(Record.class, second.getValue("AGE"));
-        Record second_nested2 = (Record) second.getValue("AGE");
-        assertEquals("name2", second_nested1.getValue("ID"));
-        assertEquals("Ainslie Fletcher", second_nested1.getValue("CONTENT"));
-        assertEquals("age2", second_nested2.getValue("ID"));
-        assertEquals(33, second_nested2.getValue("CONTENT"));
+        Record secondNested2 = (Record) second.getValue("AGE");
+        assertEquals("name2", secondNested1.getValue("ID"));
+        assertEquals("Ainslie Fletcher", secondNested1.getValue("CONTENT"));
+        assertEquals("age2", secondNested2.getValue("ID"));
+        assertEquals(33, secondNested2.getValue("CONTENT"));
     }
 
     @Test
@@ -525,24 +525,24 @@ public class TestXMLRecordReader {
 
         Record first = reader.nextRecord(false, false);
         assertInstanceOf(Record.class, first.getValue("NAME"));
-        Record first_nested1 = (Record) first.getValue("NAME");
+        Record firstNested1 = (Record) first.getValue("NAME");
         assertInstanceOf(Record.class, first.getValue("AGE"));
-        Record first_nested2 = (Record) first.getValue("AGE");
-        assertEquals("name1", first_nested1.getValue("ID"));
-        assertEquals("Cleve Butler", first_nested1.getValue("CONTENT"));
-        assertEquals("age1", first_nested2.getValue("ID"));
-        assertEquals("42", first_nested2.getValue("CONTENT"));
+        Record firstNested2 = (Record) first.getValue("AGE");
+        assertEquals("name1", firstNested1.getValue("ID"));
+        assertEquals("Cleve Butler", firstNested1.getValue("CONTENT"));
+        assertEquals("age1", firstNested2.getValue("ID"));
+        assertEquals("42", firstNested2.getValue("CONTENT"));
         assertEquals("USA", first.getValue("COUNTRY"));
 
         Record second = reader.nextRecord(false, false);
         assertInstanceOf(Record.class, second.getValue("NAME"));
-        Record second_nested1 = (Record) second.getValue("NAME");
+        Record secondNested1 = (Record) second.getValue("NAME");
         assertInstanceOf(Record.class, second.getValue("AGE"));
-        Record second_nested2 = (Record) second.getValue("AGE");
-        assertEquals("name2", second_nested1.getValue("ID"));
-        assertEquals("Ainslie Fletcher", second_nested1.getValue("CONTENT"));
-        assertEquals("age2", second_nested2.getValue("ID"));
-        assertEquals("33", second_nested2.getValue("CONTENT"));
+        Record secondNested2 = (Record) second.getValue("AGE");
+        assertEquals("name2", secondNested1.getValue("ID"));
+        assertEquals("Ainslie Fletcher", secondNested1.getValue("CONTENT"));
+        assertEquals("age2", secondNested2.getValue("ID"));
+        assertEquals("33", secondNested2.getValue("CONTENT"));
         assertEquals("UK", second.getValue("COUNTRY"));
     }
 
@@ -1097,35 +1097,35 @@ public class TestXMLRecordReader {
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         Record first = reader.nextRecord(true, true);
-        Object[] grandchildren_arr = (Object[]) first.getValue("CHILDREN");
+        Object[] grandchildrenArr = (Object[]) first.getValue("CHILDREN");
 
-        Record first_1_1_1 = (Record) (((Object[]) ((Record) grandchildren_arr[0]).getValue("CHILD"))[0]);
-        assertEquals("daughter", first_1_1_1.getValue("ROLE"));
-        assertEquals("1-1-1", first_1_1_1.getValue("ID"));
-        assertEquals("Selina", first_1_1_1.getValue("NAME"));
+        Record first1a1 = (Record) (((Object[]) ((Record) grandchildrenArr[0]).getValue("CHILD"))[0]);
+        assertEquals("daughter", first1a1.getValue("ROLE"));
+        assertEquals("1-1-1", first1a1.getValue("ID"));
+        assertEquals("Selina", first1a1.getValue("NAME"));
 
-        Record first_1_1_2 = (Record) (((Object[]) ((Record) grandchildren_arr[0]).getValue("CHILD"))[1]);
-        assertEquals("son", first_1_1_2.getValue("ROLE"));
-        assertEquals("1-1-2", first_1_1_2.getValue("ID"));
-        assertEquals("Hans", first_1_1_2.getValue("NAME"));
+        Record first1a2 = (Record) (((Object[]) ((Record) grandchildrenArr[0]).getValue("CHILD"))[1]);
+        assertEquals("son", first1a2.getValue("ROLE"));
+        assertEquals("1-1-2", first1a2.getValue("ID"));
+        assertEquals("Hans", first1a2.getValue("NAME"));
 
-        Record first_1_1_3 = (Record) (((Object[]) ((Record) grandchildren_arr[1]).getValue("CHILD"))[0]);
-        assertEquals("daughter", first_1_1_3.getValue("ROLE"));
-        assertEquals("1-2-1", first_1_1_3.getValue("ID"));
-        assertEquals("Selina2", first_1_1_3.getValue("NAME"));
+        Record first1a3 = (Record) (((Object[]) ((Record) grandchildrenArr[1]).getValue("CHILD"))[0]);
+        assertEquals("daughter", first1a3.getValue("ROLE"));
+        assertEquals("1-2-1", first1a3.getValue("ID"));
+        assertEquals("Selina2", first1a3.getValue("NAME"));
 
-        Record first_1_1_4 = (Record) (((Object[]) ((Record) grandchildren_arr[1]).getValue("CHILD"))[1]);
-        assertEquals("son", first_1_1_4.getValue("ROLE"));
-        assertEquals("1-2-2", first_1_1_4.getValue("ID"));
-        assertEquals("Hans2", first_1_1_4.getValue("NAME"));
+        Record first1a4 = (Record) (((Object[]) ((Record) grandchildrenArr[1]).getValue("CHILD"))[1]);
+        assertEquals("son", first1a4.getValue("ROLE"));
+        assertEquals("1-2-2", first1a4.getValue("ID"));
+        assertEquals("Hans2", first1a4.getValue("NAME"));
 
         Record second = reader.nextRecord(true, true);
-        Object[] grandchildren_arr2 = (Object[]) second.getValue("CHILDREN");
+        Object[] grandchildrenArr2 = (Object[]) second.getValue("CHILDREN");
 
-        Record second_2_1_1 = (Record) (((Object[]) ((Record) grandchildren_arr2[0]).getValue("CHILD"))[0]);
-        assertEquals("daughter", second_2_1_1.getValue("ROLE"));
-        assertEquals("2-1-1", second_2_1_1.getValue("ID"));
-        assertEquals("Selina3", second_2_1_1.getValue("NAME"));
+        Record second2a1 = (Record) (((Object[]) ((Record) grandchildrenArr2[0]).getValue("CHILD"))[0]);
+        assertEquals("daughter", second2a1.getValue("ROLE"));
+        assertEquals("2-1-1", second2a1.getValue("ID"));
+        assertEquals("Selina3", second2a1.getValue("NAME"));
     }
 
     @Test
@@ -1140,48 +1140,48 @@ public class TestXMLRecordReader {
         assertEquals("1", first.getValue("ID"));
         assertEquals("Lisa", first.getValue("NAME"));
 
-        Object[] gm_spouses = (Object[]) first.getValue("CHILDREN");
-        assertEquals(2, gm_spouses.length);
+        Object[] gmSpouses = (Object[]) first.getValue("CHILDREN");
+        assertEquals(2, gmSpouses.length);
 
-        Object[] gm_spouse1_parents = (Object[]) ((Record) gm_spouses[0]).getValue("CHILD");
-        assertEquals(2, gm_spouse1_parents.length);
+        Object[] gmSpouse1Parents = (Object[]) ((Record) gmSpouses[0]).getValue("CHILD");
+        assertEquals(2, gmSpouse1Parents.length);
 
-        Record first_1_1 = (Record) gm_spouse1_parents[0];
-        assertEquals("mother", first_1_1.getValue("ROLE"));
-        assertEquals("1-1", first_1_1.getValue("ID"));
-        assertEquals("Anna", first_1_1.getValue("NAME"));
+        Record first1a = (Record) gmSpouse1Parents[0];
+        assertEquals("mother", first1a.getValue("ROLE"));
+        assertEquals("1-1", first1a.getValue("ID"));
+        assertEquals("Anna", first1a.getValue("NAME"));
 
-        Object[] gm_spouse1_parent1_first_husband = (Object[]) first_1_1.getValue("CHILDREN");
-        assertEquals(1, gm_spouse1_parent1_first_husband.length);
-        Object[] gm_spouse1_parent1_children = (Object[]) ((Record) gm_spouse1_parent1_first_husband[0]).getValue("CHILD");
+        Object[] gmSpouse1Parent1FirstHusband = (Object[]) first1a.getValue("CHILDREN");
+        assertEquals(1, gmSpouse1Parent1FirstHusband.length);
+        Object[] gmSpouse1Parent1Children = (Object[]) ((Record) gmSpouse1Parent1FirstHusband[0]).getValue("CHILD");
 
-        Record first_1_1_1 = (Record) gm_spouse1_parent1_children[0];
-        assertEquals("daughter", first_1_1_1.getValue("ROLE"));
-        assertEquals("1-1-1", first_1_1_1.getValue("ID"));
-        assertEquals("Selina", first_1_1_1.getValue("NAME"));
+        Record first1a1 = (Record) gmSpouse1Parent1Children[0];
+        assertEquals("daughter", first1a1.getValue("ROLE"));
+        assertEquals("1-1-1", first1a1.getValue("ID"));
+        assertEquals("Selina", first1a1.getValue("NAME"));
 
-        Record first_1_1_2 = (Record) gm_spouse1_parent1_children[1];
-        assertEquals("son", first_1_1_2.getValue("ROLE"));
-        assertEquals("1-1-2", first_1_1_2.getValue("ID"));
-        assertEquals("Hans", first_1_1_2.getValue("NAME"));
+        Record first1a2 = (Record) gmSpouse1Parent1Children[1];
+        assertEquals("son", first1a2.getValue("ROLE"));
+        assertEquals("1-1-2", first1a2.getValue("ID"));
+        assertEquals("Hans", first1a2.getValue("NAME"));
 
-        Record first_1_2 = (Record) gm_spouse1_parents[1];
-        assertEquals("mother", first_1_2.getValue("ROLE"));
-        assertEquals("1-2", first_1_2.getValue("ID"));
-        assertEquals("Catrina", first_1_2.getValue("NAME"));
+        Record first1b = (Record) gmSpouse1Parents[1];
+        assertEquals("mother", first1b.getValue("ROLE"));
+        assertEquals("1-2", first1b.getValue("ID"));
+        assertEquals("Catrina", first1b.getValue("NAME"));
 
-        Object[] gm_spouse2_parents = (Object[]) ((Record) gm_spouses[1]).getValue("CHILD");
-        assertEquals(1, gm_spouse2_parents.length);
+        Object[] gmSpouse2Parents = (Object[]) ((Record) gmSpouses[1]).getValue("CHILD");
+        assertEquals(1, gmSpouse2Parents.length);
 
         Record second = reader.nextRecord();
-        Record second_2_1_1 = (Record) ((Object[]) ((Record) ((Object[]) ((Record) ((Object[]) ((Record) ((Object[]) second
+        Record second2a1 = (Record) ((Object[]) ((Record) ((Object[]) ((Record) ((Object[]) ((Record) ((Object[]) second
                 .getValue("CHILDREN"))[0])
                 .getValue("CHILD"))[0])
                 .getValue("CHILDREN"))[0])
                 .getValue("CHILD"))[0];
-        assertEquals("daughter", second_2_1_1.getValue("ROLE"));
-        assertEquals("2-1-1", second_2_1_1.getValue("ID"));
-        assertEquals("Selina3", second_2_1_1.getValue("NAME"));
+        assertEquals("daughter", second2a1.getValue("ROLE"));
+        assertEquals("2-1-1", second2a1.getValue("ID"));
+        assertEquals("Selina3", second2a1.getValue("NAME"));
     }
 
     @Test
@@ -1197,47 +1197,47 @@ public class TestXMLRecordReader {
         assertEquals("1", first.getValue("ID"));
         assertEquals("Lisa", first.getValue("NAME"));
 
-        Object[] gm_spouses = (Object[]) first.getValue("CHILDREN");
-        assertEquals(2, gm_spouses.length);
+        Object[] gmSpouses = (Object[]) first.getValue("CHILDREN");
+        assertEquals(2, gmSpouses.length);
 
-        Object[] gm_spouse1_parents = (Object[]) ((Record) gm_spouses[0]).getValue("CHILD");
-        assertEquals(2, gm_spouse1_parents.length);
+        Object[] gmSpouse1Parents = (Object[]) ((Record) gmSpouses[0]).getValue("CHILD");
+        assertEquals(2, gmSpouse1Parents.length);
 
-        Record first_1_1 = (Record) gm_spouse1_parents[0];
-        assertEquals("mother", first_1_1.getValue("ROLE"));
-        assertEquals("1-1", first_1_1.getValue("ID"));
-        assertEquals("Anna", first_1_1.getValue("NAME"));
+        Record first1a = (Record) gmSpouse1Parents[0];
+        assertEquals("mother", first1a.getValue("ROLE"));
+        assertEquals("1-1", first1a.getValue("ID"));
+        assertEquals("Anna", first1a.getValue("NAME"));
 
-        Record gm_spouse1_parent1_first_husband = (Record) first_1_1.getValue("CHILDREN");
-        Object[] gm_spouse1_parent1_children = (Object[]) gm_spouse1_parent1_first_husband.getValue("CHILD");
+        Record gmSpouse1Parent1FirstHusband = (Record) first1a.getValue("CHILDREN");
+        Object[] gmSpouse1Parent1Children = (Object[]) gmSpouse1Parent1FirstHusband.getValue("CHILD");
 
-        Record first_1_1_1 = (Record) gm_spouse1_parent1_children[0];
-        assertEquals("daughter", first_1_1_1.getValue("ROLE"));
-        assertEquals("1-1-1", first_1_1_1.getValue("ID"));
-        assertEquals("Selina", first_1_1_1.getValue("NAME"));
+        Record first1a1 = (Record) gmSpouse1Parent1Children[0];
+        assertEquals("daughter", first1a1.getValue("ROLE"));
+        assertEquals("1-1-1", first1a1.getValue("ID"));
+        assertEquals("Selina", first1a1.getValue("NAME"));
 
-        Record first_1_1_2 = (Record) gm_spouse1_parent1_children[1];
-        assertEquals("son", first_1_1_2.getValue("ROLE"));
-        assertEquals("1-1-2", first_1_1_2.getValue("ID"));
-        assertEquals("Hans", first_1_1_2.getValue("NAME"));
+        Record first1a2 = (Record) gmSpouse1Parent1Children[1];
+        assertEquals("son", first1a2.getValue("ROLE"));
+        assertEquals("1-1-2", first1a2.getValue("ID"));
+        assertEquals("Hans", first1a2.getValue("NAME"));
 
-        Record first_1_2 = (Record) gm_spouse1_parents[1];
-        assertEquals("mother", first_1_2.getValue("ROLE"));
-        assertEquals("1-2", first_1_2.getValue("ID"));
-        assertEquals("Catrina", first_1_2.getValue("NAME"));
+        Record first1b = (Record) gmSpouse1Parents[1];
+        assertEquals("mother", first1b.getValue("ROLE"));
+        assertEquals("1-2", first1b.getValue("ID"));
+        assertEquals("Catrina", first1b.getValue("NAME"));
 
-        Record gm_spouse2_parents = (Record) ((Record) gm_spouses[1]).getValue("CHILD");
-        assertEquals("1-3", gm_spouse2_parents.getValue("ID"));
+        Record gmSpouse2Parents = (Record) ((Record) gmSpouses[1]).getValue("CHILD");
+        assertEquals("1-3", gmSpouse2Parents.getValue("ID"));
 
         Record second = reader.nextRecord(false, true);
-        Record second_2_1_1 = (Record) ((Record) ((Record) ((Record) second
+        Record second2a1 = (Record) ((Record) ((Record) ((Record) second
                 .getValue("CHILDREN"))
                 .getValue("CHILD"))
                 .getValue("CHILDREN"))
                 .getValue("CHILD");
-        assertEquals("daughter", second_2_1_1.getValue("ROLE"));
-        assertEquals("2-1-1", second_2_1_1.getValue("ID"));
-        assertEquals("Selina3", second_2_1_1.getValue("NAME"));
+        assertEquals("daughter", second2a1.getValue("ROLE"));
+        assertEquals("2-1-1", second2a1.getValue("ID"));
+        assertEquals("Selina3", second2a1.getValue("NAME"));
     }
 
     @Test
@@ -1251,47 +1251,47 @@ public class TestXMLRecordReader {
         assertEquals("1", first.getValue("ID"));
         assertEquals("Lisa", first.getValue("NAME"));
         assertEquals("grandmother", first.getValue("ROLE"));
-        Object[] gm_arr = (Object[]) first.getValue("CHILDREN");
-        assertEquals(2, gm_arr.length);
+        Object[] gmArr = (Object[]) first.getValue("CHILDREN");
+        assertEquals(2, gmArr.length);
 
-        Record gm_hus1_arr_rec = (Record) gm_arr[0];
-        assertEquals("husband1", gm_hus1_arr_rec.getValue("SPOUSE"));
-        Object[] gm_hus1_arr_rec_arr = (Object[]) gm_hus1_arr_rec.getValue("CHILD");
-        assertEquals(2, gm_hus1_arr_rec_arr.length);
+        Record gmHus1ArrRec = (Record) gmArr[0];
+        assertEquals("husband1", gmHus1ArrRec.getValue("SPOUSE"));
+        Object[] gmHus1ArrRecArr = (Object[]) gmHus1ArrRec.getValue("CHILD");
+        assertEquals(2, gmHus1ArrRecArr.length);
 
-        Record child1_1 = (Record) gm_hus1_arr_rec_arr[0];
-        assertEquals("1-1", child1_1.getValue("ID"));
-        assertEquals("Anna", child1_1.getValue("NAME"));
-        assertEquals("mother", child1_1.getValue("ROLE"));
+        Record child1a = (Record) gmHus1ArrRecArr[0];
+        assertEquals("1-1", child1a.getValue("ID"));
+        assertEquals("Anna", child1a.getValue("NAME"));
+        assertEquals("mother", child1a.getValue("ROLE"));
 
-        Record child1_1_rec = (Record) child1_1.getValue("CHILDREN");
-        assertEquals("first husband", child1_1_rec.getValue("ID"));
-        Object[] child1_1_rec_arr = (Object[]) child1_1_rec.getValue("CHILD");
-        assertEquals(2, child1_1_rec_arr.length);
+        Record child1Rec = (Record) child1a.getValue("CHILDREN");
+        assertEquals("first husband", child1Rec.getValue("ID"));
+        Object[] child1RecArr = (Object[]) child1Rec.getValue("CHILD");
+        assertEquals(2, child1RecArr.length);
 
-        Record child1_1_1 = (Record) child1_1_rec_arr[0];
-        assertEquals("1-1-1", child1_1_1.getValue("ID"));
-        assertEquals("Selina", child1_1_1.getValue("NAME"));
-        assertEquals("daughter", child1_1_1.getValue("ROLE"));
+        Record child1a1 = (Record) child1RecArr[0];
+        assertEquals("1-1-1", child1a1.getValue("ID"));
+        assertEquals("Selina", child1a1.getValue("NAME"));
+        assertEquals("daughter", child1a1.getValue("ROLE"));
 
-        Record child1_1_2 = (Record) child1_1_rec_arr[1];
-        assertEquals("1-1-2", child1_1_2.getValue("ID"));
-        assertEquals("Hans", child1_1_2.getValue("NAME"));
-        assertEquals("son", child1_1_2.getValue("ROLE"));
+        Record child1a2 = (Record) child1RecArr[1];
+        assertEquals("1-1-2", child1a2.getValue("ID"));
+        assertEquals("Hans", child1a2.getValue("NAME"));
+        assertEquals("son", child1a2.getValue("ROLE"));
 
-        Record child1_2 = (Record) gm_hus1_arr_rec_arr[1];
-        assertEquals("1-2", child1_2.getValue("ID"));
-        assertEquals("Catrina", child1_2.getValue("NAME"));
-        assertEquals("mother", child1_2.getValue("ROLE"));
+        Record child1b = (Record) gmHus1ArrRecArr[1];
+        assertEquals("1-2", child1b.getValue("ID"));
+        assertEquals("Catrina", child1b.getValue("NAME"));
+        assertEquals("mother", child1b.getValue("ROLE"));
 
-        Record gm_hus2_arr_rec = (Record) gm_arr[1];
-        assertEquals("husband2", gm_hus2_arr_rec.getValue("SPOUSE"));
+        Record gmHus2ArrRec = (Record) gmArr[1];
+        assertEquals("husband2", gmHus2ArrRec.getValue("SPOUSE"));
 
-        Record child1_3 = (Record) gm_hus2_arr_rec.getValue("CHILD");
-        assertEquals("1-3", child1_3.getValue("ID"));
-        assertEquals("Anna2", child1_3.getValue("NAME"));
-        assertEquals("mother", child1_3.getValue("ROLE"));
-        assertEquals(2, ((Object[]) ((Record) child1_3.getValue("CHILDREN")).getValue("CHILD")).length);
+        Record child1c = (Record) gmHus2ArrRec.getValue("CHILD");
+        assertEquals("1-3", child1c.getValue("ID"));
+        assertEquals("Anna2", child1c.getValue("NAME"));
+        assertEquals("mother", child1c.getValue("ROLE"));
+        assertEquals(2, ((Object[]) ((Record) child1c.getValue("CHILDREN")).getValue("CHILD")).length);
 
         Record second = reader.nextRecord(false, false);
         assertEquals("2-1-1", ((Record) ((Record) ((Record) ((Record) second.getValue("CHILDREN"))
@@ -1546,35 +1546,35 @@ public class TestXMLRecordReader {
 
     private RecordSchema getSchemaForComplexData() {
         final DataType grandchild = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(getSimpleFieldsForComplexData()));
-        final DataType grandchild_arr1 = RecordFieldType.ARRAY.getArrayDataType(grandchild);
+        final DataType grandchildArr1 = RecordFieldType.ARRAY.getArrayDataType(grandchild);
 
         final DataType grandchildren = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(
-                List.of(new RecordField("CHILD", grandchild_arr1))));
-        final DataType grandchild_arr = RecordFieldType.ARRAY.getArrayDataType(grandchildren);
+                List.of(new RecordField("CHILD", grandchildArr1))));
+        final DataType grandchildArr = RecordFieldType.ARRAY.getArrayDataType(grandchildren);
 
-        return new SimpleRecordSchema(List.of(new RecordField("CHILDREN", grandchild_arr)));
+        return new SimpleRecordSchema(List.of(new RecordField("CHILDREN", grandchildArr)));
     }
 
     private RecordSchema getSchemaForComplexData2() {
         final DataType grandchild = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(getSimpleFieldsForComplexData()));
-        final DataType grandchild_arr = RecordFieldType.ARRAY.getArrayDataType(grandchild);
+        final DataType grandchildArr = RecordFieldType.ARRAY.getArrayDataType(grandchild);
 
         final DataType grandchildren = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(
-                List.of(new RecordField("CHILD", grandchild_arr))));
-        final DataType grandchildren_arr = RecordFieldType.ARRAY.getArrayDataType(grandchildren);
+                List.of(new RecordField("CHILD", grandchildArr))));
+        final DataType grandchildrenArr = RecordFieldType.ARRAY.getArrayDataType(grandchildren);
 
         final List<RecordField> parentRecordFields = new ArrayList<>();
-        parentRecordFields.add(new RecordField("CHILDREN", grandchildren_arr));
+        parentRecordFields.add(new RecordField("CHILDREN", grandchildrenArr));
         parentRecordFields.addAll(getSimpleFieldsForComplexData());
         final DataType parent = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(parentRecordFields));
-        final DataType parent_arr = RecordFieldType.ARRAY.getArrayDataType(parent);
+        final DataType parentArr = RecordFieldType.ARRAY.getArrayDataType(parent);
 
         final DataType parents = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(
-                List.of(new RecordField("CHILD", parent_arr))));
-        final DataType parents_arr = RecordFieldType.ARRAY.getArrayDataType(parents);
+                List.of(new RecordField("CHILD", parentArr))));
+        final DataType parentsArr = RecordFieldType.ARRAY.getArrayDataType(parents);
 
         final List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("CHILDREN", parents_arr));
+        fields.add(new RecordField("CHILDREN", parentsArr));
         fields.addAll(getSimpleFieldsForComplexData());
 
         return new SimpleRecordSchema(fields);

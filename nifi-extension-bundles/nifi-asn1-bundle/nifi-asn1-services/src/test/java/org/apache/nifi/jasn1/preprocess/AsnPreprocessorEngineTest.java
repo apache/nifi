@@ -94,22 +94,22 @@ public class AsnPreprocessorEngineTest {
         String outputDirectory = Paths.get("path", "to", "directory_for_transformed_asn_files").toString();
 
         List<String> originalLines1 = Arrays.asList("original_lines_1_1", "original_lines_1_2");
-        List<String> preprocessedLines1_1 = Arrays.asList("preprocessed_lines_1_1_1", "preprocessed_lines_1_1_2");
-        List<String> preprocessedLines1_2 = Arrays.asList("final_lines_1_1", "final_lines_1_2");
+        List<String> preprocessedLines1a = Arrays.asList("preprocessed_lines_1_1_1", "preprocessed_lines_1_1_2");
+        List<String> preprocessedLines1b = Arrays.asList("final_lines_1_1", "final_lines_1_2");
 
         List<String> originalLines2 = Arrays.asList("original_lines_2_1", "original_lines_2_2");
-        List<String> preprocessedLines2_1 = Arrays.asList("preprocessed_lines_2_1_1", "preprocessed_lines_2_1_2");
-        List<String> preprocessedLines2_2 = Arrays.asList("final_lines_2_1", "final_lines_2_2");
+        List<String> preprocessedLines2a = Arrays.asList("preprocessed_lines_2_1_1", "preprocessed_lines_2_1_2");
+        List<String> preprocessedLines2b = Arrays.asList("final_lines_2_1", "final_lines_2_2");
 
         when(helper.readAsnLines(eq(log), eq(asnFile1Path.toString()), eq(asnFile1Path)))
                 .thenReturn(originalLines1);
-        when(mockPreprocessor1.preprocessAsn(originalLines1)).thenReturn(preprocessedLines1_1);
-        when(mockPreprocessor2.preprocessAsn(preprocessedLines1_1)).thenReturn(preprocessedLines1_2);
+        when(mockPreprocessor1.preprocessAsn(originalLines1)).thenReturn(preprocessedLines1a);
+        when(mockPreprocessor2.preprocessAsn(preprocessedLines1a)).thenReturn(preprocessedLines1b);
 
         when(helper.readAsnLines(eq(log), eq(asnFile2Path.toString()), eq(asnFile2Path)))
                 .thenReturn(originalLines2);
-        when(mockPreprocessor1.preprocessAsn(originalLines2)).thenReturn(preprocessedLines2_1);
-        when(mockPreprocessor2.preprocessAsn(preprocessedLines2_1)).thenReturn(preprocessedLines2_2);
+        when(mockPreprocessor1.preprocessAsn(originalLines2)).thenReturn(preprocessedLines2a);
+        when(mockPreprocessor2.preprocessAsn(preprocessedLines2a)).thenReturn(preprocessedLines2b);
 
         String expected = new StringJoiner(",")
                 .add(Paths.get("path", "to", "directory_for_transformed_asn_files", "asn_file_1").toString())
@@ -126,10 +126,10 @@ public class AsnPreprocessorEngineTest {
         verify(helper).readAsnLines(eq(log), eq(asnFile2Path.toString()), eq(asnFile2Path));
 
         verify(mockPreprocessor1).preprocessAsn(originalLines1);
-        verify(mockPreprocessor2).preprocessAsn(preprocessedLines1_1);
+        verify(mockPreprocessor2).preprocessAsn(preprocessedLines1a);
 
         verify(mockPreprocessor1).preprocessAsn(originalLines2);
-        verify(mockPreprocessor2).preprocessAsn(preprocessedLines2_1);
+        verify(mockPreprocessor2).preprocessAsn(preprocessedLines2a);
 
         verify(helper).writePreprocessedAsn(
                 eq(log),

@@ -82,19 +82,19 @@ public class TestPackageFlowFile {
 
     @Test
     public void testMany() throws IOException {
-        int FILE_COUNT = 10;
-        runner.setProperty(PackageFlowFile.BATCH_SIZE, Integer.toString(FILE_COUNT));
+        int fileCount = 10;
+        runner.setProperty(PackageFlowFile.BATCH_SIZE, Integer.toString(fileCount));
         Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), SAMPLE_ATTR_MIME_TYPE);
 
-        for (int i = 0; i < FILE_COUNT; i++) {
+        for (int i = 0; i < fileCount; i++) {
             attributes.put(CoreAttributes.FILENAME.key(), i + SAMPLE_ATTR_FILENAME);
             runner.enqueue(SAMPLE_CONTENT, attributes);
         }
         runner.run();
 
         runner.assertTransferCount(PackageFlowFile.REL_SUCCESS, 1);
-        runner.assertTransferCount(PackageFlowFile.REL_ORIGINAL, FILE_COUNT);
+        runner.assertTransferCount(PackageFlowFile.REL_ORIGINAL, fileCount);
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(PackageFlowFile.REL_SUCCESS).getFirst();
 
         // mime.type has changed
@@ -105,7 +105,7 @@ public class TestPackageFlowFile {
         FlowFileUnpackager unpackager = new FlowFileUnpackagerV3();
         try (ByteArrayInputStream bais = new ByteArrayInputStream(outputFlowFile.toByteArray());
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            for (int i = 0; i < FILE_COUNT; i++) {
+            for (int i = 0; i < fileCount; i++) {
                 Map<String, String> unpackedAttributes = unpackager.unpackageFlowFile(bais, baos);
                 // verify attributes in package
                 Assertions.assertEquals(4, unpackedAttributes.size());
@@ -122,33 +122,33 @@ public class TestPackageFlowFile {
 
     @Test
     public void testBatchSize() {
-        int FILE_COUNT = 10;
-        int BATCH_SIZE = 2;
-        runner.setProperty(PackageFlowFile.BATCH_SIZE, Integer.toString(BATCH_SIZE));
+        int fileCount = 10;
+        int batchSize = 2;
+        runner.setProperty(PackageFlowFile.BATCH_SIZE, Integer.toString(batchSize));
         Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), SAMPLE_ATTR_MIME_TYPE);
 
-        for (int i = 0; i < FILE_COUNT; i++) {
+        for (int i = 0; i < fileCount; i++) {
             attributes.put(CoreAttributes.FILENAME.key(), i + SAMPLE_ATTR_FILENAME);
             runner.enqueue(SAMPLE_CONTENT, attributes);
         }
         runner.run();
 
         runner.assertTransferCount(PackageFlowFile.REL_SUCCESS, 1);
-        runner.assertTransferCount(PackageFlowFile.REL_ORIGINAL, BATCH_SIZE);
+        runner.assertTransferCount(PackageFlowFile.REL_ORIGINAL, batchSize);
         runner.assertQueueNotEmpty();
     }
 
     @Test
     public void testBatchContentSize() {
-        int FILE_COUNT = 10;
-        int BATCH_CONTENT_SIZE = 7 * SAMPLE_CONTENT.length();
-        runner.setProperty(PackageFlowFile.BATCH_SIZE, Integer.toString(FILE_COUNT));
-        runner.setProperty(PackageFlowFile.BATCH_CONTENT_SIZE, BATCH_CONTENT_SIZE + " B");
+        int fileCount = 10;
+        int batchContentSize = 7 * SAMPLE_CONTENT.length();
+        runner.setProperty(PackageFlowFile.BATCH_SIZE, Integer.toString(fileCount));
+        runner.setProperty(PackageFlowFile.BATCH_CONTENT_SIZE, batchContentSize + " B");
         Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), SAMPLE_ATTR_MIME_TYPE);
 
-        for (int i = 0; i < FILE_COUNT; i++) {
+        for (int i = 0; i < fileCount; i++) {
             attributes.put(CoreAttributes.FILENAME.key(), i + SAMPLE_ATTR_FILENAME);
             runner.enqueue(SAMPLE_CONTENT, attributes);
         }

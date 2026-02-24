@@ -33,14 +33,14 @@ public class SIDTypeNode extends VariantTypeNode {
     public SIDTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
         int version = binaryReader.read();
-        int num_elements = binaryReader.read();
-        UnsignedInteger id_high = binaryReader.readDWordBE();
-        int id_low = binaryReader.readWordBE();
+        int numElements = binaryReader.read();
+        UnsignedInteger idHigh = binaryReader.readDWordBE();
+        int idLow = binaryReader.readWordBE();
         StringBuilder builder = new StringBuilder("S-");
         builder.append(version);
         builder.append("-");
-        builder.append((id_high.longValue() << 16) ^ id_low);
-        for (int i = 0; i < num_elements; i++) {
+        builder.append((idHigh.longValue() << 16) ^ idLow);
+        for (int i = 0; i < numElements; i++) {
             builder.append("-");
             builder.append(binaryReader.readDWord());
         }

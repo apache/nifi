@@ -163,7 +163,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     private volatile Set<Relationship> relationships;
 
     private static final Validator DELETE_PROPERTY_VALIDATOR = new Validator() {
-        private final Validator DPV_RE_VALIDATOR = StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true);
+        private final Validator dpvReValidator = StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true);
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
@@ -185,7 +185,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                         .build();
             }
 
-            return DPV_RE_VALIDATOR.validate(subject, input, context);
+            return dpvReValidator.validate(subject, input, context);
         }
     };
 

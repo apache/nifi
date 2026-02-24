@@ -408,7 +408,7 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         port.setComponentType(portType);
         port.setScheduledState(ScheduledState.RUNNING);
         port.setComments(portSchema.getComment());
-        port.setConcurrentlySchedulableTaskCount(portSchema.getMax_concurrent_tasks().intValue());
+        port.setConcurrentlySchedulableTaskCount(portSchema.getMaxConcurrentTasks().intValue());
         port.setUseCompression(portSchema.getUseCompression());
         port.setPosition(DEFAULT_POSITION);
         return port;

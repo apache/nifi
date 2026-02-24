@@ -256,7 +256,7 @@ public final class StatusConfigReporter {
 
     private static class RequestItem {
 
-        private final int EXPECTED_REQUEST_COMPONENTS = 2;
+        private static final int EXPECTED_REQUEST_COMPONENTS = 2;
 
         private String queryType;
         private String identifier;

@@ -55,7 +55,7 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
     private Boolean useCompression = DEFAULT_USE_COMPRESSION;
     private String timeout = DEFAULT_TIMEOUT;
     private Number batchSize = DEFAULT_BATCH_SIZE;
-    private String SSL;
+    private String sslContextService;
 
     public ProvenanceReportingSchema(Map map) {
         schedulingStrategy = getRequiredKeyAsType(map, SCHEDULING_STRATEGY_KEY, String.class, PROVENANCE_REPORTING_KEY);
@@ -85,7 +85,7 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
         properties.put("Compress Events", useCompression);
         properties.put("Batch Size", batchSize);
         properties.put("Communications Timeout", timeout);
-        properties.put("SSL Context Service", SSL);
+        properties.put("SSL Context Service", sslContextService);
 
         Map<String, Object> target = super.mapSupplier.get();
         target.put(CLASS_KEY, DEFAULT_PROV_REPORTING_TASK_CLASS);
@@ -114,7 +114,7 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
     }
 
     public void setSSL(boolean useSSL) {
-        SSL = useSSL ? "SSL-Context-Service" : "";
+        sslContextService = useSSL ? "SSL-Context-Service" : "";
     }
 
     public String getComment() {

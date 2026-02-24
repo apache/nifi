@@ -158,7 +158,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
     );
 
     private final Map<Tuple<String, Integer>, BlockingQueue<FileTransferIdleWrapper>> fileTransferMap = new HashMap<>();
-    private final long IDLE_CONNECTION_MILLIS = TimeUnit.SECONDS.toMillis(10L); // amount of time to wait before closing an idle connection
+    private static final long IDLE_CONNECTION_MILLIS = TimeUnit.SECONDS.toMillis(10L); // amount of time to wait before closing an idle connection
     private volatile long lastClearTime = System.currentTimeMillis();
     private LogLevel levelFileNotFound = LogLevel.ERROR;
 

@@ -56,7 +56,7 @@ public class RemotePortSchema extends BaseSchemaWithIdAndName {
         return comment;
     }
 
-    public Number getMax_concurrent_tasks() {
+    public Number getMaxConcurrentTasks() {
         return maxConcurrentTasks;
     }
 

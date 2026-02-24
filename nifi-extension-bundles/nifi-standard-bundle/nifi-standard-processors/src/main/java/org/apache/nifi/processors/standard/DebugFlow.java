@@ -276,8 +276,8 @@ public class DebugFlow extends AbstractProcessor {
     private volatile Class<? extends RuntimeException> flowFileExceptionClass = null;
     private volatile Class<? extends RuntimeException> noFlowFileExceptionClass = null;
 
-    private final FlowFileResponse curr_ff_resp = new FlowFileResponse();
-    private final NoFlowFileResponse curr_noff_resp = new NoFlowFileResponse();
+    private final FlowFileResponse currFlowFileResponse = new FlowFileResponse();
+    private final NoFlowFileResponse currNoFlowFileResponse = new NoFlowFileResponse();
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -338,8 +338,8 @@ public class DebugFlow extends AbstractProcessor {
         noFlowFileMaxException = context.getProperty(NO_FF_EXCEPTION_ITERATIONS).asInteger();
         noFlowFileMaxYield = context.getProperty(NO_FF_YIELD_ITERATIONS).asInteger();
         noFlowFileMaxSkip = context.getProperty(NO_FF_SKIP_ITERATIONS).asInteger();
-        curr_ff_resp.reset();
-        curr_noff_resp.reset();
+        currFlowFileResponse.reset();
+        currNoFlowFileResponse.reset();
         flowFileExceptionClass = (Class<? extends RuntimeException>) Class.forName(context.getProperty(FF_EXCEPTION_CLASS).toString());
         noFlowFileExceptionClass = (Class<? extends RuntimeException>) Class.forName(context.getProperty(NO_FF_EXCEPTION_CLASS).toString());
 
@@ -447,18 +447,18 @@ public class DebugFlow extends AbstractProcessor {
             //  prevents endless loops in the event of unexpected errors or future changes.)
             for (int pass = 2; pass > 0; pass--) {
                 if (ff == null) {
-                    if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_SKIP_RESPONSE) {
+                    if (currNoFlowFileResponse.state() == NoFlowFileResponseState.NO_FF_SKIP_RESPONSE) {
                         if (noFlowFileCurrSkip < noFlowFileMaxSkip) {
                             noFlowFileCurrSkip += 1;
                             logger.info("DebugFlow skipping with no flow file");
                             return;
                         } else {
                             noFlowFileCurrSkip = 0;
-                            curr_noff_resp.getNextCycle();
+                            currNoFlowFileResponse.getNextCycle();
                         }
                     }
 
-                    if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_EXCEPTION_RESPONSE) {
+                    if (currNoFlowFileResponse.state() == NoFlowFileResponseState.NO_FF_EXCEPTION_RESPONSE) {
                         if (noFlowFileCurrException < noFlowFileMaxException) {
                             noFlowFileCurrException += 1;
                             logger.info("DebugFlow throwing NPE with no flow file");
@@ -475,11 +475,11 @@ public class DebugFlow extends AbstractProcessor {
                             }
                         } else {
                             noFlowFileCurrException = 0;
-                            curr_noff_resp.getNextCycle();
+                            currNoFlowFileResponse.getNextCycle();
                         }
                     }
 
-                    if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_YIELD_RESPONSE) {
+                    if (currNoFlowFileResponse.state() == NoFlowFileResponseState.NO_FF_YIELD_RESPONSE) {
                         if (noFlowFileCurrYield < noFlowFileMaxYield) {
                             noFlowFileCurrYield += 1;
                             logger.info("DebugFlow yielding with no flow file");
@@ -487,7 +487,7 @@ public class DebugFlow extends AbstractProcessor {
                             break;
                         } else {
                             noFlowFileCurrYield = 0;
-                            curr_noff_resp.getNextCycle();
+                            currNoFlowFileResponse.getNextCycle();
                         }
                     }
 
@@ -505,7 +505,7 @@ public class DebugFlow extends AbstractProcessor {
                         }
                     }
 
-                    if (curr_ff_resp.state() == FlowFileResponseState.FF_SUCCESS_RESPONSE) {
+                    if (currFlowFileResponse.state() == FlowFileResponseState.FF_SUCCESS_RESPONSE) {
                         if (flowFileCurrSuccess < flowFileMaxSuccess) {
                             flowFileCurrSuccess += 1;
                             logger.info("DebugFlow transferring to success file={} UUID={}",
@@ -515,11 +515,11 @@ public class DebugFlow extends AbstractProcessor {
                             break;
                         } else {
                             flowFileCurrSuccess = 0;
-                            curr_ff_resp.getNextCycle();
+                            currFlowFileResponse.getNextCycle();
                         }
                     }
 
-                    if (curr_ff_resp.state() == FlowFileResponseState.FF_FAILURE_RESPONSE) {
+                    if (currFlowFileResponse.state() == FlowFileResponseState.FF_FAILURE_RESPONSE) {
                         if (flowFileCurrFailure < flowFileMaxFailure) {
                             flowFileCurrFailure += 1;
                             logger.info("DebugFlow transferring to failure file={} UUID={}",
@@ -529,11 +529,11 @@ public class DebugFlow extends AbstractProcessor {
                             break;
                         } else {
                             flowFileCurrFailure = 0;
-                            curr_ff_resp.getNextCycle();
+                            currFlowFileResponse.getNextCycle();
                         }
                     }
 
-                    if (curr_ff_resp.state() == FlowFileResponseState.FF_ROLLBACK_RESPONSE) {
+                    if (currFlowFileResponse.state() == FlowFileResponseState.FF_ROLLBACK_RESPONSE) {
                         if (flowFileCurrRollback < flowFileMaxRollback) {
                             flowFileCurrRollback += 1;
                             logger.info("DebugFlow rolling back (no penalty) file={} UUID={}",
@@ -543,11 +543,11 @@ public class DebugFlow extends AbstractProcessor {
                             break;
                         } else {
                             flowFileCurrRollback = 0;
-                            curr_ff_resp.getNextCycle();
+                            currFlowFileResponse.getNextCycle();
                         }
                     }
 
-                    if (curr_ff_resp.state() == FlowFileResponseState.FF_YIELD_RESPONSE) {
+                    if (currFlowFileResponse.state() == FlowFileResponseState.FF_YIELD_RESPONSE) {
                         if (flowFileCurrYield < flowFileMaxYield) {
                             flowFileCurrYield += 1;
                             logger.info("DebugFlow yielding file={} UUID={}",
@@ -558,11 +558,11 @@ public class DebugFlow extends AbstractProcessor {
                             return;
                         } else {
                             flowFileCurrYield = 0;
-                            curr_ff_resp.getNextCycle();
+                            currFlowFileResponse.getNextCycle();
                         }
                     }
 
-                    if (curr_ff_resp.state() == FlowFileResponseState.FF_PENALTY_RESPONSE) {
+                    if (currFlowFileResponse.state() == FlowFileResponseState.FF_PENALTY_RESPONSE) {
                         if (flowFileCurrPenalty < flowFileMaxPenalty) {
                             flowFileCurrPenalty += 1;
                             logger.info("DebugFlow rolling back (with penalty) file={} UUID={}",
@@ -572,11 +572,11 @@ public class DebugFlow extends AbstractProcessor {
                             break;
                         } else {
                             flowFileCurrPenalty = 0;
-                            curr_ff_resp.getNextCycle();
+                            currFlowFileResponse.getNextCycle();
                         }
                     }
 
-                    if (curr_ff_resp.state() == FlowFileResponseState.FF_EXCEPTION_RESPONSE) {
+                    if (currFlowFileResponse.state() == FlowFileResponseState.FF_EXCEPTION_RESPONSE) {
                         if (flowFileCurrException < flowFileMaxException) {
                             flowFileCurrException += 1;
                             String message = "forced by " + this.getClass().getName();
@@ -595,7 +595,7 @@ public class DebugFlow extends AbstractProcessor {
                             }
                         } else {
                             flowFileCurrException = 0;
-                            curr_ff_resp.getNextCycle();
+                            currFlowFileResponse.getNextCycle();
                         }
                     }
                 }

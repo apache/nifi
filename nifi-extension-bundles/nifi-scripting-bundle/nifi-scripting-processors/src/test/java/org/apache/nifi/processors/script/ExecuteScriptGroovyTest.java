@@ -37,13 +37,13 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     private static final Pattern SINGLE_POOL_THREAD_PATTERN = Pattern.compile("pool-\\d+-thread-1");
 
     private static final String SCRIPT_LANGUAGE_PROPERTY = "Script Language";
-    private static final String SUPPORTED_SCRIPT_ENGINE = "Groovy";
+    private static final String SUPPORTED_scriptEngine = "Groovy";
 
     @BeforeEach
     public void setUp() {
         super.setupExecuteScript();
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, SUPPORTED_SCRIPT_ENGINE);
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, SUPPORTED_scriptEngine);
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testAddTimeAndThreadAttribute.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, TEST_RESOURCE_LOCATION + "groovy");
     }
@@ -52,7 +52,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     void testMigrateProperties() {
         runner.clearProperties();
 
-        runner.setProperty(SCRIPT_LANGUAGE_PROPERTY, SUPPORTED_SCRIPT_ENGINE);
+        runner.setProperty(SCRIPT_LANGUAGE_PROPERTY, SUPPORTED_scriptEngine);
 
         final PropertyMigrationResult result = runner.migrateProperties();
 
@@ -70,7 +70,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         runner.setProperty(SCRIPT_LANGUAGE_PROPERTY, awkScriptEngine);
 
         final String scriptEngine = ScriptingComponentHelper.getScriptEnginePropertyBuilder().build().getName();
-        runner.setProperty(scriptEngine, SUPPORTED_SCRIPT_ENGINE);
+        runner.setProperty(scriptEngine, SUPPORTED_scriptEngine);
 
         final PropertyMigrationResult result = runner.migrateProperties();
 
@@ -157,7 +157,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         assertNotNull(executeScript.getSupportedPropertyDescriptors());
         runner = TestRunners.newTestRunner(executeScript);
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testAddTimeAndThreadAttribute.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, TEST_RESOURCE_LOCATION + "groovy");
 

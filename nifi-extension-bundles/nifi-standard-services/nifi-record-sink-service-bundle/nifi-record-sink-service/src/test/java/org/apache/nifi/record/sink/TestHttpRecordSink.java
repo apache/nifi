@@ -68,7 +68,7 @@ public class TestHttpRecordSink {
     private MockWebServer mockWebServer;
     private HttpRecordSink httpRecordSink;
     private RecordSetWriterFactory writerFactory;
-    private final String OAUTH_ACCESS_TOKEN = "access_token";
+    private static final String OAUTH_ACCESS_TOKEN = "access_token";
 
     private static RecordSchema schema;
     private static Record[] records;

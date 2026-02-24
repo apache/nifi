@@ -32,7 +32,7 @@ import java.util.List;
 
 public class MongoWriteTestBase extends AbstractMongoIT {
     protected static final String COLLECTION_NAME = "test";
-    protected String DATABASE_NAME;
+    protected String databaseName;
 
     protected static Document oidDocument = Document.parse("{\"_id\": {\"$oid\": \"5cd1a7376264b959a71588c1\"}}");
 
@@ -47,9 +47,9 @@ public class MongoWriteTestBase extends AbstractMongoIT {
     protected MongoDBClientService clientService;
 
     public void setup(Class processor) {
-        DATABASE_NAME = processor.getSimpleName().toLowerCase();
+        databaseName = processor.getSimpleName().toLowerCase();
         mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
-        collection = mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME);
+        collection = mongoClient.getDatabase(databaseName).getCollection(COLLECTION_NAME);
 
         clientService = new MongoDBControllerService();
     }
@@ -61,7 +61,7 @@ public class MongoWriteTestBase extends AbstractMongoIT {
         runner.setProperty(AbstractMongoProcessor.CLIENT_SERVICE, "clientService");
         runner.enableControllerService(clientService);
         runner.setEnvironmentVariableValue("uri", MONGO_CONTAINER.getConnectionString());
-        runner.setEnvironmentVariableValue("db", DATABASE_NAME);
+        runner.setEnvironmentVariableValue("db", databaseName);
         runner.setEnvironmentVariableValue("collection", COLLECTION_NAME);
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
@@ -69,8 +69,8 @@ public class MongoWriteTestBase extends AbstractMongoIT {
     }
 
     public void teardown() {
-        mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME).deleteMany(BsonDocument.parse("{}"));
-        mongoClient.getDatabase(DATABASE_NAME).drop();
+        mongoClient.getDatabase(databaseName).getCollection(COLLECTION_NAME).deleteMany(BsonDocument.parse("{}"));
+        mongoClient.getDatabase(databaseName).drop();
         mongoClient.close();
     }
 }

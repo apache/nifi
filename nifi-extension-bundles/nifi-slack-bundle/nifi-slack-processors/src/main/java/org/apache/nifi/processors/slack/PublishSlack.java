@@ -147,7 +147,7 @@ public class PublishSlack extends AbstractProcessor {
         .sensitive(true)
         .build();
 
-    static PropertyDescriptor CHANNEL = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CHANNEL = new PropertyDescriptor.Builder()
         .name("Channel")
         .description("The name or identifier of the channel to send the message to. If using a channel name, it must be prefixed with the # character. " +
                      "For example, #general. This is valid only for public channels. Otherwise, the unique identifier of the channel to publish to must be " +
@@ -157,7 +157,7 @@ public class PublishSlack extends AbstractProcessor {
         .required(true)
         .build();
 
-    static PropertyDescriptor PUBLISH_STRATEGY = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PUBLISH_STRATEGY = new PropertyDescriptor.Builder()
         .name("Publish Strategy")
         .description("Specifies how the Processor will send the message or file to Slack.")
         .required(true)
@@ -165,7 +165,7 @@ public class PublishSlack extends AbstractProcessor {
         .defaultValue(PUBLISH_STRATEGY_CONTENT_AS_MESSAGE.getValue())
         .build();
 
-    static PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
         .name("Character Set")
         .description("Specifies the name of the Character Set used to encode the FlowFile contents.")
         .required(true)
@@ -175,7 +175,7 @@ public class PublishSlack extends AbstractProcessor {
         .dependsOn(PUBLISH_STRATEGY, PUBLISH_STRATEGY_CONTENT_AS_MESSAGE)
         .build();
 
-    static PropertyDescriptor MESSAGE_TEXT = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor MESSAGE_TEXT = new PropertyDescriptor.Builder()
         .name("Message Text")
         .description("The text of the message to send to Slack.")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -184,7 +184,7 @@ public class PublishSlack extends AbstractProcessor {
         .dependsOn(PUBLISH_STRATEGY, PUBLISH_STRATEGY_USE_PROPERTY)
         .build();
 
-    static PropertyDescriptor SEND_CONTENT_AS_ATTACHMENT = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor SEND_CONTENT_AS_ATTACHMENT = new PropertyDescriptor.Builder()
         .name("Include FlowFile Content as Attachment")
         .description("Specifies whether or not the contents of the FlowFile should be uploaded as an attachment to the Slack message.")
         .allowableValues("true", "false")
@@ -193,7 +193,7 @@ public class PublishSlack extends AbstractProcessor {
         .defaultValue("false")
         .build();
 
-    static PropertyDescriptor MAX_FILE_SIZE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor MAX_FILE_SIZE = new PropertyDescriptor.Builder()
         .name("Max FlowFile Size")
         .description("The maximum size of a FlowFile that can be sent to Slack. If any FlowFile exceeds this size, it will be routed to failure. " +
                      "This plays an important role because the entire contents of the file must be loaded into NiFi's heap in order to send the data " +
@@ -204,7 +204,7 @@ public class PublishSlack extends AbstractProcessor {
         .defaultValue("1 MB")
         .build();
 
-    static PropertyDescriptor THREAD_TS = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor THREAD_TS = new PropertyDescriptor.Builder()
         .name("Thread Timestamp")
         .description("The Timestamp identifier for the thread that this message is to be a part of. If not specified, the message will be a top-level message instead of " +
                      "being in a thread.")
@@ -213,7 +213,7 @@ public class PublishSlack extends AbstractProcessor {
         .required(false)
         .build();
 
-    static PropertyDescriptor METHODS_ENDPOINT_URL_PREFIX = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor METHODS_ENDPOINT_URL_PREFIX = new PropertyDescriptor.Builder()
         .name("Methods Endpoint Url Prefix")
         .description("Customization of the Slack Client. Set the methodsEndpointUrlPrefix. If you need to set a different URL prefix for Slack API Methods calls, " +
                      "you can set the one. Default value: https://slack.com/api/")

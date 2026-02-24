@@ -50,23 +50,23 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
 
     @Test
     void listFilesFrom3LayerDeepDirectoryTree() throws Exception {
-        File main_sub1 = createFolder("main_sub1", mainFolderId);
-        File main_sub2 = createFolder("main_sub2", mainFolderId);
+        File mainSub1 = createFolder("main_sub1", mainFolderId);
+        File mainSub2 = createFolder("main_sub2", mainFolderId);
 
-        File main_sub1_sub1 = createFolder("main_sub1_sub1", main_sub1.getId());
+        File mainSub1Sub1 = createFolder("main_sub1_sub1", mainSub1.getId());
 
         createFileWithDefaultContent("main_file1", mainFolderId);
         createFileWithDefaultContent("main_file2", mainFolderId);
         createFileWithDefaultContent("main_file3", mainFolderId);
 
-        createFileWithDefaultContent("main_sub1_file1", main_sub1.getId());
+        createFileWithDefaultContent("main_sub1_file1", mainSub1.getId());
 
-        createFileWithDefaultContent("main_sub2_file1", main_sub2.getId());
-        createFileWithDefaultContent("main_sub2_file2", main_sub2.getId());
+        createFileWithDefaultContent("main_sub2_file1", mainSub2.getId());
+        createFileWithDefaultContent("main_sub2_file2", mainSub2.getId());
 
-        createFileWithDefaultContent("main_sub1_sub1_file1", main_sub1_sub1.getId());
-        createFileWithDefaultContent("main_sub1_sub1_file2", main_sub1_sub1.getId());
-        createFileWithDefaultContent("main_sub1_sub1_file3", main_sub1_sub1.getId());
+        createFileWithDefaultContent("main_sub1_sub1_file1", mainSub1Sub1.getId());
+        createFileWithDefaultContent("main_sub1_sub1_file2", mainSub1Sub1.getId());
+        createFileWithDefaultContent("main_sub1_sub1_file3", mainSub1Sub1.getId());
 
         Set<String> expectedFileNames = new HashSet<>(Arrays.asList(
                 "main_file1", "main_file2", "main_file3",
@@ -97,7 +97,7 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
                 "main_sub1_file1"
         ));
 
-        testRunner.setProperty(ListGoogleDrive.FOLDER_ID, main_sub1.getId());
+        testRunner.setProperty(ListGoogleDrive.FOLDER_ID, mainSub1.getId());
         testRunner.setProperty(ListGoogleDrive.RECURSIVE_SEARCH, "false");
         testRunner.run();
 

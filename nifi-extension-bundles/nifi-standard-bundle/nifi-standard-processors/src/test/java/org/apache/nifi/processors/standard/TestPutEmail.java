@@ -146,11 +146,11 @@ public class TestPutEmail {
     public void testOAuth() throws Exception {
         // GIVEN
         String oauthServiceID = "oauth-access-token-provider";
-        String access_token = "access_token_123";
+        String accessToken = "accessToken_123";
 
         OAuth2AccessTokenProvider oauthService = mock(OAuth2AccessTokenProvider.class, RETURNS_DEEP_STUBS);
         when(oauthService.getIdentifier()).thenReturn(oauthServiceID);
-        when(oauthService.getAccessDetails().getAccessToken()).thenReturn(access_token);
+        when(oauthService.getAccessDetails().getAccessToken()).thenReturn(accessToken);
         runner.addControllerService(oauthServiceID, oauthService);
         runner.enableControllerService(oauthService);
 
@@ -173,7 +173,7 @@ public class TestPutEmail {
         assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
         Message message = processor.getMessages().getFirst();
         assertEquals("XOAUTH2", message.getSession().getProperty("mail.smtp.auth.mechanisms"));
-        assertEquals("access_token_123", message.getSession().getProperty("mail.smtp.password"));
+        assertEquals("accessToken_123", message.getSession().getProperty("mail.smtp.password"));
     }
 
     @Test

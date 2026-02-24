@@ -55,11 +55,11 @@ public class ProxyConfiguration {
 
     /**
      * Remove redundancy. If X_AUTH is supported, then X should be supported, too.
-     * @param _specs original specs
+     * @param proxySpecs original specs
      * @return sorted unique specs
      */
-    private static Set<ProxySpec> getUniqueProxySpecs(ProxySpec... _specs) {
-        final Set<ProxySpec> specs = Arrays.stream(_specs).collect(Collectors.toSet());
+    private static Set<ProxySpec> getUniqueProxySpecs(ProxySpec... proxySpecs) {
+        final Set<ProxySpec> specs = Arrays.stream(proxySpecs).collect(Collectors.toSet());
         if (specs.contains(HTTP_AUTH)) {
             specs.remove(HTTP);
         }
@@ -74,11 +74,11 @@ public class ProxyConfiguration {
      * to validate the service is configured with the supported proxy types.
      * @param context the validation context
      * @param results if validation fails, an invalid validation result will be added to this collection
-     * @param _specs specify supported proxy specs
+     * @param proxySpecs specify supported proxy specs
      */
-    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results, final ProxySpec... _specs) {
+    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results, final ProxySpec... proxySpecs) {
 
-        final Set<ProxySpec> specs = getUniqueProxySpecs(_specs);
+        final Set<ProxySpec> specs = getUniqueProxySpecs(proxySpecs);
         final Set<Proxy.Type> supportedProxyTypes = specs.stream().map(ProxySpec::getProxyType).collect(Collectors.toSet());
 
         if (!context.getProperty(PROXY_CONFIGURATION_SERVICE).isSet()) {

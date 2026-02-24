@@ -727,7 +727,7 @@ public class PutHDFSTest {
 
         String serviceId = FileResourceService.class.getSimpleName();
         FileResourceService service = new StandardFileResourceService();
-        byte[] EMPTY_CONTENT = new byte[0];
+        byte[] emptyContent = new byte[0];
         runner.addControllerService(serviceId, service);
         runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
         runner.enableControllerService(service);
@@ -741,12 +741,12 @@ public class PutHDFSTest {
 
         attributes.put(CoreAttributes.FILENAME.key(), FILE_NAME);
         attributes.put(attributeName, tempFilePath.toString());
-        runner.enqueue(EMPTY_CONTENT, attributes);
+        runner.enqueue(emptyContent, attributes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutHDFS.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS).getFirst();
-        flowFile.assertContentEquals(EMPTY_CONTENT);
+        flowFile.assertContentEquals(emptyContent);
 
         //assert HDFS File and Directory structures
         assertTrue(spyFileSystem.exists(new Path(TARGET_DIRECTORY + "/" + FILE_NAME)));

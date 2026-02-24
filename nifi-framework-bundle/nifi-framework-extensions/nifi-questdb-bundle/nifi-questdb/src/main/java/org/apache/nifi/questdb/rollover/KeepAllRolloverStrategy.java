@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 final class KeepAllRolloverStrategy implements RolloverStrategy {
-    Logger LOGGER = LoggerFactory.getLogger(KeepAllRolloverStrategy.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KeepAllRolloverStrategy.class);
 
     @Override
     public void rollOver(final Client client, final String tableName) {

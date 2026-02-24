@@ -284,8 +284,8 @@ class TestMapRecord {
 
     @Test
     void testNestedSchema() {
-        final String FOO_TEST_VAL = "test!";
-        final String NESTED_RECORD_VALUE = "Hello, world!";
+        final String fooTestVal = "test!";
+        final String nestedRecordValue = "Hello, world!";
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("foo", RecordFieldType.STRING.getDataType(), null, set("bar", "baz")));
@@ -298,10 +298,10 @@ class TestMapRecord {
         RecordSchema fullSchema = new SimpleRecordSchema(fields);
 
         Map<String, Object> nestedValues = new HashMap<>();
-        nestedValues.put("test", NESTED_RECORD_VALUE);
+        nestedValues.put("test", nestedRecordValue);
         Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
         Map<String, Object> values = new HashMap<>();
-        values.put("foo", FOO_TEST_VAL);
+        values.put("foo", fooTestVal);
         values.put("nested", nestedRecord);
 
         List<Record> list = new ArrayList<>();
@@ -313,12 +313,12 @@ class TestMapRecord {
         Record record = new MapRecord(fullSchema, values);
 
         Map<String, Object> fullConversion = ((MapRecord) record).toMap(true);
-        assertEquals(FOO_TEST_VAL, fullConversion.get("foo"));
+        assertEquals(fooTestVal, fullConversion.get("foo"));
         assertInstanceOf(Map.class, fullConversion.get("nested"));
 
         Map<String, Object> nested = (Map<String, Object>) fullConversion.get("nested");
         assertEquals(1, nested.size());
-        assertEquals(NESTED_RECORD_VALUE, nested.get("test"));
+        assertEquals(nestedRecordValue, nested.get("test"));
 
         assertInstanceOf(List.class, fullConversion.get("list"));
         List recordList = (List) fullConversion.get("list");
@@ -327,7 +327,7 @@ class TestMapRecord {
             assertInstanceOf(Map.class, rec);
             Map<String, Object> map = (Map<String, Object>) rec;
             assertEquals(1, map.size());
-            assertEquals(NESTED_RECORD_VALUE, map.get("test"));
+            assertEquals(nestedRecordValue, map.get("test"));
         }
     }
 

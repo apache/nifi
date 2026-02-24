@@ -418,6 +418,6 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             return newBinNeeded;
         }
 
-        public static BinningResult EMPTY = new BinningResult(0, false);
+        public static final BinningResult EMPTY = new BinningResult(0, false);
     }
 }

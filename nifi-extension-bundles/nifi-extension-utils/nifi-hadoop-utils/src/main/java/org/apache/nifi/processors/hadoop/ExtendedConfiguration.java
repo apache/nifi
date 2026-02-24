@@ -36,7 +36,7 @@ import java.util.function.BiConsumer;
 public class ExtendedConfiguration extends Configuration {
 
     private final BiConsumer<String, Throwable> loggerMethod;
-    private final Map<ClassLoader, Map<String, WeakReference<Class<?>>>> CACHE_CLASSES = new WeakHashMap<>();
+    private final Map<ClassLoader, Map<String, WeakReference<Class<?>>>> cacheClasses = new WeakHashMap<>();
 
     public ExtendedConfiguration(final Logger logger) {
         this.loggerMethod = logger::error;
@@ -51,11 +51,11 @@ public class ExtendedConfiguration extends Configuration {
         final ClassLoader classLoader = getClassLoader();
 
         Map<String, WeakReference<Class<?>>> map;
-        synchronized (CACHE_CLASSES) {
-            map = CACHE_CLASSES.get(classLoader);
+        synchronized (cacheClasses) {
+            map = cacheClasses.get(classLoader);
             if (map == null) {
                 map = Collections.synchronizedMap(new WeakHashMap<>());
-                CACHE_CLASSES.put(classLoader, map);
+                cacheClasses.put(classLoader, map);
             }
         }
 

@@ -45,31 +45,31 @@ public class TestWriteXMLResultUtils {
     protected static final String FIELD_CITY = "CITY";
     protected static final String FIELD_CHILDREN = "CHILDREN";
 
-    protected static Map<String, Object> RECORD_FIELDS_PERSON_1 = new HashMap<>();
-    protected static Map<String, Object> RECORD_FIELDS_PERSON_2 = new HashMap<>();
-    protected static Map<String, Object> RECORD_FIELDS_ADDRESS_1 = new HashMap<>();
-    protected static Map<String, Object> RECORD_FIELDS_ADDRESS_2 = new HashMap<>();
+    protected static Map<String, Object> recordFieldsPerson1 = new HashMap<>();
+    protected static Map<String, Object> recordFieldsPerson2 = new HashMap<>();
+    protected static Map<String, Object> recordFieldsAddress1 = new HashMap<>();
+    protected static Map<String, Object> recordFieldsAddress2 = new HashMap<>();
 
-    protected static Object[] ARRAY_CHILDREN = {"Tom", "Anna", "Ben"};
-    protected static Object[] ARRAY_CHILDREN_WITH_NULL_VALUE = {"Tom", null, "Ben"};
-    protected static Object[] ARRAY_CHILDREN_ONLY_NULL_VALUES = {null, null, null};
+    protected static final Object[] ARRAY_CHILDREN = {"Tom", "Anna", "Ben"};
+    protected static final Object[] ARRAY_CHILDREN_WITH_NULL_VALUE = {"Tom", null, "Ben"};
+    protected static final Object[] ARRAY_CHILDREN_ONLY_NULL_VALUES = {null, null, null};
 
     static {
-        RECORD_FIELDS_PERSON_1.put(FIELD_NAME, "Cleve Butler");
-        RECORD_FIELDS_PERSON_1.put(FIELD_AGE, 42);
-        RECORD_FIELDS_PERSON_1.put(FIELD_COUNTRY, "USA");
-        RECORD_FIELDS_PERSON_2.put(FIELD_NAME, "Ainslie Fletcher");
-        RECORD_FIELDS_PERSON_2.put(FIELD_AGE, 33);
-        RECORD_FIELDS_PERSON_2.put(FIELD_COUNTRY, "UK");
-        RECORD_FIELDS_ADDRESS_1.put(FIELD_STREET, "292 West Street");
-        RECORD_FIELDS_ADDRESS_1.put(FIELD_CITY, "Jersey City");
-        RECORD_FIELDS_ADDRESS_2.put(FIELD_STREET, "123 6th St.");
-        RECORD_FIELDS_ADDRESS_2.put(FIELD_CITY, "Seattle");
+        recordFieldsPerson1.put(FIELD_NAME, "Cleve Butler");
+        recordFieldsPerson1.put(FIELD_AGE, 42);
+        recordFieldsPerson1.put(FIELD_COUNTRY, "USA");
+        recordFieldsPerson2.put(FIELD_NAME, "Ainslie Fletcher");
+        recordFieldsPerson2.put(FIELD_AGE, 33);
+        recordFieldsPerson2.put(FIELD_COUNTRY, "UK");
+        recordFieldsAddress1.put(FIELD_STREET, "292 West Street");
+        recordFieldsAddress1.put(FIELD_CITY, "Jersey City");
+        recordFieldsAddress2.put(FIELD_STREET, "123 6th St.");
+        recordFieldsAddress2.put(FIELD_CITY, "Seattle");
 
-        RECORD_FIELDS_PERSON_1 = Collections.unmodifiableMap(RECORD_FIELDS_PERSON_1);
-        RECORD_FIELDS_PERSON_2 = Collections.unmodifiableMap(RECORD_FIELDS_PERSON_2);
-        RECORD_FIELDS_ADDRESS_1 = Collections.unmodifiableMap(RECORD_FIELDS_ADDRESS_1);
-        RECORD_FIELDS_ADDRESS_2 = Collections.unmodifiableMap(RECORD_FIELDS_ADDRESS_2);
+        recordFieldsPerson1 = Collections.unmodifiableMap(recordFieldsPerson1);
+        recordFieldsPerson2 = Collections.unmodifiableMap(recordFieldsPerson2);
+        recordFieldsAddress1 = Collections.unmodifiableMap(recordFieldsAddress1);
+        recordFieldsAddress2 = Collections.unmodifiableMap(recordFieldsAddress2);
     }
 
     protected static final SchemaIdentifier SCHEMA_IDENTIFIER_PERSON = SchemaIdentifier.builder().name("PERSON").id(0L).version(0).build();
@@ -94,7 +94,7 @@ public class TestWriteXMLResultUtils {
         RecordSchema schema = getSimpleSchema();
 
         List<Record> records = new ArrayList<>();
-        records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_1));
+        records.add(new MapRecord(schema, recordFieldsPerson1));
 
         return new ListRecordSet(schema, records);
     }
@@ -103,8 +103,8 @@ public class TestWriteXMLResultUtils {
         RecordSchema schema = getSimpleSchema();
 
         List<Record> records = new ArrayList<>();
-        records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_1));
-        records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_2));
+        records.add(new MapRecord(schema, recordFieldsPerson1));
+        records.add(new MapRecord(schema, recordFieldsPerson2));
 
         return new ListRecordSet(schema, records);
     }
@@ -113,8 +113,8 @@ public class TestWriteXMLResultUtils {
         RecordSchema schema = getSimpleSchemaWithoutIdentifier();
 
         List<Record> records = new ArrayList<>();
-        records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_1));
-        records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_2));
+        records.add(new MapRecord(schema, recordFieldsPerson1));
+        records.add(new MapRecord(schema, recordFieldsPerson2));
 
         return new ListRecordSet(schema, records);
     }
@@ -122,8 +122,8 @@ public class TestWriteXMLResultUtils {
     protected static RecordSet getSimpleRecordsWithNullValues() {
         RecordSchema schema = getSimpleSchema();
 
-        Map<String, Object> recordWithoutName1 = new HashMap<>(RECORD_FIELDS_PERSON_1);
-        Map<String, Object> recordWithoutName2 = new HashMap<>(RECORD_FIELDS_PERSON_2);
+        Map<String, Object> recordWithoutName1 = new HashMap<>(recordFieldsPerson1);
+        Map<String, Object> recordWithoutName2 = new HashMap<>(recordFieldsPerson2);
 
         recordWithoutName1.put(FIELD_NAME, null);
         recordWithoutName2.remove(FIELD_NAME);
@@ -179,13 +179,13 @@ public class TestWriteXMLResultUtils {
 
         RecordSchema outerSchema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
 
-        Record innerRecord1 = new MapRecord(innerSchema, RECORD_FIELDS_ADDRESS_1);
-        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_1);
+        Record innerRecord1 = new MapRecord(innerSchema, recordFieldsAddress1);
+        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(recordFieldsPerson1);
         outerRecord1MapRecordValues.put(FIELD_ADDRESS, innerRecord1);
         Record outerRecord1 = new MapRecord(outerSchema, outerRecord1MapRecordValues);
 
-        Record innerRecord2 = new MapRecord(innerSchema, RECORD_FIELDS_ADDRESS_2);
-        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_2);
+        Record innerRecord2 = new MapRecord(innerSchema, recordFieldsAddress2);
+        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(recordFieldsPerson2);
         outerRecord2MapRecordValues.put(FIELD_ADDRESS, innerRecord2);
         Record outerRecord2 = new MapRecord(outerSchema, outerRecord2MapRecordValues);
 
@@ -206,19 +206,19 @@ public class TestWriteXMLResultUtils {
 
         RecordSchema outerSchema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
 
-        Map<String, Object> recordWithoutStreet1 = new HashMap<>(RECORD_FIELDS_ADDRESS_1);
-        Map<String, Object> recordWithoutStreet2 = new HashMap<>(RECORD_FIELDS_ADDRESS_2);
+        Map<String, Object> recordWithoutStreet1 = new HashMap<>(recordFieldsAddress1);
+        Map<String, Object> recordWithoutStreet2 = new HashMap<>(recordFieldsAddress2);
 
         recordWithoutStreet1.put(FIELD_STREET, null);
         recordWithoutStreet2.remove(FIELD_STREET);
 
         Record innerRecord1 = new MapRecord(innerSchema, recordWithoutStreet1);
-        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_1);
+        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(recordFieldsPerson1);
         outerRecord1MapRecordValues.put(FIELD_ADDRESS, innerRecord1);
         Record outerRecord1 = new MapRecord(outerSchema, outerRecord1MapRecordValues);
 
         Record innerRecord2 = new MapRecord(innerSchema, recordWithoutStreet2);
-        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_2);
+        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(recordFieldsPerson2);
         outerRecord2MapRecordValues.put(FIELD_ADDRESS, innerRecord2);
         Record outerRecord2 = new MapRecord(outerSchema, outerRecord2MapRecordValues);
 
@@ -239,8 +239,8 @@ public class TestWriteXMLResultUtils {
 
         RecordSchema outerSchema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
 
-        Map<String, Object> recordWithoutStreet1 = new HashMap<>(RECORD_FIELDS_ADDRESS_1);
-        Map<String, Object> recordWithoutStreet2 = new HashMap<>(RECORD_FIELDS_ADDRESS_2);
+        Map<String, Object> recordWithoutStreet1 = new HashMap<>(recordFieldsAddress1);
+        Map<String, Object> recordWithoutStreet2 = new HashMap<>(recordFieldsAddress2);
 
         recordWithoutStreet1.put(FIELD_STREET, null);
         recordWithoutStreet1.put(FIELD_CITY, null);
@@ -248,12 +248,12 @@ public class TestWriteXMLResultUtils {
         recordWithoutStreet2.remove(FIELD_CITY);
 
         Record innerRecord1 = new MapRecord(innerSchema, recordWithoutStreet1);
-        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_1);
+        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(recordFieldsPerson1);
         outerRecord1MapRecordValues.put(FIELD_ADDRESS, innerRecord1);
         Record outerRecord1 = new MapRecord(outerSchema, outerRecord1MapRecordValues);
 
         Record innerRecord2 = new MapRecord(innerSchema, recordWithoutStreet2);
-        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_2);
+        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(recordFieldsPerson2);
         outerRecord2MapRecordValues.put(FIELD_ADDRESS, innerRecord2);
         Record outerRecord2 = new MapRecord(outerSchema, outerRecord2MapRecordValues);
 
@@ -275,12 +275,12 @@ public class TestWriteXMLResultUtils {
         RecordSchema outerSchema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
 
         Record innerRecord1 = new MapRecord(innerSchema, Collections.emptyMap());
-        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_1);
+        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(recordFieldsPerson1);
         outerRecord1MapRecordValues.put(FIELD_ADDRESS, innerRecord1);
         Record outerRecord1 = new MapRecord(outerSchema, outerRecord1MapRecordValues);
 
         Record innerRecord2 = new MapRecord(innerSchema, Collections.emptyMap());
-        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_2);
+        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(recordFieldsPerson2);
         outerRecord2MapRecordValues.put(FIELD_ADDRESS, innerRecord2);
         Record outerRecord2 = new MapRecord(outerSchema, outerRecord2MapRecordValues);
 
@@ -302,12 +302,12 @@ public class TestWriteXMLResultUtils {
         RecordSchema outerSchema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
 
         Record innerRecord1 = new MapRecord(innerSchema, Map.of());
-        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_1);
+        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(recordFieldsPerson1);
         outerRecord1MapRecordValues.put(FIELD_ADDRESS, innerRecord1);
         Record outerRecord1 = new MapRecord(outerSchema, outerRecord1MapRecordValues);
 
         Record innerRecord2 = new MapRecord(innerSchema, Map.of());
-        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_2);
+        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(recordFieldsPerson2);
         outerRecord2MapRecordValues.put(FIELD_ADDRESS, innerRecord2);
         Record outerRecord2 = new MapRecord(outerSchema, outerRecord2MapRecordValues);
 
@@ -351,10 +351,10 @@ public class TestWriteXMLResultUtils {
         fields.add(new RecordField(FIELD_CHILDREN, arrayType));
         fields.addAll(getSimpleRecordFields());
 
-        Map<String, Object> recordFields1 = new HashMap<>(RECORD_FIELDS_PERSON_1);
+        Map<String, Object> recordFields1 = new HashMap<>(recordFieldsPerson1);
         recordFields1.put(FIELD_CHILDREN, children);
 
-        Map<String, Object> recordFields2 = new HashMap<>(RECORD_FIELDS_PERSON_2);
+        Map<String, Object> recordFields2 = new HashMap<>(recordFieldsPerson2);
         recordFields2.put(FIELD_CHILDREN, children);
 
         RecordSchema schema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
@@ -397,10 +397,10 @@ public class TestWriteXMLResultUtils {
         fields.add(new RecordField(FIELD_CHILDREN, mapType));
         fields.addAll(getSimpleRecordFields());
 
-        Map<String, Object> recordFields1 = new HashMap<>(RECORD_FIELDS_PERSON_1);
+        Map<String, Object> recordFields1 = new HashMap<>(recordFieldsPerson1);
         recordFields1.put(FIELD_CHILDREN, children);
 
-        Map<String, Object> recordFields2 = new HashMap<>(RECORD_FIELDS_PERSON_2);
+        Map<String, Object> recordFields2 = new HashMap<>(recordFieldsPerson2);
         recordFields2.put(FIELD_CHILDREN, children);
 
         RecordSchema schema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
@@ -431,8 +431,8 @@ public class TestWriteXMLResultUtils {
         RecordSchema schema = new SimpleRecordSchema(getSimpleRecordFields(), SCHEMA_IDENTIFIER_PERSON);
 
         List<Record> records = new ArrayList<>();
-        records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_1));
-        records.add(new MapRecord(schema, RECORD_FIELDS_PERSON_2));
+        records.add(new MapRecord(schema, recordFieldsPerson1));
+        records.add(new MapRecord(schema, recordFieldsPerson2));
 
         return new ListRecordSet(schema, records);
     }
@@ -450,13 +450,13 @@ public class TestWriteXMLResultUtils {
 
         RecordSchema outerSchema = new SimpleRecordSchema(fields, SCHEMA_IDENTIFIER_PERSON);
 
-        Record innerRecord1 = new MapRecord(new SimpleRecordSchema(Collections.emptyList()), RECORD_FIELDS_ADDRESS_1);
-        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_1);
+        Record innerRecord1 = new MapRecord(new SimpleRecordSchema(Collections.emptyList()), recordFieldsAddress1);
+        Map<String, Object> outerRecord1MapRecordValues = new HashMap<>(recordFieldsPerson1);
         outerRecord1MapRecordValues.put(FIELD_ADDRESS, innerRecord1);
         Record outerRecord1 = new MapRecord(outerSchema, outerRecord1MapRecordValues);
 
-        Record innerRecord2 = new MapRecord(new SimpleRecordSchema(Collections.emptyList()), RECORD_FIELDS_ADDRESS_2);
-        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(RECORD_FIELDS_PERSON_2);
+        Record innerRecord2 = new MapRecord(new SimpleRecordSchema(Collections.emptyList()), recordFieldsAddress2);
+        Map<String, Object> outerRecord2MapRecordValues = new HashMap<>(recordFieldsPerson2);
         outerRecord2MapRecordValues.put(FIELD_ADDRESS, innerRecord2);
         Record outerRecord2 = new MapRecord(outerSchema, outerRecord2MapRecordValues);
 

@@ -61,7 +61,7 @@ public class WholeConfigDifferentiatorTest {
     }
 
     @Test
-    public void TestSameByteBuffer() throws IOException {
+    public void testSameByteBuffer() throws IOException {
         Differentiator<ByteBuffer> differentiator = WholeConfigDifferentiator.getByteBufferDifferentiator();
         differentiator.initialize(configurationFileHolder);
 
@@ -69,7 +69,7 @@ public class WholeConfigDifferentiatorTest {
     }
 
     @Test
-    public void TestNewByteBuffer() throws IOException {
+    public void testNewByteBuffer() throws IOException {
         Differentiator<ByteBuffer> differentiator = WholeConfigDifferentiator.getByteBufferDifferentiator();
         differentiator.initialize(configurationFileHolder);
 

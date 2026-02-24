@@ -49,12 +49,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SuppressWarnings("resource")
 public class PutDatabaseRecordIT {
 
-    private final long MILLIS_TIMESTAMP_LONG = 1707238288351L;
-    private final long MICROS_TIMESTAMP_LONG = 1707238288351567L;
-    private final String MICROS_TIMESTAMP_FORMATTED = "2024-02-06 11:51:28.351567";
-    private final double MICROS_TIMESTAMP_DOUBLE = ((double) MICROS_TIMESTAMP_LONG) / 1000000D;
-    private final long NANOS_AFTER_SECOND = 351567000L;
-    private final Instant INSTANT_MICROS_PRECISION = Instant.ofEpochMilli(MILLIS_TIMESTAMP_LONG).plusNanos(NANOS_AFTER_SECOND).minusMillis(MILLIS_TIMESTAMP_LONG % 1000);
+    private static final long MILLIS_TIMESTAMP_LONG = 1707238288351L;
+    private static final long MICROS_TIMESTAMP_LONG = 1707238288351567L;
+    private static final String MICROS_TIMESTAMP_FORMATTED = "2024-02-06 11:51:28.351567";
+    private static final double MICROS_TIMESTAMP_DOUBLE = ((double) MICROS_TIMESTAMP_LONG) / 1000000D;
+    private static final long NANOS_AFTER_SECOND = 351567000L;
+    private static final Instant INSTANT_MICROS_PRECISION = Instant.ofEpochMilli(MILLIS_TIMESTAMP_LONG).plusNanos(NANOS_AFTER_SECOND).minusMillis(MILLIS_TIMESTAMP_LONG % 1000);
 
     private static final String SIMPLE_INPUT_RECORD = """
             {

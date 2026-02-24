@@ -73,7 +73,7 @@ public class TestListFile {
 
     private static boolean isMillisecondSupported = false;
 
-    private final String TESTDIR = "target/test/data/in";
+    private static final String TESTDIR = "target/test/data/in";
     private final File testDir = new File(TESTDIR);
     private ListFile processor;
     private TestRunner runner;

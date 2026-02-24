@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 public abstract class BaseScriptTest {
 
-    public final String TEST_RESOURCE_LOCATION = "target/test/resources/";
+    public static final String TEST_RESOURCE_LOCATION = "target/test/resources/";
 
     protected TestRunner runner;
     protected AccessibleScriptingComponentHelper scriptingComponent;

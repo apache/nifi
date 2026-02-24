@@ -116,7 +116,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
             REL_FAILURE
     );
 
-    private final AtomicReference<JsonPath> JSON_PATH_REF = new AtomicReference<>();
+    private final AtomicReference<JsonPath> jsonPathRef = new AtomicReference<>();
     private volatile String nullDefaultValue;
     private volatile Configuration jsonPathConfiguration;
 
@@ -135,7 +135,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
         if (descriptor.equals(ARRAY_JSON_PATH_EXPRESSION)) {
             if (!Strings.CS.equals(oldValue, newValue)) {
                 // This value will be computed and set in customValidate()
-                JSON_PATH_REF.set(null);
+                jsonPathRef.set(null);
             }
         }
     }
@@ -145,12 +145,12 @@ public class SplitJson extends AbstractJsonPathProcessor {
         JsonPathValidator validator = new JsonPathValidator() {
             @Override
             public void cacheComputedValue(String subject, String input, JsonPath computedJson) {
-                JSON_PATH_REF.set(computedJson);
+                jsonPathRef.set(computedJson);
             }
 
             @Override
             public boolean isStale(String subject, String input) {
-                return JSON_PATH_REF.get() == null;
+                return jsonPathRef.get() == null;
             }
         };
 
@@ -184,7 +184,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
             return;
         }
 
-        final JsonPath jsonPath = JSON_PATH_REF.get();
+        final JsonPath jsonPath = jsonPathRef.get();
 
         Object jsonPathResult;
         try {

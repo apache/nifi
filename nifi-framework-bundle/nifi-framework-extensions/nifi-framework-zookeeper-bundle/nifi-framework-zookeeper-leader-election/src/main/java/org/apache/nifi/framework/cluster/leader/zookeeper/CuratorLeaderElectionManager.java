@@ -411,7 +411,7 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
         private volatile boolean leader;
         private volatile Thread leaderThread;
         private long leaderUpdateTimestamp = 0L;
-        private final long MAX_CACHE_MILLIS = TimeUnit.SECONDS.toMillis(5L);
+        private static final long MAX_CACHE_MILLIS = TimeUnit.SECONDS.toMillis(5L);
 
         public ElectionListener(final String roleName, final LeaderElectionStateChangeListener listener, final String participantId) {
             this.roleName = roleName;

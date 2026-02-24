@@ -82,7 +82,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         .required(true)
         .build();
 
-    public static PropertyDescriptor SCHEMA_REFERENCE_WRITER_SERVICE = new Builder()
+    public static final PropertyDescriptor SCHEMA_REFERENCE_WRITER_SERVICE = new Builder()
             .name("Schema Reference Writer")
             .description("Service implementation responsible for writing FlowFile attributes or content header with Schema reference information")
             .dependsOn(SCHEMA_WRITE_STRATEGY, SCHEMA_REFERENCE_WRITER)

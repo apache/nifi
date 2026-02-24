@@ -86,7 +86,7 @@ import static org.apache.nifi.processors.jslt.JSLTTransformJSON.TransformationSt
         + "fails, the original FlowFile is routed to the 'failure' relationship.")
 public class JSLTTransformJSON extends AbstractProcessor {
 
-    public static String JSLT_FILTER_DEFAULT = ". != null and . != {} and . != []";
+    public static final String JSLT_FILTER_DEFAULT = ". != null and . != {} and . != []";
 
     public static final PropertyDescriptor JSLT_TRANSFORM = new PropertyDescriptor.Builder()
             .name("JSLT Transformation")

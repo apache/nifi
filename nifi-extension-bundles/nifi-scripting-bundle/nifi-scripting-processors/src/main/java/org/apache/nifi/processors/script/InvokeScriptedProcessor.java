@@ -264,14 +264,14 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)
                 || ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)
                 || ScriptingComponentUtils.MODULES.equals(descriptor)
-                || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+                || scriptingComponentHelper.scriptEngine.equals(descriptor)) {
 
             // Update the ScriptingComponentHelper's value(s)
             if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)) {
                 scriptingComponentHelper.setScriptPath(newValue);
             } else if (ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)) {
                 scriptingComponentHelper.setScriptBody(newValue);
-            } else if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+            } else if (scriptingComponentHelper.scriptEngine.equals(descriptor)) {
                 scriptingComponentHelper.setScriptEngineName(newValue);
             }
 
@@ -507,7 +507,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
             return scriptingComponentHelperResults;
         }
 
-        scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.SCRIPT_ENGINE).getValue());
+        scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.scriptEngine).getValue());
         scriptingComponentHelper.setScriptPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
         scriptingComponentHelper.setScriptBody(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue());
         final ResourceReferences resourceReferences = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources();

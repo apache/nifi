@@ -276,24 +276,24 @@ public class TestControlRate {
         runner.setProperty(ControlRate.MAX_RATE, "5555");
         runner.setProperty(ControlRate.TIME_PERIOD, ONE_SECOND_TIME_PERIOD);
 
-        final int TEST_FILE_COUNT = 1500;
+        final int testFileCount = 1500;
 
-        for (int i = 0; i < TEST_FILE_COUNT; i++) {
+        for (int i = 0; i < testFileCount; i++) {
             runner.enqueue("test data " + i);
         }
 
         runner.run(1, false);
 
-        // after 1 run should have MAX_FLOW_FILES_PER_BATCH files transferred and remainder of TEST_FILE_COUNT in queue
+        // after 1 run should have MAX_FLOW_FILES_PER_BATCH files transferred and remainder of testFileCount in queue
         runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, MAX_FLOW_FILES_PER_BATCH);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueNotEmpty();
-        assertEquals(TEST_FILE_COUNT - MAX_FLOW_FILES_PER_BATCH, runner.getQueueSize().getObjectCount());
+        assertEquals(testFileCount - MAX_FLOW_FILES_PER_BATCH, runner.getQueueSize().getObjectCount());
 
         runner.run(1, false);
 
-        // after 2 runs should have TEST_FILE_COUNT files transferred and 0 in queue
-        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, TEST_FILE_COUNT);
+        // after 2 runs should have testFileCount files transferred and 0 in queue
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, testFileCount);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueEmpty();
     }

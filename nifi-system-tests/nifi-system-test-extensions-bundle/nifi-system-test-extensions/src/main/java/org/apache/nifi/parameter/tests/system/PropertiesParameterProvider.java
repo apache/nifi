@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
         description = "Specifies parameters in a properties file format for the group")
 public class PropertiesParameterProvider extends AbstractParameterProvider implements ParameterProvider {
 
-    private PropertyDescriptor PARAMETERS = new PropertyDescriptor.Builder()
+    private static final PropertyDescriptor PARAMETERS = new PropertyDescriptor.Builder()
             .name("parameters")
             .displayName("Parameters")
             .description("Specifies parameters in a properties file format")

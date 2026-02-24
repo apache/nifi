@@ -100,32 +100,32 @@ public class MetricsBuilder {
         return this.computer;
     }
 
-    public void setComputer(String Computer) {
-        this.computer = Computer;
+    public void setComputer(String computer) {
+        this.computer = computer;
     }
 
     public String getCategoryName() {
         return this.categoryName;
     }
 
-    public void setCategoryName(String CategoryName) {
-        this.categoryName = CategoryName;
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
 
     public String getProcessGroupId() {
         return this.processGroupId;
     }
 
-    public void setProcessGroupId(String ProcessGroupId) {
-        this.processGroupId = ProcessGroupId;
+    public void setProcessGroupId(String processGroupId) {
+        this.processGroupId = processGroupId;
     }
 
     public String getProcessGroupName() {
         return this.processGroupName;
     }
 
-    public void setProcessGroupName(String ProcessGroupName) {
-        this.processGroupName = ProcessGroupName;
+    public void setProcessGroupName(String processGroupName) {
+        this.processGroupName = processGroupName;
     }
 
     public String getProcessorId() {

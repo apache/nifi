@@ -198,7 +198,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
         return PROPERTY_DESCRIPTORS;
     }
 
-    public void CreateConsumer(final ReportingContext context) {
+    public void createConsumer(final ReportingContext context) {
         if (consumer != null) {
             return;
         }
@@ -323,7 +323,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
         final Map<String, Object> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
         final JsonObjectBuilder builder = factory.createObjectBuilder();
-        CreateConsumer(context);
+        createConsumer(context);
         consumer.consumeEvents(context, (mapHolder, events) -> {
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append('[');

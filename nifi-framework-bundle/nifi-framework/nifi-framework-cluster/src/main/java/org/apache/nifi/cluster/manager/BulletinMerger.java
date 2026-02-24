@@ -31,7 +31,7 @@ public final class BulletinMerger {
 
     private BulletinMerger() { }
 
-    public static Comparator<BulletinEntity> BULLETIN_COMPARATOR = (o1, o2) -> {
+    public static final Comparator<BulletinEntity> BULLETIN_COMPARATOR = (o1, o2) -> {
         if (o1 == null && o2 == null) {
             return 0;
         }

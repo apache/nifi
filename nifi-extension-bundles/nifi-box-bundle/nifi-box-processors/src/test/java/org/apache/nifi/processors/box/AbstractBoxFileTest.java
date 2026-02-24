@@ -47,14 +47,14 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class AbstractBoxFileTest {
-    public final String TEST_FILE_ID = "fileId";
-    public final String TEST_FOLDER_ID = "folderId";
-    public final String TEST_FILENAME = "filename";
-    public final String TEST_FOLDER_NAME = "folderName";
-    public final long TEST_SIZE = 12L;
-    public final long CREATED_TIME = 123456L;
-    public final long MODIFIED_TIME = 7891011L;
-    public final String CONTENT = "content";
+    public static final String TEST_FILE_ID = "fileId";
+    public static final String TEST_FOLDER_ID = "folderId";
+    public static final String TEST_FILENAME = "filename";
+    public static final String TEST_FOLDER_NAME = "folderName";
+    public static final long TEST_SIZE = 12L;
+    public static final long CREATED_TIME = 123456L;
+    public static final long MODIFIED_TIME = 7891011L;
+    public static final String CONTENT = "content";
 
     protected TestRunner testRunner;
 

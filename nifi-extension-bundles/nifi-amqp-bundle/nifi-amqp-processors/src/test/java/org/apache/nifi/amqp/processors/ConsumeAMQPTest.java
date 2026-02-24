@@ -244,7 +244,7 @@ public class ConsumeAMQPTest {
         headersMap.put("foo2", "bar,bar");
         headersMap.put("foo3", "null");
         headersMap.put("foo4", null);
-        final String EXPECTED_RESULT = "{foo1=bar,bar|foo2=bar,bar|foo3=null|foo4}";
+        final String expectedResult = "{foo1=bar,bar|foo2=bar,bar|foo3=null|foo4}";
 
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
@@ -263,7 +263,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals(ConsumeAMQP.AMQP_ROUTING_KEY_ATTRIBUTE, "key1");
             successFF.assertAttributeEquals(ConsumeAMQP.AMQP_EXCHANGE_ATTRIBUTE, "myExchange");
             String headers = successFF.getAttribute(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE);
-            assertEquals(EXPECTED_RESULT, headers);
+            assertEquals(expectedResult, headers);
         }
     }
     @Test
@@ -311,7 +311,7 @@ public class ConsumeAMQPTest {
         final Map<String, Object> headersMap = new HashMap<>();
         headersMap.put("key1", "(bar,bar)");
         headersMap.put("key2", "(bar,bar)");
-        final String EXPECTED_RESULT = "key1=(bar,bar)|key2=(bar,bar)";
+        final String expectedResult = "key1=(bar,bar)|key2=(bar,bar)";
 
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
@@ -332,7 +332,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals(ConsumeAMQP.AMQP_ROUTING_KEY_ATTRIBUTE, "key1");
             successFF.assertAttributeEquals(ConsumeAMQP.AMQP_EXCHANGE_ATTRIBUTE, "myExchange");
             String headers = successFF.getAttribute(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE);
-            assertEquals(EXPECTED_RESULT, headers);
+            assertEquals(expectedResult, headers);
         }
     }
 
@@ -345,7 +345,7 @@ public class ConsumeAMQPTest {
         headersMap.put("key2", "bar2");
         headersMap.put("key3", "");
         headersMap.put("key4", null);
-        final String EXPECTED_RESULT = "{key1=bar,key2=bar2,key3=,key4}";
+        final String expectedResult = "{key1=bar,key2=bar2,key3=,key4}";
 
         AMQP.BasicProperties.Builder builderBasicProperties = new AMQP.BasicProperties.Builder();
         builderBasicProperties.headers(headersMap);
@@ -364,7 +364,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals(ConsumeAMQP.AMQP_ROUTING_KEY_ATTRIBUTE, "key1");
             successFF.assertAttributeEquals(ConsumeAMQP.AMQP_EXCHANGE_ATTRIBUTE, "myExchange");
             String headers = successFF.getAttribute(AbstractAMQPProcessor.AMQP_HEADERS_ATTRIBUTE);
-            assertEquals(EXPECTED_RESULT, headers);
+            assertEquals(expectedResult, headers);
         }
     }
 

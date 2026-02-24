@@ -46,10 +46,10 @@ public class LoopFlowFile extends AbstractProcessor {
         .defaultValue("1")
         .build();
 
-    protected static Relationship REL_LOOP = new Relationship.Builder()
+    protected static final Relationship REL_LOOP = new Relationship.Builder()
         .name("loop")
         .build();
-    protected static Relationship REL_FINISHED = new Relationship.Builder()
+    protected static final Relationship REL_FINISHED = new Relationship.Builder()
         .name("finished")
         .build();
 

@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  */
 public class ITPutCloudWatchMetric {
 
-    private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
+    private static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
     @Test
     public void ifCredentialsThenTestPublish() {
