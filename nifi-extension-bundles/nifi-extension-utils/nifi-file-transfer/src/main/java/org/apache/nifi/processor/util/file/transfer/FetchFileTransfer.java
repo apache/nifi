@@ -172,7 +172,6 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         levelFileNotFound = LogLevel.valueOf(context.getProperty(FILE_NOT_FOUND_LOG_LEVEL).getValue());
     }
 
-
     /**
      * Close connections that are idle or optionally close all connections.
      * Connections are considered "idle" if they have not been used in 10 seconds.
@@ -372,7 +371,6 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             }
         }
     }
-
 
     /**
      * Creates a new instance of a FileTransfer that can be used to pull files from a remote system.

@@ -249,7 +249,6 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         }
     }
 
-
     @OnStopped
     public void close() {
         if (resourceQueue != null) {
@@ -281,7 +280,6 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
      * @return new instance of {@link AMQPWorker}
      */
     protected abstract T createAMQPWorker(ProcessContext context, Connection connection);
-
 
     private AMQPResource<T> createResource(final ProcessContext context) {
         Connection connection = null;

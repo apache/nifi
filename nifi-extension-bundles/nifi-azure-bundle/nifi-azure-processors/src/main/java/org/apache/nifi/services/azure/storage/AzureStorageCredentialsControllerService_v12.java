@@ -27,6 +27,7 @@ import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import java.util.Map;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ACCOUNT_KEY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ACCOUNT_NAME;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CREDENTIALS_TYPE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SAS_TOKEN;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
@@ -69,6 +71,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
             SERVICE_PRINCIPAL_CLIENT_SECRET,
+            IDENTITY_FEDERATION_TOKEN_PROVIDER,
             PROXY_CONFIGURATION_SERVICE
     );
 
@@ -107,9 +110,16 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
                 String servicePrincipalClientSecret = context.getProperty(SERVICE_PRINCIPAL_CLIENT_SECRET).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithServicePrincipal(accountName, endpointSuffix,
                         servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, proxyOptions);
-            default:
-                throw new IllegalArgumentException("Unhandled credentials type: " + credentialsType);
+            case IDENTITY_FEDERATION:
+                final AzureIdentityFederationTokenProvider identityTokenProvider = context.getProperty(IDENTITY_FEDERATION_TOKEN_PROVIDER)
+                        .asControllerService(AzureIdentityFederationTokenProvider.class);
+                return AzureStorageCredentialsDetails_v12.createWithIdentityTokenProvider(
+                        accountName,
+                        endpointSuffix,
+                        identityTokenProvider);
         }
+
+        throw new IllegalArgumentException("Unhandled credentials type: " + credentialsType);
     }
 
     @Override

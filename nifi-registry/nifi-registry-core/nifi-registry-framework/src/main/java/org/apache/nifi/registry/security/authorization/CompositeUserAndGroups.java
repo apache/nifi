@@ -75,5 +75,4 @@ public class CompositeUserAndGroups implements UserAndGroups {
         }
     }
 
-
 }

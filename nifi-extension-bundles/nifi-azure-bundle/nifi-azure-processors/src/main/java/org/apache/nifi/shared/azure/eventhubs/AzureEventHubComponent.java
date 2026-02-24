@@ -22,6 +22,7 @@ import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 
 /**
  * Azure Event Hub Component interface with shared properties
@@ -51,6 +52,14 @@ public interface AzureEventHubComponent {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .dependsOn(AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.OAUTH2)
+            .build();
+    PropertyDescriptor IDENTITY_FEDERATION_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("Event Hubs Identity Federation Token Provider")
+            .description("Controller Service exchanging workload identity tokens for Azure AD access tokens when authenticating to Azure Event Hubs.")
+            .identifiesControllerService(AzureIdentityFederationTokenProvider.class)
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dependsOn(AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.IDENTITY_FEDERATION)
             .build();
     ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()

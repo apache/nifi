@@ -85,7 +85,6 @@ public abstract class AbstractPeerPersistence implements PeerPersistence {
         return statuses;
     }
 
-
     @FunctionalInterface
     protected interface IOConsumer<T> {
         void accept(T value) throws IOException;

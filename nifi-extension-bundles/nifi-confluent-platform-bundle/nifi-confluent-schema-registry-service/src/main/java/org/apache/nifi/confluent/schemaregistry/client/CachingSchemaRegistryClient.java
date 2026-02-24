@@ -34,7 +34,6 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     private final LoadingCache<Integer, RecordSchema> idCache;
     private final LoadingCache<SchemaIdentifier, SchemaDefinition> definitionCache;
 
-
     public CachingSchemaRegistryClient(final SchemaRegistryClient toWrap, final int cacheSize, final long expirationNanos) {
         this.client = toWrap;
 

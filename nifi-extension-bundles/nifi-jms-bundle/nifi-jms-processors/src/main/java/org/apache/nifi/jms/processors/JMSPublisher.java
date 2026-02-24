@@ -135,7 +135,6 @@ class JMSPublisher extends JMSWorker {
         this.processLog.warn("Failed to determine destination type from destination name '{}'. The '{}' header will not be set.", destinationName, headerName);
     }
 
-
     private static Destination buildDestination(final Session session, final String destinationName) throws JMSException {
         if (destinationName.toLowerCase().contains("topic")) {
             return session.createTopic(destinationName);

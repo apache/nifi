@@ -174,7 +174,6 @@ public class TestPartitionRecord {
         out.assertAttributeEquals("age", "30");
     }
 
-
     @Test
     public void testGroupByMultipleFields() {
         runner.setProperty("age", "/age");
@@ -198,7 +197,6 @@ public class TestPartitionRecord {
         assertEquals(1L, out.stream().filter(mff -> mff.isContentEqual("Jane,30,\n") && mff.isAttributeEqual("age", "30") && mff.isAttributeEqual("name", "Jane")).count());
         assertEquals(1L, out.stream().filter(mff -> mff.isContentEqual("John,31,\n") && mff.isAttributeEqual("age", "31") && mff.isAttributeEqual("name", "John")).count());
     }
-
 
     @Test
     public void testGroupByArrayField() {
@@ -243,7 +241,6 @@ public class TestPartitionRecord {
         runner.assertAllFlowFilesTransferred(PartitionRecord.REL_FAILURE, 1);
         runner.getFlowFilesForRelationship(PartitionRecord.REL_FAILURE).getFirst().assertContentEquals(new byte[0]);
     }
-
 
     @Test
     public void testValueWrapperEqualityWithArrays() {

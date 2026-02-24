@@ -77,70 +77,64 @@ public class TestEvaluateXQuery {
                 }
             }
         }
-        {
-            formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", false, false);
-            assertEquals(1, formattedResults.size());
-            String expectedXml
-                    = """
-                    <?xml version="1.0" encoding="UTF-8"?><fruit xmlns:ns="http://namespace/1" taste="crisp">
-                    <!-- Apples are my favorite -->
-                        <name>apple</name>
-                        <color>red</color>
-                      </fruit>""";
-            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
-        }
-        {
-            formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "html", false, false);
-            assertEquals(1, formattedResults.size());
-            String expectedXml
-                    = """
-                    <fruit xmlns:ns="http://namespace/1" taste="crisp">
-                        <!-- Apples are my favorite -->
-                        <name>apple</name>
-                        <color>red</color>
-                      </fruit>""";
-            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
-        }
-        {
-            formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "text", false, false);
-            assertEquals(1, formattedResults.size());
-            String expectedXml
-                    = """
+        formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", false, false);
+        assertEquals(1, formattedResults.size());
+        String expectedXml
+                = """
+                <?xml version="1.0" encoding="UTF-8"?><fruit xmlns:ns="http://namespace/1" taste="crisp">
+                <!-- Apples are my favorite -->
+                    <name>apple</name>
+                    <color>red</color>
+                  </fruit>""";
+        assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
 
-                       \s
-                        apple
-                        red
-                      \
-                    """;
-            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
-        }
-        {
-            formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", true, false);
-            assertEquals(1, formattedResults.size());
-            String expectedXml
-                    = """
-                    <?xml version="1.0" encoding="UTF-8"?>
-                    <fruit xmlns:ns="http://namespace/1" taste="crisp">
-                        <!-- Apples are my favorite -->
-                        <name>apple</name>
-                        <color>red</color>
-                      </fruit>
-                    """;
-            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
-        }
-        {
-            formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", true, true);
-            assertEquals(1, formattedResults.size());
-            String expectedXml
-                    = """
-                    <fruit xmlns:ns="http://namespace/1" taste="crisp">
-                        <!-- Apples are my favorite -->
-                        <name>apple</name>
-                        <color>red</color>
-                      </fruit>
-                    """;
-            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
-        }
+        formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "html", false, false);
+        assertEquals(1, formattedResults.size());
+        expectedXml
+                = """
+                <fruit xmlns:ns="http://namespace/1" taste="crisp">
+                    <!-- Apples are my favorite -->
+                    <name>apple</name>
+                    <color>red</color>
+                  </fruit>""";
+        assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
+
+        formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "text", false, false);
+        assertEquals(1, formattedResults.size());
+        expectedXml
+                = """
+
+                   \s
+                    apple
+                    red
+                  \
+                """;
+        assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
+
+        formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", true, false);
+        assertEquals(1, formattedResults.size());
+        expectedXml
+                = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <fruit xmlns:ns="http://namespace/1" taste="crisp">
+                    <!-- Apples are my favorite -->
+                    <name>apple</name>
+                    <color>red</color>
+                  </fruit>
+                """;
+        assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
+
+        formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", true, true);
+        assertEquals(1, formattedResults.size());
+        expectedXml
+                = """
+                <fruit xmlns:ns="http://namespace/1" taste="crisp">
+                    <!-- Apples are my favorite -->
+                    <name>apple</name>
+                    <color>red</color>
+                  </fruit>
+                """;
+        assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
     }
 
     private String spaceTrimmed(String str) {
@@ -286,7 +280,6 @@ public class TestEvaluateXQuery {
         /* String all matches color and name, comma delimited using let(one result)*/
         doXqueryTest(XML_SNIPPET, "string-join((for $y in (for $x in //fruit let $d := string-join(($x/color/text() , $x/name/text()), ' ')  return $d) return $y), ', ')",
                 Collections.singletonList("red apple, green apple, yellow banana, orange orange, blue blueberry, red raspberry, none"));
-
 
         /* Query for attribute */
         doXqueryTest(XML_SNIPPET, "string(//fruit[1]/@taste)", Collections.singletonList("crisp"));
@@ -663,7 +656,6 @@ public class TestEvaluateXQuery {
 
         testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_FAILURE, 1);
     }
-
 
     @Test
     public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws IOException {

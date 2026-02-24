@@ -172,7 +172,6 @@ public class TestGitFlowPersistenceProvider {
             final byte[] flow2Ver2 = "FlowTwo ver.2".getBytes(StandardCharsets.UTF_8);
             p.saveFlowContent(contextBuilder.build(), flow2Ver2);
 
-
         }, false);
 
         assertProvider(properties, g -> {

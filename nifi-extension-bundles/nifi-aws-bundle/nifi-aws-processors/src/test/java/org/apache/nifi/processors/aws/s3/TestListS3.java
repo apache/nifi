@@ -105,7 +105,6 @@ public class TestListS3 {
         AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
     }
 
-
     @Test
     public void testList() {
         runner.setProperty(RegionUtil.REGION, "eu-west-1");
@@ -439,7 +438,6 @@ public class TestListS3 {
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 0);
     }
-
 
     @Test
     public void testListIgnoreByMinAge() throws IOException {

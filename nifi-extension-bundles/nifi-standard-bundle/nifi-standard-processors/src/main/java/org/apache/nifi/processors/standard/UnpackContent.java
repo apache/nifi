@@ -691,7 +691,6 @@ public class UnpackContent extends AbstractProcessor {
         }
     }
 
-
     private void finishFragmentAttributes(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
         // first pass verifies all FlowFiles have the FRAGMENT_INDEX attribute and gets the total number of fragments
         int fragmentCount = 0;

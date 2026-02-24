@@ -135,7 +135,6 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
         logger.debug("{}", sb);
     }
 
-
     @Override
     public String getRequestIdentifier() {
         return id;

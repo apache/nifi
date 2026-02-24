@@ -1368,7 +1368,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             && group.getParameterContextName() == null;
     }
 
-
     private DataFlow getExistingDataFlow(final FlowController controller) {
         final FlowManager flowManager = controller.getFlowManager();
         final ProcessGroup root = flowManager.getRootGroup();
@@ -1410,7 +1409,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         return result.toByteArray();
     }
 
-
     private byte[] readFlowFromDisk() throws IOException {
         if (flowStorageFile.length() == 0) {
             return new byte[0];
@@ -1425,7 +1423,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             return baos.toByteArray();
         }
     }
-
 
     private void inheritSnippets(final FlowController controller, final DataFlow proposedFlow) {
         // clear the snippets that are currently in memory

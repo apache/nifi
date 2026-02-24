@@ -62,7 +62,6 @@ public class MigrateProperties extends AbstractProcessor {
             .addValidator(Validator.VALID)
             .build();
 
-
     static Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
     static Relationship REL_FAILURE = new Relationship.Builder().name("failure").build();
 

@@ -40,7 +40,6 @@ public interface VersionedComponentStateLookup {
 
     ScheduledState getState(ProcessGroup processGroup);
 
-
     /**
      * Returns a Scheduled State of ENABLED or DISABLED for every component. No component will be mapped to RUNNING.
      */

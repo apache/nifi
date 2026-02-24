@@ -168,7 +168,6 @@ public class ConsumeWindowsEventLogTest {
 
         testRunner = TestRunners.newTestRunner(evtSubscribe);
 
-
         testRunner.run(1, false, true);
 
         WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, List.of("test")).getFirst();

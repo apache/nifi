@@ -103,7 +103,6 @@ public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-
     public static final PropertyDescriptor ARN = new PropertyDescriptor.Builder()
             .name("Amazon Resource Name")
             .description("The name of the resource (ARN) to which notifications should be published")
@@ -122,7 +121,6 @@ public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder
             .allowableValues(ARN_TYPE_TOPIC, ARN_TYPE_TARGET)
             .defaultValue(ARN_TYPE_TOPIC.getValue())
             .build();
-
 
     public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             ARN,

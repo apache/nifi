@@ -145,7 +145,6 @@ public class RecordSetWriterLookup extends AbstractControllerService implements 
         serviceToUseValue = context.getProperty(SERVICE_TO_USE);
     }
 
-
     @Override
     public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         return getRecordSetWriterFactory(variables).getSchema(variables, readSchema);

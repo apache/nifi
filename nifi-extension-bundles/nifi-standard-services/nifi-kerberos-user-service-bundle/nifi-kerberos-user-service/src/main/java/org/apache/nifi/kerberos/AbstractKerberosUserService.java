@@ -110,5 +110,4 @@ public abstract class AbstractKerberosUserService extends AbstractControllerServ
      */
     protected abstract void setAdditionalConfiguredValues(final ConfigurationContext context);
 
-
 }

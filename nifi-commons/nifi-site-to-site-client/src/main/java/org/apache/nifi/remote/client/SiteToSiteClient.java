@@ -733,7 +733,6 @@ public interface SiteToSiteClient extends Closeable {
             return portIdentifier;
         }
 
-
         /**
          * Specify a HTTP proxy information to use with HTTP protocol of Site-to-Site communication.
          * @param httpProxy HTTP proxy information
@@ -840,7 +839,6 @@ public interface SiteToSiteClient extends Closeable {
         public boolean isUseCompression() {
             return useCompression;
         }
-
 
         @Override
         public Set<String> getUrls() {

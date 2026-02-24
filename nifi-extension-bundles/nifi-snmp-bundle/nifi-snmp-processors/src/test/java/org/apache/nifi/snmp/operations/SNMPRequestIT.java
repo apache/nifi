@@ -98,7 +98,6 @@ class SNMPRequestIT {
     private static final TestAgent v2cTestAgent = new TestSNMPV2cAgent(LOCALHOST);
     private static final TestAgent v3TestAgent = new TestSNMPV3Agent(LOCALHOST);
 
-
     static {
         registerManagedObjects(v1TestAgent);
         registerManagedObjects(v2cTestAgent);
@@ -194,7 +193,6 @@ class SNMPRequestIT {
             agent.unregister();
         }
     }
-
 
     @ParameterizedTest
     @MethodSource("provideBasicArguments")

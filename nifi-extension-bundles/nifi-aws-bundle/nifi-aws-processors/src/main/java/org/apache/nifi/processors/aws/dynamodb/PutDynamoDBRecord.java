@@ -215,6 +215,8 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         final FlowFile outgoingFlowFile = session.putAllAttributes(flowFile, attributes);
 
         if (result.isSuccess()) {
+            final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
+            session.getProvenanceReporter().send(outgoingFlowFile, "dynamodb://%s".formatted(table));
             session.transfer(outgoingFlowFile, REL_SUCCESS);
         } else {
             handleError(context, session, result, outgoingFlowFile);
@@ -266,7 +268,6 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
                 "Uses the value of the Record field identified by the \"Sort Key Field\" property as sort key value."),
         BY_SEQUENCE("BySequence", "Generate Sequence",
                 "The processor will assign a number for every item based on the original record's position in the incoming FlowFile. This will be used as sort key value.");
-
 
         private final String value;
         private final String displayName;

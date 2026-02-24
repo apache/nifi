@@ -39,7 +39,6 @@ public class UseCase {
 
     String configuration;
 
-
     public String getDescription() {
         return description;
     }

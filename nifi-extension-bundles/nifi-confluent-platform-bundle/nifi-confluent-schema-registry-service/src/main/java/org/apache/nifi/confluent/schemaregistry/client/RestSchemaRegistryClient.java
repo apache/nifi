@@ -143,7 +143,6 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         this.logger = logger;
     }
 
-
     @Override
     public RecordSchema getSchema(final String schemaName) throws SchemaNotFoundException {
         final String pathSuffix = getSubjectPath(schemaName, null);

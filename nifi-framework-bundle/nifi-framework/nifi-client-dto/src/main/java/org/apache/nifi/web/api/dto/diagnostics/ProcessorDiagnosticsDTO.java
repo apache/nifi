@@ -36,7 +36,6 @@ public class ProcessorDiagnosticsDTO {
     private List<ThreadDumpDTO> threadDumps;
     private ClassLoaderDiagnosticsDTO classLoaderDiagnostics;
 
-
     @Schema(description = "Information about the Processor for which the Diagnostic Report is generated")
     public ProcessorDTO getProcessor() {
         return processor;

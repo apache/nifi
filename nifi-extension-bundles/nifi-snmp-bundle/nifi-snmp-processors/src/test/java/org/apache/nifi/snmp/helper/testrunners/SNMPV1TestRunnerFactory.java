@@ -34,7 +34,6 @@ import org.snmp4j.mp.SnmpConstants;
 
 public class SNMPV1TestRunnerFactory implements SNMPTestRunnerFactory {
 
-
     private static final SNMPConfigurationFactory snmpV1V2ConfigurationFactory = new SNMPV1V2cConfigurationFactory(SnmpConstants.version1);
 
     @Override

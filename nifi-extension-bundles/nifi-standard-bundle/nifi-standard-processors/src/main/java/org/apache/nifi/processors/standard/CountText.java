@@ -86,7 +86,6 @@ public class CountText extends AbstractProcessor {
     public static final String TEXT_WORD_COUNT = "text.word.count";
     public static final String TEXT_CHARACTER_COUNT = "text.character.count";
 
-
     public static final PropertyDescriptor TEXT_LINE_COUNT_PD = new PropertyDescriptor.Builder()
             .name("Count Lines")
             .description("If enabled, will count the number of lines present in the incoming text.")

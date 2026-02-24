@@ -647,7 +647,6 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         return null;
     }
 
-
     private AsyncLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final NiFiUser user, final LineageComputationType computationType, final Long eventId) {
         final String userId = user == null ? null : user.getIdentity();
         final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, 1, userId);

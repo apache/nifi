@@ -42,7 +42,6 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     private final long startNanos = System.nanoTime();
     private boolean contentModified;
 
-
     /**
      * Creates a new record which has no original claim or flow file - it is entirely new
      *

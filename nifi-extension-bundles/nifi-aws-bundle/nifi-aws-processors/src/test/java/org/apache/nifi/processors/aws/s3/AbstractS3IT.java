@@ -281,7 +281,6 @@ public abstract class AbstractS3IT {
         return dekResponse.keyId();
     }
 
-
     protected TestRunner initRunner(final Class<? extends AbstractS3Processor> processorClass) {
         TestRunner runner = TestRunners.newTestRunner(processorClass);
 

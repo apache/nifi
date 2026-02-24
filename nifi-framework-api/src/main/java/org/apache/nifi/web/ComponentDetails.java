@@ -97,7 +97,6 @@ public class ComponentDetails {
         return properties;
     }
 
-
     /**
      * @return Mapping of component descriptors
      */

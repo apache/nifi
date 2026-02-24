@@ -134,7 +134,6 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         }
     }
 
-
     private static Map<PropertyDescriptor, String> resolvePropertyValues(final ComponentNode component, final ParameterLookup parameterLookup, final Map<String, String> propertyValues) {
         final Map<PropertyDescriptor, String> resolvedProperties = new LinkedHashMap<>(component.getEffectivePropertyValues());
         final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();

@@ -397,7 +397,6 @@ public class ListDatabaseTables extends AbstractProcessor {
         void finishListingExceptionally(Exception cause);
     }
 
-
     private static class AttributeTableListingWriter implements TableListingWriter {
         private final ProcessSession session;
 

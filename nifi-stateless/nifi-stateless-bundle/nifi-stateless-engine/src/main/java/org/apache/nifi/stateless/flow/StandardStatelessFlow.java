@@ -367,7 +367,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
     }
 
-
     private void startReportingTasks() {
         reportingTasks.forEach(this::startReportingTask);
     }
@@ -691,7 +690,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
         return trigger;
     }
 
-
     private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker,
                                  final DataflowTriggerContext triggerContext) {
         final long startNanos = System.nanoTime();
@@ -836,7 +834,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
             throw t;
         }
     }
-
 
     @Override
     public boolean isFlowFileQueued() {

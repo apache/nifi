@@ -47,7 +47,6 @@ public interface ComponentSetFilter {
 
     boolean testStatelessGroup(ProcessGroup group);
 
-
     default ComponentSetFilter invert() {
         final ComponentSetFilter original = this;
 

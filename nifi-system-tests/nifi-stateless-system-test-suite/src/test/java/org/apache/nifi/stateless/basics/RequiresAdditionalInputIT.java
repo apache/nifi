@@ -83,7 +83,6 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         result.acknowledge();
     }
 
-
     @Test
     public void testMergeAsFirstProcessorWithoutEnoughData() throws IOException, StatelessConfigurationException, InterruptedException {
         final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
@@ -113,7 +112,6 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
 
         trigger.cancel();
     }
-
 
     @Test
     public void testMergeDownstream() throws IOException, StatelessConfigurationException, InterruptedException {

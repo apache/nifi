@@ -44,7 +44,6 @@ public class TestRenameRecordField {
     private final Path OUTPUT_FILES = Paths.get("src/test/resources/TestRenameRecordField/output");
     private TestRunner runner;
 
-
     @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(RenameRecordField.class);
@@ -116,7 +115,6 @@ public class TestRenameRecordField {
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_SUCCESS).get(0);
         assertContentsEqual(out, OUTPUT_FILES.resolve("testRenameArray.json"));
     }
-
 
     @Test
     public void testNestedPath() throws IOException {

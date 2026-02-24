@@ -583,7 +583,6 @@ public class FetchParquetTest {
                 user.put("name", "Bob" + i);
                 user.put("favorite_number", i);
 
-
                 final GenericArray<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
                 colors.add("blue" + i);
 
@@ -610,7 +609,6 @@ public class FetchParquetTest {
                 final GenericRecord user = new GenericData.Record(schema);
                 user.put("name", "Bob" + i);
                 user.put("favorite_number", i);
-
 
                 final GenericArray<String> colors = new GenericData.Array<>(1, favoriteColorsSchema);
                 colors.add("blue" + i);

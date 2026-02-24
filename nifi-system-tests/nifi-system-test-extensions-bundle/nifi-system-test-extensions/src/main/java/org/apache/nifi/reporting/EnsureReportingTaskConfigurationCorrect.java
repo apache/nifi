@@ -72,7 +72,6 @@ public class EnsureReportingTaskConfigurationCorrect extends AbstractReportingTa
         return Arrays.asList(SUCCESSFUL_VERIFICATION, VERIFICATION_STEPS, EXCEPTION_ON_VERIFICATION, FAILURE_NODE_NUMBER);
     }
 
-
     @Override
     public void onTrigger(final ReportingContext context) {
     }

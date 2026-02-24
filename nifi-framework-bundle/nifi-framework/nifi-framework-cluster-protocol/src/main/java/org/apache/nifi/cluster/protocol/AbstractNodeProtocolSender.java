@@ -140,7 +140,6 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         throw new ProtocolException("Expected message type '" + MessageType.HEARTBEAT_RESPONSE + "' but found '" + responseMessage.getType() + "'");
     }
 
-
     @Override
     public ClusterWorkloadResponseMessage clusterWorkload(final ClusterWorkloadRequestMessage msg) throws ProtocolException {
         final InetSocketAddress serviceAddress;
@@ -240,7 +239,6 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
             throw new ProtocolException("Failed to send message to Cluster Coordinator", e);
         }
     }
-
 
     protected abstract InetSocketAddress getServiceAddress() throws IOException;
 }

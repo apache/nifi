@@ -268,7 +268,6 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_FAILURE, 1);
     }
 
-
     @ParameterizedTest
     @CsvSource({"null", "us-west-100", "us-east-a"})
     public void testInvalidRegion(String region) {

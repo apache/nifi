@@ -321,7 +321,6 @@ public class TestFetchFile {
         assertTrue(destFile.exists());
     }
 
-
     @Test
     public void testMoveAndRename() throws IOException {
         final File sourceFile = new File("target/1.txt");

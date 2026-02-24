@@ -105,7 +105,6 @@ public final class BundleUtils {
         }
     }
 
-
     private static Optional<BundleCoordinate> findOptionalCompatibleBundle(final ExtensionManager extensionManager, final String type,
                                                          final BundleDTO bundleDTO) {
         final BundleCoordinate coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
@@ -125,7 +124,6 @@ public final class BundleUtils {
             }
         }
     }
-
 
     /**
      * Gets a bundle that supports the specified type. If the bundle is specified, an
@@ -210,7 +208,6 @@ public final class BundleUtils {
             return findOptionalCompatibleBundle(extensionManager, type, bundleDTO);
         }
     }
-
 
     /**
      * Discovers the compatible bundle details for the components in the specified Versioned Process Group and updates the Versioned Process Group

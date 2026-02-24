@@ -1096,7 +1096,6 @@ public class CaptureChangeMySQLTest {
         gtidEventData = EventUtils.buildGtidEventData(GTID_SOURCE_ID, TWO);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, gtidEventData));
 
-
         // BEGIN
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 10L);
         queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);

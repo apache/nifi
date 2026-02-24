@@ -530,7 +530,6 @@ public class TestStatelessFlowTask {
         assertEquals(10, inputPortEvent.getContentSizeOut());
     }
 
-
     private FlowFileRecord createFlowFile() {
         final ResourceClaim resourceClaim = new StandardResourceClaim(resourceClaimManager, "container", "section", "1", false);
         final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);

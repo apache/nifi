@@ -356,6 +356,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 getLogger().info("Appended and committed all records successfully.");
             }
 
+            session.getProvenanceReporter().send(flowFile, "bigquery://%s".formatted(parentTable));
             session.transfer(flowFile, REL_SUCCESS);
         }
     }

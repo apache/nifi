@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestStandardLifecycleStateManager {
     private static final String COMPONENT_ID = "abc";
 
-
     @Test
     public void testGetOrRegisterWithoutReplace() {
         final StandardLifecycleStateManager manager = new StandardLifecycleStateManager();
@@ -77,6 +76,5 @@ public class TestStandardLifecycleStateManager {
         assertNotNull(replacement);
         assertNotEquals(registered, replacement);
     }
-
 
 }

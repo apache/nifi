@@ -552,7 +552,6 @@ public class AccessResource extends ApplicationResource {
                     .withAuthenticateChallenge(identityProvider.getUsageInstructions().getAuthType());
         }
 
-
         final String successMessage = identityProviderName + " recognized the format of the credentials in the HTTP request.";
         return generateOkResponse(successMessage).build();
 
@@ -610,7 +609,6 @@ public class AccessResource extends ApplicationResource {
         if (oidcRequestIdentifier == null) {
             throw new IllegalStateException("The login request identifier was not found in the request. Unable to continue.");
         }
-
 
         final com.nimbusds.openid.connect.sdk.AuthenticationResponse oidcResponse =
                 parseAuthenticationResponse(getRequestUri(), httpServletResponse, true);

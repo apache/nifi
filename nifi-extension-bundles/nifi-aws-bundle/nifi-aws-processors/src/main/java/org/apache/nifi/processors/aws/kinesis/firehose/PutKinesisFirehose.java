@@ -114,7 +114,6 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
         return FirehoseClient.builder();
     }
 
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
 
@@ -171,6 +170,7 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
                             failedFlowFiles.add(flowFile);
                         } else {
                             flowFile = session.putAllAttributes(flowFile, attributes);
+                            session.getProvenanceReporter().send(flowFile, "firehose://%s".formatted(streamName));
                             successfulFlowFiles.add(flowFile);
                         }
                     }

@@ -241,7 +241,6 @@ public class ControlRate extends AbstractProcessor {
     private volatile String groupingAttributeName = null;
     private volatile int timePeriodSeconds = 1;
 
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -390,7 +389,6 @@ public class ControlRate extends AbstractProcessor {
             session.getProvenanceReporter().route(flowFile, relationship);
         }
     }
-
 
     private void holdFlowFilesExceedingRate(final ProcessContext context, final ProcessSession session) {
         clearExpiredThrottles(context);

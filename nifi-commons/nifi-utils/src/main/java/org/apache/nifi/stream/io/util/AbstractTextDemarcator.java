@@ -129,7 +129,6 @@ public abstract class AbstractTextDemarcator implements Closeable {
         this.availableBytesLength = bytesRead != -1 ? this.index + bytesRead : -1;
     }
 
-
     /**
      * Validates prerequisites for constructor arguments
      */

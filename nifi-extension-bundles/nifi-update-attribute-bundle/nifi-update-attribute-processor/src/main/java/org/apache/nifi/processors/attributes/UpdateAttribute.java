@@ -126,7 +126,6 @@ import java.util.regex.Pattern;
 )
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
-
     public static final String DO_NOT_STORE_STATE = "Do not store state";
     public static final String STORE_STATE_LOCALLY = "Store state locally";
 
@@ -160,7 +159,6 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             REL_SUCCESS,
             REL_FAILED_SET_STATE
     );
-
 
     private volatile Set<Relationship> relationships;
 
@@ -239,7 +237,6 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     private volatile Map<String, Action> defaultActions;
     private volatile boolean debugEnabled;
     private volatile boolean stateful = false;
-
 
     public UpdateAttribute() {
         relationships = STATELESS_RELATIONSHIP_SET;

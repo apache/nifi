@@ -55,7 +55,6 @@ public class TestRouteText {
             assertTrue(expectedRelationships.contains(relationship.getName()));
         }
 
-
         runner.setProperty(RouteText.ROUTE_STRATEGY, RouteText.ROUTE_TO_MATCHING_PROPERTY_NAME);
 
         relationshipSet = runner.getProcessor().getRelationships();
@@ -173,7 +172,6 @@ public class TestRouteText {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.ENDS_WITH);
         runner.setProperty("simple", "end");
-
 
         runner.enqueue("start middle end\nnot match".getBytes(StandardCharsets.UTF_8));
         runner.run();
@@ -373,7 +371,6 @@ public class TestRouteText {
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
         outUnmatched.assertContentEquals("not match".getBytes(StandardCharsets.UTF_8));
     }
-
 
     @Test
     public void testSimpleDefaultEquals() throws IOException {
@@ -725,7 +722,6 @@ public class TestRouteText {
 
     }
 
-
     @Test
     public void testXml() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new RouteText());
@@ -743,7 +739,6 @@ public class TestRouteText {
         runner.assertTransferCount("name", 1);
         runner.assertTransferCount("unmatched", 1);
         runner.assertTransferCount("original", 1);
-
 
         // Verify text is trimmed
         final MockFlowFile outNode = runner.getFlowFilesForRelationship("NodeType").get(0);
@@ -794,7 +789,6 @@ public class TestRouteText {
         runner.setProperty(RouteText.IGNORE_CASE, "true");
         assertEquals(0, routeText.patternsCache.size(), "Pattern cache is not cleared after changing IGNORE_CASE");
     }
-
 
     public static int countLines(String str) {
         if (str == null || str.isEmpty()) {

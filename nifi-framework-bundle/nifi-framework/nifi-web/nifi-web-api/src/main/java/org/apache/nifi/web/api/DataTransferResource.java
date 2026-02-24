@@ -107,7 +107,6 @@ public class DataTransferResource extends ApplicationResource {
     public static final String CHECK_SUM = "checksum";
     public static final String RESPONSE_CODE = "responseCode";
 
-
     private static final String PORT_TYPE_INPUT = "input-ports";
     private static final String PORT_TYPE_OUTPUT = "output-ports";
 
@@ -179,7 +178,6 @@ public class DataTransferResource extends ApplicationResource {
             @Context ServletContext context,
             @Context UriInfo uriInfo,
             InputStream inputStream) {
-
 
         if (!PORT_TYPE_INPUT.equals(portType) && !PORT_TYPE_OUTPUT.equals(portType)) {
             return responseCreator.wrongPortTypeResponse(portType, portId);
@@ -474,7 +472,6 @@ public class DataTransferResource extends ApplicationResource {
         return noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager)).build();
     }
 
-
     @DELETE
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
@@ -591,7 +588,6 @@ public class DataTransferResource extends ApplicationResource {
         entity.setResponseCode(ResponseCode.CANCEL_TRANSACTION.getCode());
         return Response.ok(entity).build();
     }
-
 
     @GET
     @Consumes(MediaType.WILDCARD)

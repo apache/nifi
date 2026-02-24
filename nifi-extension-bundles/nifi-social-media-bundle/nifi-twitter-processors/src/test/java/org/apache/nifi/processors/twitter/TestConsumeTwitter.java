@@ -66,7 +66,6 @@ public class TestConsumeTwitter {
                 .build();
         mockWebServer.enqueue(response);
 
-
         runner.setProperty(ConsumeTwitter.ENDPOINT, ConsumeTwitter.ENDPOINT_SAMPLE);
         runner.setProperty(ConsumeTwitter.QUEUE_SIZE, "10000");
         runner.setProperty(ConsumeTwitter.BATCH_SIZE, "10");

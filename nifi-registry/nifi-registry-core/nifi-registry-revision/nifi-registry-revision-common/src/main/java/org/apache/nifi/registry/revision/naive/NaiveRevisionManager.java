@@ -55,7 +55,6 @@ public class NaiveRevisionManager implements RevisionManager {
 
     private final ConcurrentMap<String, Revision> revisionMap = new ConcurrentHashMap<>();
 
-
     @Override
     public void reset(final Collection<Revision> revisions) {
         synchronized (this) { // avoid allowing two threads to reset versions concurrently

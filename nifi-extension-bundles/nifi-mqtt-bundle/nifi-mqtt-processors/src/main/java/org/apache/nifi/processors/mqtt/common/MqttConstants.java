@@ -50,7 +50,6 @@ public class MqttConstants {
       ------------------------------------------
      */
 
-
     public static final AllowableValue ALLOWABLE_VALUE_QOS_0 =
             new AllowableValue("0", "0 - At most once", "Best effort delivery. A message won’t be acknowledged by the receiver or stored and redelivered by the sender. " +
                     "This is often called “fire and forget” and provides the same guarantee as the underlying TCP protocol.");
@@ -62,7 +61,6 @@ public class MqttConstants {
     public static final AllowableValue ALLOWABLE_VALUE_QOS_2 =
             new AllowableValue("2", "2 - Exactly once", "Guarantees that each message is received only once by the counterpart. It is the safest and also " +
                     "the slowest quality of service level. The guarantee is provided by two round-trip flows between sender and receiver.");
-
 
     /*
       ------------------------------------------

@@ -53,7 +53,6 @@ public class InstantFormatEvaluator extends StringEvaluator {
             return null;
         }
 
-
         final QueryResult<String> tzResult = timeZone.evaluate(evaluationContext);
         final String tz = tzResult.getValue();
 

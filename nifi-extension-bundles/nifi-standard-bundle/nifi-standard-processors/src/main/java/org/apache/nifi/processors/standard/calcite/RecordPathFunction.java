@@ -78,7 +78,6 @@ public class RecordPathFunction {
         return evalResults(result.getSelectedFields(), transform, () -> "RecordPath " + recordPath + " resulted in more than one return value. The RecordPath must be further constrained.");
     }
 
-
     private <T> T eval(final Record record, final String recordPath, final Function<Object, T> transform) {
         final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
         final RecordPathResult result = compiled.evaluate((Record) record);
@@ -118,7 +117,6 @@ public class RecordPathFunction {
 
         return evalResults(selectedFields.stream(), transform, () -> "RecordPath " + recordPath + " resulted in more than one return value. The RecordPath must be further constrained.");
     }
-
 
     private <T> T evalResults(final Stream<FieldValue> fields, final Function<Object, T> transform, final Supplier<String> multipleReturnValueErrorSupplier) {
         return fields.map(FieldValue::getValue)

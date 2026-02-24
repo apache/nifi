@@ -183,7 +183,6 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
         return telemetryContentType;
     }
 
-
     private GrpcStatusCode getGrpcStatusCode(final ServiceResponseStatus serviceResponseStatus) {
         final GrpcStatusCode grpcStatusCode;
 

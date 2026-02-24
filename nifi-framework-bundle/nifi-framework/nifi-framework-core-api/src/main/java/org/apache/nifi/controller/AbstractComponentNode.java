@@ -1089,7 +1089,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return validationResults;
     }
 
-
     private ValidationResult validateControllerServiceApi(final PropertyDescriptor descriptor, final ControllerServiceNode controllerServiceNode) {
         final Class<? extends ControllerService> controllerServiceApiClass = descriptor.getControllerServiceDefinition();
         // If a processor accepts any service don't validate it.
@@ -1217,7 +1216,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
             return getComponent().getPropertyDescriptors();
         }
     }
-
 
     protected void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {

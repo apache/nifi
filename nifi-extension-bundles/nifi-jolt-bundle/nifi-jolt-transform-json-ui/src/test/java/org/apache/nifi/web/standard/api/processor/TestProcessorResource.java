@@ -78,7 +78,6 @@ public class TestProcessorResource extends JerseyTest {
         return new InMemoryTestContainerFactory();
     }
 
-
     @Test
     public void testSetProperties() {
 
@@ -104,7 +103,6 @@ public class TestProcessorResource extends JerseyTest {
         assertNotNull(jsonNode);
         assertEquals("jolt-transform-chain", jsonNode.get("properties").get("Jolt Transform").asText());
     }
-
 
     @Test
     public void testGetProcessorDetails() {

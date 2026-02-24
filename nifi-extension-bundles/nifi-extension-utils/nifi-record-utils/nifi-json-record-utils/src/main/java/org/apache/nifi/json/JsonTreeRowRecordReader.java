@@ -193,7 +193,6 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         return new MapRecord(schema, values, SerializedForm.of(supplier, "application/json"), false, dropUnknown);
     }
 
-
     protected Object convertField(final JsonNode fieldNode, final String fieldName, final DataType desiredType, final boolean dropUnknown) throws IOException, MalformedRecordException {
         if (fieldNode == null || fieldNode.isNull()) {
             return null;

@@ -44,7 +44,6 @@ public class TransferBatch extends AbstractProcessor {
     static final AllowableValue TRANSFER_AVAILABLE = new AllowableValue("Transfer Available", "Transfer Available",
         "If there are not enough FlowFiles available to satisfy the batch size, whatever is available will be transferred to the 'success' relationship");
 
-
     static final PropertyDescriptor BATCH_SIZE = new Builder()
         .name("Batch Size")
         .displayName("Batch Size")

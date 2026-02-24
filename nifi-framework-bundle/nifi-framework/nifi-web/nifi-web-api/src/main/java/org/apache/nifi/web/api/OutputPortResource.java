@@ -309,7 +309,6 @@ public class OutputPortResource extends ApplicationResource {
         );
     }
 
-
     /**
      * Updates the operational status for the specified input port with the specified values.
      *

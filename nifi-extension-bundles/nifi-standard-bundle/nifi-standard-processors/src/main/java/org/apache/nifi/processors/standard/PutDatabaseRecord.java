@@ -797,7 +797,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
     }
 
-
     private void executeDML(final ProcessContext context, final ProcessSession session, final FlowFile flowFile,
                             final Connection con, final RecordReader recordReader, final String explicitStatementType, final DMLSettings settings)
             throws IllegalArgumentException, MalformedRecordException, IOException, SQLException {

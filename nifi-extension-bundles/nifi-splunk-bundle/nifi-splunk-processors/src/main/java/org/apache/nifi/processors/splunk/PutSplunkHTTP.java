@@ -174,6 +174,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
 
                     if (successResponse.getCode() == 0) {
                         flowFile = enrichFlowFile(session, flowFile, successResponse.getAckId());
+                        session.getProvenanceReporter().send(flowFile, getTransitBaseUri() + endpoint);
                         success = true;
                     } else {
                         flowFile = session.putAttribute(flowFile, "splunk.response.code", String.valueOf(successResponse.getCode()));

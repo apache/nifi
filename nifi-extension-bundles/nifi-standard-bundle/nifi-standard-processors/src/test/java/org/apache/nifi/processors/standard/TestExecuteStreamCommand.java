@@ -146,7 +146,6 @@ public class TestExecuteStreamCommand {
         assertEquals(outputFlowFile.getAttribute("execution.command.args"), originalFlowFile.getAttribute("execution.command.args"));
     }
 
-
     @Test
     public void testExecuteJavaFileWithBadPath() {
         final Path javaFile = JAVA_FILES_DIR.resolve(NO_SUCH_FILE);

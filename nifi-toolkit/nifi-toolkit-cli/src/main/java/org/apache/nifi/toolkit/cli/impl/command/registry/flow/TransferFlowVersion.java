@@ -121,5 +121,4 @@ public class TransferFlowVersion extends AbstractNiFiRegistryCommand<StringResul
         return new OkResult(getContext().isInteractive());
     }
 
-
 }

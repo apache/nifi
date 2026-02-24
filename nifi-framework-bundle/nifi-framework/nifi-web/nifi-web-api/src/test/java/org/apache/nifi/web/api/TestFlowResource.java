@@ -800,7 +800,6 @@ public class TestFlowResource {
         return clusterMetricsRegistry.getRegistry();
     }
 
-
     private static class SampleDeserializer extends StdDeserializer<Sample> {
         protected SampleDeserializer() {
             super(Sample.class);

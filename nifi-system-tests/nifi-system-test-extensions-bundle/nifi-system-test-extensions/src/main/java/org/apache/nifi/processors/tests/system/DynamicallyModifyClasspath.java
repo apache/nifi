@@ -66,7 +66,6 @@ public class DynamicallyModifyClasspath extends AbstractProcessor {
         .defaultValue("0 sec")
         .build();
 
-
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("FlowFiles are routed to this relationship if the specified class can be loaded")
@@ -75,8 +74,6 @@ public class DynamicallyModifyClasspath extends AbstractProcessor {
         .name("failure")
         .description("FlowFiles are routed to this relationship if the specified class cannot be loaded")
         .build();
-
-
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -87,7 +84,6 @@ public class DynamicallyModifyClasspath extends AbstractProcessor {
     public Set<Relationship> getRelationships() {
         return new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE));
     }
-
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {

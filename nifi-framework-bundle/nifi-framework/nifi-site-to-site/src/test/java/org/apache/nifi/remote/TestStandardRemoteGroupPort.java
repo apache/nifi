@@ -329,7 +329,6 @@ public class TestStandardRemoteGroupPort {
             return null;
         }).when(transaction).confirm();
 
-
         // Execute onTrigger while offering new flow files.
         final List<MockFlowFile> flowFiles = new ArrayList<>();
         for (int numOfPackets : expectedNumberOfPackets) {

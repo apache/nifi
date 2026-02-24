@@ -52,7 +52,6 @@ public class EventSumValue {
 
     private final long millisecondTimestamp;
 
-
     public EventSumValue(final long timestamp) {
         this.millisecondTimestamp = timestamp;
     }

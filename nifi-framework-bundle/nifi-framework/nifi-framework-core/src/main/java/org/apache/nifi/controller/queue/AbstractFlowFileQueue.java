@@ -71,7 +71,6 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
     private LoadBalanceCompression compression = LoadBalanceCompression.DO_NOT_COMPRESS;
 
-
     public AbstractFlowFileQueue(final String identifier, final ProcessScheduler scheduler,
             final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo) {
         this.identifier = identifier;
@@ -169,7 +168,6 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         return false;
     }
 
-
     @Override
     public ListFlowFileStatus listFlowFiles(final String requestIdentifier, final int maxResults) {
         // purge any old requests from the map just to keep it clean. But if there are very few requests, which is usually the case, then don't bother
@@ -254,7 +252,6 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
      */
     protected abstract List<FlowFileRecord> getListableFlowFiles();
 
-
     @Override
     public DropFlowFileStatus dropFlowFiles(final String requestIdentifier, final String requestor) {
         logger.info("Initiating drop of FlowFiles from {} on behalf of {} (request identifier={})", this, requestor, requestIdentifier);
@@ -298,7 +295,6 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         return dropRequest;
     }
 
-
     @Override
     public DropFlowFileRequest cancelDropFlowFileRequest(final String requestIdentifier) {
         final DropFlowFileRequest request = dropRequestMap.remove(requestIdentifier);
@@ -326,7 +322,6 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     @Override
     public void verifyCanList() throws IllegalStateException {
     }
-
 
     protected FlowFileSummary summarize(final FlowFileRecord flowFile, final int position) {
         // extract all of the information that we care about into new variables rather than just

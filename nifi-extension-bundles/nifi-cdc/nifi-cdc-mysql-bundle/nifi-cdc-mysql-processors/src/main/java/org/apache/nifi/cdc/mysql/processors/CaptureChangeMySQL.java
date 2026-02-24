@@ -678,7 +678,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
     }
 
-
     @Override
     public synchronized void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
 
@@ -874,7 +873,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         gtidSet = new GtidSet(binlogClient.getGtidSet());
     }
-
 
     public void outputEvents(ProcessSession session, ProcessContext context, ComponentLog log) throws IOException {
         RawBinlogEvent rawBinlogEvent;
@@ -1198,7 +1196,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         currentDataCaptureState = dataCaptureState;
     }
 
-
     /**
      * Creates and returns a BinlogEventListener instance, associated with the specified binlog client and event queue.
      *
@@ -1219,7 +1216,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     BinlogLifecycleListener createBinlogLifecycleListener() {
         return new BinlogLifecycleListener();
     }
-
 
     protected BinaryLogClient createBinlogClient(String hostname, int port, String username, String password) {
         return new BinaryLogClient(hostname, port, username, password);

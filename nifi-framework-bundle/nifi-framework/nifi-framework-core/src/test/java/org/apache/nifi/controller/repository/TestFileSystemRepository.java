@@ -141,7 +141,6 @@ public class TestFileSystemRepository {
         assertTrue(repository.isArchived(Paths.get("a/b/c/archive/1.txt")));
     }
 
-
     @Test
     @Timeout(30)
     public void testClaimsArchivedWhenMarkedDestructable() throws IOException, InterruptedException {
@@ -239,7 +238,6 @@ public class TestFileSystemRepository {
         repository.purge();
     }
 
-
     @Test
     public void testUnreferencedFilesAreArchivedOnCleanup() throws IOException {
         final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
@@ -287,7 +285,6 @@ public class TestFileSystemRepository {
             assertEquals(3, repository.getArchiveCount(containerName));
         }
     }
-
 
     @DisabledOnOs(value = OS.WINDOWS,
             disabledReason = "java.io.FileNotFoundException when there is an attempt to access file <temporary directory>\\content_repository\\0\\archive\\0.bin")
@@ -899,7 +896,6 @@ public class TestFileSystemRepository {
             }
         }
     }
-
 
     private byte[] readFully(final InputStream inStream, final int size) throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(size);

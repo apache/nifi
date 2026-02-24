@@ -102,7 +102,6 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
         return PROPERTIES;
     }
 
-
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         persistTo = PersistTo.valueOf(context.getProperty(PERSISTENCE_STRATEGY).getValue());

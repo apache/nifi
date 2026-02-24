@@ -52,7 +52,6 @@ public class CountTextTest {
         runner = TestRunners.newTestRunner(CountText.class);
     }
 
-
     @Test
     void testShouldCountAllMetrics() throws IOException {
         runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "true");

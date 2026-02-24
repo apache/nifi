@@ -174,7 +174,6 @@ public class WriteAheadRepositoryRecordSerde extends RepositoryRecordSerde imple
                 .id(recordId)
                 .build();
 
-
             final SerializedRepositoryRecord record = new ReconstitutedSerializedRepositoryRecord.Builder()
                 .type(RepositoryRecordType.SWAP_OUT)
                 .queueIdentifier(queueId)

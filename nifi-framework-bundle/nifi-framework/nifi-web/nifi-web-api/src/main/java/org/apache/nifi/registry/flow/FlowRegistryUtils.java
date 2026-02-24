@@ -89,7 +89,6 @@ public class FlowRegistryUtils {
                 .forEach(componentTypes::add);
     }
 
-
     public static BundleCoordinate createBundleCoordinate(final Bundle bundle) {
         return new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
     }

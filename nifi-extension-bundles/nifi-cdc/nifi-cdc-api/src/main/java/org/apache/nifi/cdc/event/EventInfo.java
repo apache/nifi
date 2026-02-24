@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cdc.event;
 
-
 /**
  * An interface representing a data structure containing event information, and serialization/deserialization methods.
  */

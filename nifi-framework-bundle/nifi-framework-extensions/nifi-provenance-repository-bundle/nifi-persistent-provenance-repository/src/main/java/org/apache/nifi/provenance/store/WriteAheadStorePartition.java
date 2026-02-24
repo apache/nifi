@@ -167,7 +167,6 @@ public class WriteAheadStorePartition implements EventStorePartition {
         logger.info("After recovering {}, next Event ID to be generated will be {}", partitionDirectory, updatedId);
     }
 
-
     @Override
     public StorageResult addEvents(final Iterable<ProvenanceEventRecord> events) throws IOException {
         if (closed) {
@@ -359,7 +358,6 @@ public class WriteAheadStorePartition implements EventStorePartition {
         return locationMap;
     }
 
-
     @Override
     public long getSize() {
         return getEventFilesFromDisk()
@@ -407,12 +405,13 @@ public class WriteAheadStorePartition implements EventStorePartition {
     public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxEvents, final EventAuthorizer authorizer) throws IOException {
         final List<ProvenanceEventRecord> events = new ArrayList<>(Math.min(maxEvents, 1000));
         try (final EventIterator iterator = createEventIterator(firstRecordId)) {
-            Optional<ProvenanceEventRecord> eventOption;
-            while ((eventOption = iterator.nextEvent()).isPresent() && events.size() < maxEvents) {
+            Optional<ProvenanceEventRecord> eventOption = iterator.nextEvent();
+            while (eventOption.isPresent() && events.size() < maxEvents) {
                 final ProvenanceEventRecord event = eventOption.get();
                 if (authorizer.isAuthorized(event)) {
                     events.add(event);
                 }
+                eventOption = iterator.nextEvent();
             }
         }
 
@@ -459,7 +458,6 @@ public class WriteAheadStorePartition implements EventStorePartition {
         return new SequentialRecordReaderEventIterator(filesOfInterest, recordReaderFactory, minDesiredId, config.getMaxAttributeChars());
     }
 
-
     @Override
     public EventIterator createEventIterator(final List<Long> eventIds) {
         final List<File> allFiles;
@@ -490,7 +488,6 @@ public class WriteAheadStorePartition implements EventStorePartition {
 
         return Optional.ofNullable(lastFile);
     }
-
 
     @Override
     public void purgeOldEvents(final long olderThan, final TimeUnit unit) {
@@ -688,7 +685,6 @@ public class WriteAheadStorePartition implements EventStorePartition {
         logger.info("Finished re-indexing {} events across {} files for {} in {}.{} seconds",
             reindexedCount.get(), eventFilesToReindex.size(), partitionDirectory, seconds, millisRemainder);
     }
-
 
     EventIterator getEventsByTimestamp(final long minTimestmap, final long maxTimestamp) throws IOException {
         // Get a list of all Files and order them based on their ID such that the largest ID is first.

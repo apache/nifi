@@ -49,7 +49,6 @@ public class ListGCSBucketIT extends AbstractGCSIT {
         flowFiles.get(2).assertAttributeEquals("filename", "d/e");
     }
 
-
     @Test
     public void testSimpleListWithPrefix() throws Exception {
         putTestFile("a", CONTENT);
@@ -67,8 +66,6 @@ public class ListGCSBucketIT extends AbstractGCSIT {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
         flowFiles.get(0).assertAttributeEquals("filename", "b/c");
     }
-
-
 
     @Test
     public void testSimpleListWithPrefixAndGenerations() throws Exception {
@@ -100,7 +97,6 @@ public class ListGCSBucketIT extends AbstractGCSIT {
                 flowFiles.get(1).getAttribute(StorageAttributes.GENERATION_ATTR)
         );
     }
-
 
     @Test
     public void testCheckpointing() throws Exception {

@@ -224,7 +224,6 @@ public class CompressContent extends AbstractProcessor {
         Map.entry("application/zstd", COMPRESSION_FORMAT_ZSTD),
         Map.entry("application/x-brotli", COMPRESSION_FORMAT_BROTLI));
 
-
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;

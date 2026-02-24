@@ -48,7 +48,6 @@ public class ReportingTaskIT extends NiFiSystemIT {
 
     private static final Set<String> SENSITIVE_DYNAMIC_PROPERTY_NAMES = Collections.singleton(SENSITIVE_PROPERTY_NAME);
 
-
     @Test
     public void testReportingTaskDependingOnControllerService() throws NiFiClientException, IOException, InterruptedException {
         // Create a Count controller service and configure a property on the service.

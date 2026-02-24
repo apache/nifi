@@ -714,7 +714,6 @@ public class AvroTypeUtil {
                     return DataTypeUtils.toInteger(rawValue, fieldName);
                 }
 
-
                 if (LOGICAL_TYPE_DATE.equals(logicalType.getName())) {
                     final String format = determineDataType(fieldSchema).getFormat();
                     final FieldConverter<Object, LocalDate> fieldConverter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(LocalDate.class);
@@ -1134,7 +1133,6 @@ public class AvroTypeUtil {
 
         return DataTypeUtils.isCompatibleDataType(value, dataType);
     }
-
 
     /**
      * Convert an Avro object to a normal Java objects for further processing.

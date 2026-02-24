@@ -227,7 +227,6 @@ public class ReflectionUtils {
         return new ArrayList<>(methods);
     }
 
-
     private static boolean isAnyAnnotationPresent(Method method, Class<? extends Annotation>[] annotations) {
         for (Class<? extends Annotation> annotation : annotations) {
             if (isAnnotationPresent(method, annotation)) {

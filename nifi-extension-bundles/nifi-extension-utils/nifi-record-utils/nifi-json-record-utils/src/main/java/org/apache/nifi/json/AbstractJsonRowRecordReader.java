@@ -85,7 +85,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     // Keeps track of whether or not we've skipped to the starting field for the current object when using the NESTED_FIELD strategy
     private boolean skippedToStartField = false;
 
-
     /**
      * Constructor with initial logic for JSON to NiFi record parsing.
      *
@@ -144,7 +143,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     protected Optional<String> getTimestampFormat() {
         return Optional.ofNullable(timestampFormat);
     }
-
 
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
@@ -370,7 +368,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         return new MapRecord(childSchema, childValues, serializedForm);
     }
 
-
     private JsonNode getNextJsonNode() throws IOException, MalformedRecordException {
         try {
             while (true) {
@@ -453,7 +450,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     }
 
     protected abstract Record convertJsonNodeToRecord(JsonNode nextNode, RecordSchema schema, boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException;
-
 
     public Map<String, String> getCapturedFields() {
         return capturedFields;

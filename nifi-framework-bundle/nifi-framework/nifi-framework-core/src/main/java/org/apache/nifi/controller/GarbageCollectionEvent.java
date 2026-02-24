@@ -33,7 +33,6 @@ public interface GarbageCollectionEvent {
 
     List<GarbageCollectionHeapSize> getHeapSizes();
 
-
     interface GarbageCollectionHeapSize {
         String getMemoryPoolName();
 

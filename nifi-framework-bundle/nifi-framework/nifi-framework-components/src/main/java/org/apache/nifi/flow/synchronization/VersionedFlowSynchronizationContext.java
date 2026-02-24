@@ -46,7 +46,6 @@ public class VersionedFlowSynchronizationContext {
     private final Function<ComponentNode, ConfigurationContext> configurationContextFactory;
     private final AssetManager assetManager;
 
-
     private VersionedFlowSynchronizationContext(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
         this.flowManager = builder.flowManager;
@@ -111,7 +110,6 @@ public class VersionedFlowSynchronizationContext {
         private Function<ProcessorNode, ProcessContext> processContextFactory;
         private Function<ComponentNode, ConfigurationContext> configurationContextFactory;
         private AssetManager assetManager;
-
 
         public Builder componentIdGenerator(final ComponentIdGenerator componentIdGenerator) {
             this.componentIdGenerator = componentIdGenerator;

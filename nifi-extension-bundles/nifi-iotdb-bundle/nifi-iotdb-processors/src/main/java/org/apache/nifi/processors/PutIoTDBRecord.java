@@ -193,6 +193,7 @@ public class PutIoTDBRecord extends AbstractIoTDB {
             processSession.transfer(flowFile, REL_FAILURE);
             return;
         }
+        processSession.getProvenanceReporter().send(flowFile, getTransitUri());
         processSession.transfer(flowFile, REL_SUCCESS);
     }
 

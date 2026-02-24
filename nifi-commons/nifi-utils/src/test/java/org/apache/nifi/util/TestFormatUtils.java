@@ -37,7 +37,6 @@ public class TestFormatUtils {
     private static final String KIEV_TIME_ZONE_ID = "Europe/Kiev";
     private static final String UTC_TIME_ZONE_ID = ZoneOffset.UTC.getId();
 
-
     @ParameterizedTest
     @MethodSource("getParseToInstantUsingFormatterWithoutZones")
     public void testParseToInstantUsingFormatterWithoutZones(String pattern, String parsedDateTime, String systemDefaultZoneId, String expectedUtcDateTime) {

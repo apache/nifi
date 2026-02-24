@@ -1010,7 +1010,6 @@ public final class DtoFactory {
         return dtos;
     }
 
-
     public RemoteProcessGroupStatusDTO createRemoteProcessGroupStatusDto(final RemoteProcessGroup remoteProcessGroup, final RemoteProcessGroupStatus remoteProcessGroupStatus) {
         final RemoteProcessGroupStatusDTO dto = new RemoteProcessGroupStatusDTO();
         dto.setId(remoteProcessGroupStatus.getId());
@@ -2403,7 +2402,6 @@ public final class DtoFactory {
         return component;
     }
 
-
     public AffectedComponentDTO createAffectedComponentDto(final ComponentNode component) {
         final AffectedComponentDTO dto = new AffectedComponentDTO();
         dto.setId(component.getIdentifier());
@@ -2639,7 +2637,6 @@ public final class DtoFactory {
         return flow;
     }
 
-
     public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager,
                                 final Function<ProcessGroup, List<BulletinEntity>> getProcessGroupBulletins, final boolean uiOnly) {
         final FlowDTO dto = new FlowDTO();
@@ -2797,7 +2794,6 @@ public final class DtoFactory {
 
         return dto;
     }
-
 
     public Set<ComponentDifferenceDTO> createComponentDifferenceDtosForLocalModifications(final FlowComparison comparison, final VersionedProcessGroup localGroup, final FlowManager flowManager) {
         final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
@@ -3150,7 +3146,6 @@ public final class DtoFactory {
         return true;
     }
 
-
     /**
     * Gets the capability description from the specified class.
     */
@@ -3273,7 +3268,6 @@ public final class DtoFactory {
         return types;
     }
 
-
     /**
     * Gets the DocumentedTypeDTOs for the given Python ExtensionDefinition
     *
@@ -3367,7 +3361,6 @@ public final class DtoFactory {
 
         return documentedTypes;
     }
-
 
     public ProcessorDTO createProcessorDto(final ProcessorNode node) {
         return createProcessorDto(node, false);
@@ -3946,7 +3939,6 @@ public final class DtoFactory {
         return serviceDiagnostics;
     }
 
-
     private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ControllerServiceNode serviceNode) {
         ClassLoader componentClassLoader = extensionManager.getInstanceClassLoader(serviceNode.getIdentifier());
         if (componentClassLoader == null) {
@@ -3955,7 +3947,6 @@ public final class DtoFactory {
 
         return createClassLoaderDiagnosticsDto(componentClassLoader);
     }
-
 
     private ClassLoaderDiagnosticsDTO createClassLoaderDiagnosticsDto(final ProcessorNode procNode) {
         ClassLoader componentClassLoader = extensionManager.getInstanceClassLoader(procNode.getIdentifier());
@@ -3982,14 +3973,12 @@ public final class DtoFactory {
         return dto;
     }
 
-
     private ConnectionDiagnosticsDTO createConnectionDiagnosticsDto(final Connection connection) {
         final ConnectionDiagnosticsDTO dto = new ConnectionDiagnosticsDTO();
         dto.setConnection(createConnectionDto(connection));
         dto.setAggregateSnapshot(createConnectionDiagnosticsSnapshotDto(connection));
         return dto;
     }
-
 
     private ConnectionDiagnosticsSnapshotDTO createConnectionDiagnosticsSnapshotDto(final Connection connection) {
         final ConnectionDiagnosticsSnapshotDTO dto = new ConnectionDiagnosticsSnapshotDTO();

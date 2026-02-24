@@ -36,7 +36,6 @@ public class FlowEntityV1 {
 
     private String bucketId;
 
-
     public String getId() {
         return id;
     }

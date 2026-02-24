@@ -276,7 +276,6 @@ public final class SnippetUtils {
             }
         }
 
-
         // Normalize the coordinates based on the locations of the other components
         final List<? extends ComponentDTO> components = new ArrayList<>();
         components.addAll((Set) processors);
@@ -399,7 +398,6 @@ public final class SnippetUtils {
 
         return serviceDtos;
     }
-
 
     public FlowSnippetDTO copy(final FlowSnippetDTO snippetContents, final ProcessGroup group, final String idGenerationSeed, boolean isCopy) {
         final FlowSnippetDTO snippetCopy = copyContentsForGroup(snippetContents, group.getIdentifier(), null, null, idGenerationSeed, isCopy);

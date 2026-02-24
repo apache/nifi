@@ -29,7 +29,6 @@ public class StandardAttributeExpression implements AttributeExpression {
     private final Query query;
     private final ParameterLookup parameterLookup;
 
-
     public StandardAttributeExpression(final Query query, final ParameterLookup parameterLookup) {
         this.query = query;
         this.parameterLookup = parameterLookup;

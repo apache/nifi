@@ -160,5 +160,4 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
         return testRunner;
     }
 
-
 }

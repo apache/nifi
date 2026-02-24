@@ -42,7 +42,6 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
      */
     void initialize(EventReporter eventReporter, Authorizer authorizer, ProvenanceAuthorizableFactory resourceFactory, IdentifierLookup identifierLookup) throws IOException;
 
-
     /**
      * Retrieves the Provenance Event with the given ID. The event will be returned only
      * if the given user is authorized to access the event.

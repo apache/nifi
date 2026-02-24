@@ -60,7 +60,6 @@ public class TestFieldTypeInference {
         assertEquals(RecordFieldType.FLOAT.getDataType(), inference.toDataType());
     }
 
-
     @Test
     public void testToDataTypeWith_SHORT_INT_LONG_shouldReturn_LONG() {
         // GIVEN
@@ -95,7 +94,6 @@ public class TestFieldTypeInference {
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.STRING.getDataType()
         );
-
 
         Set<DataType> expected = new HashSet<>(Arrays.asList(
                 RecordFieldType.INT.getDataType(),

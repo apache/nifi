@@ -74,7 +74,6 @@ public class StandardStateManager implements StateManager {
         return stateMap;
     }
 
-
     @Override
     public boolean replace(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
         final boolean replaced = getProvider(scope).replace(oldValue, newValue, componentId);

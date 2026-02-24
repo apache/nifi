@@ -146,7 +146,6 @@ public class ReaderLookup extends AbstractControllerService implements RecordRea
         serviceToUseValue = context.getProperty(SERVICE_TO_USE);
     }
 
-
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
                 throws MalformedRecordException, IOException, SchemaNotFoundException {

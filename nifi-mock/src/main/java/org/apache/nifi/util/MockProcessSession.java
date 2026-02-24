@@ -303,7 +303,6 @@ public class MockProcessSession implements ProcessSession {
         }
     }
 
-
     @Override
     public void commit() {
         if (!allowSynchronousCommits) {
@@ -1176,7 +1175,6 @@ public class MockProcessSession implements ProcessSession {
 
         return currentVersion;
     }
-
 
     /**
      * Inherits the attributes from the given source flow file into another flow

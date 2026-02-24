@@ -247,7 +247,6 @@ public class StandardParameterContext implements ParameterContext {
             .build();
     }
 
-
     private ParameterDescriptor getFullyPopulatedDescriptor(final Parameter proposedParameter) {
         final ParameterDescriptor descriptor = proposedParameter.getDescriptor();
         if (descriptor.getDescription() != null) {

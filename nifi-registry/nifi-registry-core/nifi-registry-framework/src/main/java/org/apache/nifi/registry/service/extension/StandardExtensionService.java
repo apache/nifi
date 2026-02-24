@@ -351,7 +351,6 @@ public class StandardExtensionService implements ExtensionService {
         return extensionEntities;
     }
 
-
     private BundleEntity getOrCreateExtensionBundle(final String bucketId, final String groupId, final String artifactId,
                                                     final BundleType bundleType, final long currentTime) {
 

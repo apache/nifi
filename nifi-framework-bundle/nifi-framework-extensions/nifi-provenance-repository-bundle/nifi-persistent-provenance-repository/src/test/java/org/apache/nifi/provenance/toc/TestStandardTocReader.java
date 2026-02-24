@@ -47,7 +47,6 @@ public class TestStandardTocReader {
             file.delete();
         }
 
-
         try (final OutputStream out = new FileOutputStream(file)) {
             out.write(0);
             out.write(1);
@@ -61,7 +60,6 @@ public class TestStandardTocReader {
             file.delete();
         }
     }
-
 
     @Test
     public void testGetBlockIndexV1() throws IOException {

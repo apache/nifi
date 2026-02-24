@@ -329,7 +329,6 @@ public class StandardPythonBridge implements PythonBridge {
         controllerProcess.getCurrentController().removeProcessorType(type, version);
     }
 
-
     @Override
     public synchronized List<BoundObjectCounts> getBoundObjectCounts() {
         final List<BoundObjectCounts> list = new ArrayList<>();

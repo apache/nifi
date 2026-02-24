@@ -100,7 +100,6 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.queuedCount = queuedCount;
     }
 
-
     /**
      * @return total size of flow files that are queued
      */
@@ -108,7 +107,6 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     public String getQueuedSize() {
         return queuedSize;
     }
-
 
     public void setInput(String input) {
         this.input = input;
@@ -133,7 +131,6 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     public String getQueued() {
         return queued;
     }
-
 
     /**
      * @return id of the source of this connection
@@ -203,7 +200,6 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return input;
     }
 
-
     /**
      * @return output for this connection
      */
@@ -211,7 +207,6 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     public String getOutput() {
         return output;
     }
-
 
     @Schema(description = "The number of FlowFiles that have come into the connection in the last 5 minutes.")
     public Integer getFlowFilesIn() {

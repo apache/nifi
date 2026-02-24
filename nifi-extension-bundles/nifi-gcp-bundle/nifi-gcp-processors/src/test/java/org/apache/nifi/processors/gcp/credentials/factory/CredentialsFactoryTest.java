@@ -110,7 +110,6 @@ public class CredentialsFactoryTest {
                 "credentials class should be equal");
     }
 
-
     @Test
     public void testBadJsonFileCredentials() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);

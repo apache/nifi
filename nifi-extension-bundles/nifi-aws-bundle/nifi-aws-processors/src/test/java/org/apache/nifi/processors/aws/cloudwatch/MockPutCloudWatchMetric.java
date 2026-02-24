@@ -33,7 +33,6 @@ public class MockPutCloudWatchMetric extends PutCloudWatchMetric {
     protected PutMetricDataResponse result = PutMetricDataResponse.builder().build();
     protected int putMetricDataCallCount = 0;
 
-
     @Override
     protected PutMetricDataResponse putMetricData(final ProcessContext context, final PutMetricDataRequest metricDataRequest) {
         putMetricDataCallCount++;

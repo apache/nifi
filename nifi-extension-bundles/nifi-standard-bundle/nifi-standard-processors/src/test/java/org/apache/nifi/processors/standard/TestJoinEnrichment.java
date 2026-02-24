@@ -189,7 +189,6 @@ public class TestJoinEnrichment {
         assertEquals(RecordFieldType.STRING, schema.getField("name").get().getDataType().getFieldType());
     }
 
-
     // Tests that the LEFT OUTER JOIN example in the Additional Details works as expected
     @Test
     public void testLeftOuterJoin() throws InitializationException, IOException, SchemaNotFoundException, MalformedRecordException {
@@ -246,7 +245,6 @@ public class TestJoinEnrichment {
         final List<Record> expected = readCsvRecords(new File(EXAMPLES_DIR, "left-outer-join-rename-expected.csv"));
         assertEquals(new HashSet<>(expected), new HashSet<>(writer.getRecordsWritten()));
     }
-
 
     // Tests that the Insert Enrichment Record Fields example in the Additional Details produces expected output
     @Test
@@ -333,7 +331,6 @@ public class TestJoinEnrichment {
         assertEquals("555-555-5511", secondCustomerDetails.getValue("phone"));
         assertEquals("jane.doe@nifi.apache.org", secondCustomerDetails.getValue("email"));
     }
-
 
     private List<Record> readCsvRecords(final File file) throws IOException, SchemaNotFoundException, MalformedRecordException {
         final CommaSeparatedRecordReader reader = new CommaSeparatedRecordReader();

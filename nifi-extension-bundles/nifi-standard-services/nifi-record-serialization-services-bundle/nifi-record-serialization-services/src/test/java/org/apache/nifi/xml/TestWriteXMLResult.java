@@ -784,7 +784,6 @@ public class TestWriteXMLResult {
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }
 
-
     /*
     *
     *
@@ -792,7 +791,6 @@ public class TestWriteXMLResult {
     *
     *
      */
-
 
     @Test
     public void testWriteWithoutSchemaSimpleRecord() throws IOException {

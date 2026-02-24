@@ -157,7 +157,6 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
         return sc;
     }
 
-
     /**
      * Returns the physical state of this processor which includes transition
      * states such as STOPPING and STARTING.

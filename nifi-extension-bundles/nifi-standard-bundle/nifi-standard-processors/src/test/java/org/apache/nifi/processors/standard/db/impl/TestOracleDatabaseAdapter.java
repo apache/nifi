@@ -42,16 +42,16 @@ public class TestOracleDatabaseAdapter {
         String expected1 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename";
         assertEquals(expected1, sql1);
 
-        String sql2 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that=\'some\"\' value\'", "", null, null);
-        String expected2 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that=\'some\"\' value\'";
+        String sql2 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that='some\"' value'", "", null, null);
+        String expected2 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that='some\"' value'";
         assertEquals(expected2, sql2);
 
-        String sql3 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that=\'some\"\' value\'", "might DESC", null, null);
-        String expected3 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that=\'some\"\' value\' ORDER BY might DESC";
+        String sql3 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that='some\"' value'", "might DESC", null, null);
+        String expected3 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that='some\"' value' ORDER BY might DESC";
         assertEquals(expected3, sql3);
 
-        String sql4 = db.getSelectStatement("database.tablename", "", "that=\'some\"\' value\'", "might DESC", null, null);
-        String expected4 = "SELECT * FROM database.tablename WHERE that=\'some\"\' value\' ORDER BY might DESC";
+        String sql4 = db.getSelectStatement("database.tablename", "", "that='some\"' value'", "might DESC", null, null);
+        String expected4 = "SELECT * FROM database.tablename WHERE that='some\"' value' ORDER BY might DESC";
         assertEquals(expected4, sql4);
     }
 

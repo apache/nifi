@@ -87,7 +87,6 @@ public class KerberosIdentityProvider extends BasicAuthIdentityProvider {
             throw new IdentityAccessException("The Kerberos authentication provider is not initialized.");
         }
 
-
         try {
             final String rawPrincipal = authenticationRequest.getUsername();
             final Object credentials = authenticationRequest.getCredentials();

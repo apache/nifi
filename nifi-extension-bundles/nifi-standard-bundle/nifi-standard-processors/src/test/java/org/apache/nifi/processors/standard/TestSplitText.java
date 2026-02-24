@@ -668,7 +668,6 @@ public class TestSplitText {
         flowFile.assertContentEquals(file);
     }
 
-
     /*
      * If an input FlowFile has a number of blank lines greater than the Line Split Count property,
      * ensure that the remainder of the FlowFile will be processed, resulting in no data loss.
@@ -804,7 +803,6 @@ public class TestSplitText {
         split1.assertAttributeEquals(SplitText.FRAGMENT_COUNT, "2");
         split1.assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "1");
     }
-
 
     /*
      * Previous behavior that was exhibited:

@@ -246,7 +246,6 @@ public class ProcessorDTO extends ComponentDTO {
         this.physicalState = physicalState;
     }
 
-
     /**
      * @return whether this processor supports batching
      */

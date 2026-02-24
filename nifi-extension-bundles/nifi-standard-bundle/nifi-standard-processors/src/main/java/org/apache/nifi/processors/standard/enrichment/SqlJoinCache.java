@@ -40,7 +40,6 @@ public class SqlJoinCache implements AutoCloseable {
         .removalListener(this::onCacheEviction)
         .build();
 
-
     public SqlJoinCache(final ComponentLog logger) {
         this.logger = logger;
     }

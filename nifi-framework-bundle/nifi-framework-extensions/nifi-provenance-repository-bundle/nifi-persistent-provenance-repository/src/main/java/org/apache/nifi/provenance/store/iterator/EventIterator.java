@@ -30,7 +30,6 @@ public interface EventIterator extends Closeable {
 
     Optional<ProvenanceEventRecord> nextEvent() throws IOException;
 
-
     EventIterator EMPTY = new EventIterator() {
         @Override
         public void close() {

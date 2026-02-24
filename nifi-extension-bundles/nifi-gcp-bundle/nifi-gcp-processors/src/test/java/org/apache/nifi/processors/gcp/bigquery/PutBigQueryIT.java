@@ -118,7 +118,6 @@ public class PutBigQueryIT {
         bigquery.delete(dataset.getDatasetId(), BigQuery.DatasetDeleteOption.deleteContents());
     }
 
-
     protected TestRunner setCredentialsControllerService(TestRunner runner) throws InitializationException {
         final GCPCredentialsControllerService credentialsControllerService = new GCPCredentialsControllerService();
 

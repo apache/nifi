@@ -71,7 +71,6 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
 
     private VersionInfoDTO versionInfo;
 
-
     @Schema(description = "Number of available processors if supported by the underlying system.")
     public Integer getAvailableProcessors() {
         return availableProcessors;
@@ -253,7 +252,6 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
     public void setStatsLastRefreshed(Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
     }
-
 
     @Schema(description = "Total number of bytes allocated to the JVM not used for heap")
     public Long getTotalNonHeapBytes() {
@@ -541,7 +539,6 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         private Boolean awaitingDestruction;
         private Boolean writable;
         private Integer claimantCount;
-
 
         @Schema(description = "The container of the Content Repository in which the Resource Claim exists")
         public String getContainer() {

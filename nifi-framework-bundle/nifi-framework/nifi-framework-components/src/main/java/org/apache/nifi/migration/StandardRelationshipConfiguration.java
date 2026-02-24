@@ -135,7 +135,6 @@ public class StandardRelationshipConfiguration implements RelationshipConfigurat
         return true;
     }
 
-
     @Override
     public boolean hasRelationship(final String relationshipName) {
         return relationships.contains(relationshipName);

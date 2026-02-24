@@ -151,7 +151,6 @@ public class TestReplaceText {
         out.assertContentEquals("{\"NAME\":\"Smith\",\"MIDDLE\":\"nifi\",\"FIRSTNAME\":\"John\"}");
     }
 
-
     @Test
     public void testSimple() throws IOException {
         runner.setProperty(ReplaceText.SEARCH_VALUE, "ell");
@@ -263,7 +262,6 @@ public class TestReplaceText {
         out.assertContentEquals("hello\n_there\n_madam".getBytes(StandardCharsets.UTF_8));
     }
 
-
     @Test
     public void testPrependExceptLastLine() throws IOException {
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "_");
@@ -305,7 +303,6 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
         out.assertContentEquals("hello!\rthere!\rsir!");
     }
-
 
     @Test
     public void testAppendFirstLineWithCarriageReturn() {
@@ -410,7 +407,6 @@ public class TestReplaceText {
         out.assertContentEquals("hello!\r\nthere\r\nsir");
     }
 
-
     @Test
     public void testAppendLastLineWithCarriageReturnNewLine() {
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
@@ -425,7 +421,6 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
         out.assertContentEquals("hello\r\nthere\r\nsir!");
     }
-
 
     @Test
     public void testAppendExceptFistLineWithCarriageReturnNewLine() {
@@ -442,14 +437,12 @@ public class TestReplaceText {
         out.assertContentEquals("hello\r\nthere!\r\nsir!");
     }
 
-
     @Test
     public void testAppendExceptLastLineWithCarriageReturnNewLine() {
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "!");
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
         runner.setProperty(ReplaceText.LINE_BY_LINE_EVALUATION_MODE, ReplaceText.EXCEPT_LAST_LINE);
-
 
         runner.enqueue("hello\r\nthere\r\nsir".getBytes());
         runner.run();
@@ -873,7 +866,6 @@ public class TestReplaceText {
         out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/food.txt")));
     }
 
-
     @Test
     public void testZeroByteContentFileLineByLine(@TempDir Path tempDir) throws IOException {
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
@@ -889,7 +881,6 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
         out.assertContentEquals(translateNewLines(zeroByteFile));
     }
-
 
     @Test
     public void testPrependSimpleLineByLine() throws IOException {
@@ -1078,7 +1069,6 @@ public class TestReplaceText {
         out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/Blu$2e_clu$2e.txt")));
     }
 
-
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedFirstLine() throws IOException {
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
@@ -1095,7 +1085,6 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
         out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/ReplaceFirstLine.txt")));
     }
-
 
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedLastLine() throws IOException {
@@ -1114,8 +1103,6 @@ public class TestReplaceText {
         out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/ReplaceLastLine.txt")));
     }
 
-
-
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedExceptFirstLine() throws IOException {
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
@@ -1132,9 +1119,6 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
         out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/ReplaceExceptFirstLine.txt")));
     }
-
-
-
 
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedExceptLastLine() throws IOException {
@@ -1153,8 +1137,6 @@ public class TestReplaceText {
         out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/ReplaceExceptLastLine.txt")));
     }
 
-
-
     @Test
     public void testLiteralBackReferenceFistLine() throws IOException {
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
@@ -1171,9 +1153,6 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
         out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/LiteralReplaceFirstLine.txt")));
     }
-
-
-
 
     @Test
     public void testLiteralBackReferenceExceptFirstLine() throws IOException {
@@ -1192,7 +1171,6 @@ public class TestReplaceText {
         out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/LiteralReplaceExceptFirstLine.txt")));
     }
 
-
     @Test
     public void testLiteralBackReferenceLastLine() throws IOException {
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
@@ -1209,7 +1187,6 @@ public class TestReplaceText {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
         out.assertContentEquals(translateNewLines(new File("src/test/resources/TestReplaceTextLineByLine/LiteralReplaceLastLine.txt")));
     }
-
 
     @Test
     public void testLiteralBackReferenceExceptLastLine() throws IOException {
@@ -1374,27 +1351,8 @@ public class TestReplaceText {
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        final String expectedContent = """
-                attribute header
-
-                abc.txt
-
-                data header
-
-                Hello
-
-
-                footer
-                attribute header
-
-                abc.txt
-
-                data header
-
-                World!
-
-                footer
-                """;
+        final String lineContent = "attribute header\n\nabc.txt\n\ndata header\n\n";
+        final String expectedContent = lineContent + "Hello\n\n\nfooter\n" + lineContent + "World!\n\nfooter\n";
         assertEquals(expectedContent, outContent);
     }
 
@@ -1589,7 +1547,6 @@ public class TestReplaceText {
         final MockFlowFile output = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).getFirst();
         output.assertContentEquals("<pre>Hello<post>\n<pre>There<post>\n<pre>How are you<post>\n<pre>Today?<post>");
     }
-
 
     @Test
     public void testBackReferenceEscapeWithRegexReplaceUsingEL() {

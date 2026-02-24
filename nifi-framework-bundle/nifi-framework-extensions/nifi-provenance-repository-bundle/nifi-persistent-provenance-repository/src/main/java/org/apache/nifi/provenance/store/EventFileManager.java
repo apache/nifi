@@ -64,7 +64,6 @@ public class EventFileManager {
         return updateCount(file, val -> val - 1);
     }
 
-
     public void obtainReadLock(final File file) {
         final ReadWriteLock rwLock = incrementCount(file);
         rwLock.readLock().lock();

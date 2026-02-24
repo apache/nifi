@@ -47,7 +47,6 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
 
     private String comments;
 
-
     @Schema(description = "The identifier of the bucket this snapshot belongs to.")
     public String getBucketIdentifier() {
         return bucketIdentifier;

@@ -57,7 +57,6 @@ class JMSConsumer extends JMSWorker {
         logger.debug("Created Message Consumer for '{}'", jmsTemplate);
     }
 
-
     private MessageConsumer createMessageConsumer(final Session session, final String destinationName, final boolean durable, final boolean shared, final String subscriptionName,
                                                   final String messageSelector) throws JMSException {
         final boolean isPubSub = JMSConsumer.this.jmsTemplate.isPubSubDomain();
@@ -217,7 +216,6 @@ class JMSConsumer extends JMSWorker {
         return properties;
     }
 
-
     private Map<String, String> extractMessageHeaders(final Message message) throws JMSException {
         final Map<String, String> messageHeaders = new HashMap<>();
 
@@ -243,7 +241,6 @@ class JMSConsumer extends JMSWorker {
         return messageHeaders;
     }
 
-
     private String retrieveDestinationName(Destination destination, String headerName) {
         String destinationName = null;
         if (destination != null) {
@@ -256,7 +253,6 @@ class JMSConsumer extends JMSWorker {
         }
         return destinationName;
     }
-
 
     static class JMSResponse {
         private final Message message;

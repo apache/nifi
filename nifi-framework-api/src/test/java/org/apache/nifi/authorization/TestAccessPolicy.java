@@ -191,7 +191,6 @@ public class TestAccessPolicy {
         assertEquals(1, policy4.getUsers().size());
         assertTrue(policy4.getUsers().contains("user2"));
 
-
         final AccessPolicy policy5 = builder.clearUsers().build();
         assertEquals(0, policy5.getUsers().size());
     }

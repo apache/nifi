@@ -46,7 +46,6 @@ public interface PythonController {
      */
     void discoverExtensions(List<String> directories, String workDirectory);
 
-
     /**
      * Downloads any third-party dependencies that are necessary in order to use the processor of the given type and version
      *

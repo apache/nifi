@@ -52,7 +52,6 @@ public class NiFiProjectTableScanRule extends RelRule<NiFiProjectTableScanRule.C
         call.transformTo(tableScan);
     }
 
-
     private static int[] getProjectionFields(final List<RexNode> expressions) {
         final int[] fields = new int[expressions.size()];
         for (int i = 0; i < expressions.size(); i++) {
@@ -73,7 +72,6 @@ public class NiFiProjectTableScanRule extends RelRule<NiFiProjectTableScanRule.C
         Config DEFAULT = new StandardConfig()
             .withOperandSupplier(b0 -> b0.operand(Project.class).anyInputs());
 
-
         @Override
         default NiFiProjectTableScanRule toRule() {
             return new NiFiProjectTableScanRule(this);
@@ -84,7 +82,6 @@ public class NiFiProjectTableScanRule extends RelRule<NiFiProjectTableScanRule.C
         private RelBuilderFactory relBuilderFactory = RelFactories.LOGICAL_BUILDER;
         private String description;
         private OperandTransform operandTransform;
-
 
         @Override
         public StandardConfig withRelBuilderFactory(final RelBuilderFactory factory) {
@@ -113,7 +110,6 @@ public class NiFiProjectTableScanRule extends RelRule<NiFiProjectTableScanRule.C
         public String description() {
             return description;
         }
-
 
         @Override
         public OperandTransform operandSupplier() {

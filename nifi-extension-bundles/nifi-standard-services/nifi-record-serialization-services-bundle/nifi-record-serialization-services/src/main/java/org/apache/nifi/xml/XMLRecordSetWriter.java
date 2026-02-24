@@ -150,15 +150,15 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         if (!validationContext.getProperty(ARRAY_WRAPPING).getValue().equals(NO_WRAPPING.getValue())) {
             if (!validationContext.getProperty(ARRAY_TAG_NAME).isSet()) {
                 StringBuilder explanation = new StringBuilder()
-                        .append("if property \'")
+                        .append("if property '")
                         .append(ARRAY_WRAPPING.getName())
-                        .append("\' is defined as \'")
+                        .append("' is defined as '")
                         .append(USE_PROPERTY_AS_WRAPPER.getDisplayName())
-                        .append("\' or \'")
+                        .append("' or '")
                         .append(USE_PROPERTY_FOR_ELEMENTS.getDisplayName())
-                        .append("\' the property \'")
+                        .append("' the property '")
                         .append(ARRAY_TAG_NAME.getDisplayName())
-                        .append("\' has to be set.");
+                        .append("' has to be set.");
 
                 return Collections.singleton(new ValidationResult.Builder()
                         .subject(ARRAY_TAG_NAME.getName())

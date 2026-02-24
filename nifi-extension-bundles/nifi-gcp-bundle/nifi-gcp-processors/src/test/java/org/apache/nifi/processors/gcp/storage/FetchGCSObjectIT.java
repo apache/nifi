@@ -99,7 +99,6 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
                 "AES256");
     }
 
-
     @Test
     public void testFetchNonexistantFile() throws Exception {
         final TestRunner runner = buildNewRunner(new FetchGCSObject());

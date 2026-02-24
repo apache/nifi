@@ -86,7 +86,6 @@ public class MigrateProperties extends AbstractProcessor {
 
     private final AtomicLong counter = new AtomicLong(0L);
 
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;

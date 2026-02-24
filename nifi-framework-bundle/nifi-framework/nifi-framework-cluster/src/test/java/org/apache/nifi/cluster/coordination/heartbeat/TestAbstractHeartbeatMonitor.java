@@ -407,7 +407,6 @@ public class TestAbstractHeartbeatMonitor {
 
     }
 
-
     private static class TestFriendlyHeartbeatMonitor extends AbstractHeartbeatMonitor {
         private Map<NodeIdentifier, NodeHeartbeat> heartbeats = new ConcurrentHashMap<>();
         private final Object mutex = new Object();

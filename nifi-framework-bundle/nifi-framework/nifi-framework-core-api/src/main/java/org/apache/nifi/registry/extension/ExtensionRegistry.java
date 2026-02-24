@@ -89,4 +89,3 @@ public interface ExtensionRegistry<T extends ExtensionBundleMetadata> {
 
 }
 
-

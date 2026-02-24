@@ -156,7 +156,6 @@ public enum NodeStatusDescriptor {
         this.descriptor = new StandardMetricDescriptor<>(this::ordinal, field, label, description, formatter, valueFunction, reducer);
     }
 
-
     public String getField() {
         return descriptor.getField();
     }

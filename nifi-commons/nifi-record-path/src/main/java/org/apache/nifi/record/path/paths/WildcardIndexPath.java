@@ -38,7 +38,6 @@ public class WildcardIndexPath extends RecordPathSegment {
         super("[*]", parent, absolute);
     }
 
-
     @Override
     @SuppressWarnings("unchecked")
     public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {

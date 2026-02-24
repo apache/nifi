@@ -21,7 +21,6 @@ public class ProcessorConfiguration {
     private String processorClassName;
     private String configuration;
 
-
     public String getProcessorClassName() {
         return processorClassName;
     }

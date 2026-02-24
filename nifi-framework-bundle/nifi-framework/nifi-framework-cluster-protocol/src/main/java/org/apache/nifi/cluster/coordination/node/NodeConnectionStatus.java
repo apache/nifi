@@ -39,7 +39,6 @@ public class NodeConnectionStatus {
     private final String reason;
     private final Long connectionRequestTime;
 
-
     public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state) {
         this(nodeId, state, null, null, null, null);
     }

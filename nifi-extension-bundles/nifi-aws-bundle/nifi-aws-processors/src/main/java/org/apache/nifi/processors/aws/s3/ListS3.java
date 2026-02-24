@@ -280,7 +280,6 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         .defaultValue("100")
         .build();
 
-
     public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         BUCKET_WITHOUT_DEFAULT_VALUE,
         REGION,

@@ -150,7 +150,6 @@ public class AsnPreprocessorEngineTest {
 
         String input = "test_complex_for_preprocessing.asn";
 
-
         String preprocessedFile = testSubject.preprocess(
                 log,
                 new File(getClass().getClassLoader().getResource(input).toURI()).getAbsolutePath(),

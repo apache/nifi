@@ -130,7 +130,6 @@ public class RestChangeIngestor implements ChangeIngestor {
         }
     }
 
-
     @Override
     public void close() throws IOException {
         logger.warn("Shutting down the jetty server");

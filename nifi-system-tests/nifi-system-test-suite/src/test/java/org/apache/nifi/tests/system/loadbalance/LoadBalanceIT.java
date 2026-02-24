@@ -109,7 +109,6 @@ public class LoadBalanceIT extends NiFiSystemIT {
         assertEquals(20 * 1024 * 1024, getQueueBytes(connection.getId()));
     }
 
-
     @Test
     public void testSingleNodeStrategy() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
@@ -193,7 +192,6 @@ public class LoadBalanceIT extends NiFiSystemIT {
                 final ConnectionStatusEntity statusEntity = getConnectionStatus(connection.getId());
                 return statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() == expectedQueueSize;
             });
-
 
             getNifiClient().getProcessorClient().stopProcessor(generate);
             getClientUtil().waitForStoppedProcessor(generate.getId());
@@ -314,7 +312,6 @@ public class LoadBalanceIT extends NiFiSystemIT {
 
         return stats.getMin() == stats.getMax();
     }
-
 
     @Test
     public void testRoundRobinWithRestartAndPortChange() throws NiFiClientException, IOException, InterruptedException {

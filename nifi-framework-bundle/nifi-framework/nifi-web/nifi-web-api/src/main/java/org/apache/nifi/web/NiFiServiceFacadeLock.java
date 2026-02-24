@@ -150,7 +150,6 @@ public class NiFiServiceFacadeLock {
         return proceedWithReadLock(proceedingJoinPoint);
     }
 
-
     private Object proceedWithReadLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         final long beforeLock = System.nanoTime();
         long afterLock = 0L;

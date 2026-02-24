@@ -474,8 +474,8 @@ public class ProcessorAuditor extends NiFiAuditor {
     private void getItemPaths(NodeList nl, String path, Map<String, Node> map) {
         if (nl != null) {
             for (int i = 0; i < nl.getLength(); i++) {
-                Node n;
-                if ((n = nl.item(i)) != null) {
+                final Node n = nl.item(i);
+                if (n != null) {
                     if (n.getNodeType() == Node.ELEMENT_NODE || n.getNodeType() == Node.TEXT_NODE) {
                         if (n.hasChildNodes()) {
                             if (n.getNodeType() == Node.ELEMENT_NODE) {

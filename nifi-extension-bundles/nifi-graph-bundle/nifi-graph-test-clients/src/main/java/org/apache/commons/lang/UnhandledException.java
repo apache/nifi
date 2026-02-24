@@ -23,7 +23,6 @@ package org.apache.commons.lang;
  */
 public class UnhandledException extends Exception {
 
-
     public UnhandledException(Throwable cause) {
         super(cause);
     }

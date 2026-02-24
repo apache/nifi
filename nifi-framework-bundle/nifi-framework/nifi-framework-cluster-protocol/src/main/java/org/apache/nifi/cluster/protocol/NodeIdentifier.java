@@ -103,7 +103,6 @@ public class NodeIdentifier {
      */
     private final Boolean siteToSiteSecure;
 
-
     private final Set<String> nodeIdentities;
 
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
@@ -220,7 +219,6 @@ public class NodeIdentifier {
     public boolean isSiteToSiteSecure() {
         return siteToSiteSecure;
     }
-
 
     /**
      * Compares the id of two node identifiers for equality.

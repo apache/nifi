@@ -86,7 +86,6 @@ public final class ProtoTestUtil {
         return message.toByteString().newInput();
     }
 
-
     public static InputStream generateInputDataForProto3() throws IOException, Descriptors.DescriptorValidationException {
         final FileDescriptor fileDescriptor = loadFileDescriptor("test_proto3.desc");
 

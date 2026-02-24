@@ -537,7 +537,6 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.DEMARCATOR, "${demarcator}");
         runner.setProperty(MergeContent.FOOTER, "${footer}");
 
-
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
         attributes.put("header", "src/test/resources/TestMergeContent/head");

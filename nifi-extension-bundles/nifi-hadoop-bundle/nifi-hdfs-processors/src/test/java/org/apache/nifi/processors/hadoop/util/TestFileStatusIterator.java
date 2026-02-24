@@ -84,7 +84,6 @@ class TestFileStatusIterator {
         final FileStatus[] fileStatuses = {mockFileStatus1, mockFileStatus2, mockFileStatus3};
         setupFileStatusMocks(fileStatuses);
 
-
         final Iterator<FileStatus> iterator = fileStatusIterable.iterator();
         final Set<FileStatus> expectedFileStatuses = new HashSet<>(Arrays.asList(fileStatuses));
         final Set<FileStatus> actualFileStatuses = new HashSet<>();
@@ -109,9 +108,7 @@ class TestFileStatusIterator {
 
         assertEquals(0, fileStatusIterable.getTotalFileCount());
 
-        for (FileStatus ignored : fileStatusIterable) {
-            // count files
-        }
+        fileStatusIterable.forEach(status -> { });
 
         assertEquals(3, fileStatusIterable.getTotalFileCount());
     }

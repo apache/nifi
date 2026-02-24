@@ -270,8 +270,8 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
 
                         lastEventMap.put(parentUuid, lineageNode);
                     }
-                }
                     break;
+                }
                 case RECEIVE:
                 case CREATE: {
                     // for a receive event, we want to create a FlowFile Node that represents the FlowFile received
@@ -287,8 +287,8 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
                     }
                     edges.add(new EdgeNode(record.getFlowFileUuid(), lineageNode, flowFileNode));
                     lastEventMap.put(record.getFlowFileUuid(), flowFileNode);
-                }
                     break;
+                }
                 default:
                     break;
             }

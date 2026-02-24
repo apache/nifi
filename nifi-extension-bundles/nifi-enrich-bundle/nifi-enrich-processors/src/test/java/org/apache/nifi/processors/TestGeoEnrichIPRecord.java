@@ -76,7 +76,6 @@ public class TestGeoEnrichIPRecord {
         runner.addControllerService("writer", writer);
         runner.addControllerService("registry", registry);
 
-
         final String raw = Files.readString(Paths.get("src/test/resources/avro/record_schema.avsc"));
         RecordSchema parsed = AvroTypeUtil.createSchema(new Schema.Parser().parse(raw));
         registry.addSchema("record", parsed);

@@ -52,7 +52,6 @@ public class VerifiableParameterProviderSystemIT extends NiFiSystemIT {
         assertEquals(Outcome.SKIPPED.name(), resultList.get(2).getOutcome());
     }
 
-
     @Test
     public void testVerifyWithInvalidConfigWhenComponentValid() throws NiFiClientException, IOException, InterruptedException {
         final ParameterProviderEntity parameterProvider = getClientUtil().createParameterProvider("EnsureParameterProviderConfigurationCorrect");

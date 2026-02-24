@@ -95,7 +95,6 @@ public abstract class AbstractFlowAnalaysisRuleTest<T extends AbstractFlowAnalys
         assertIterableEquals(expected, actual.stream().map(r -> r.getComponent().get().getInstanceIdentifier()).sorted().toList());
     }
 
-
     protected void testAnalyzeProcessors(String flowDefinition, List<ComponentAnalysisResult> expected) throws Exception {
         VersionedProcessGroup rootPG = getProcessGroup(flowDefinition);
         for (VersionedProcessor processor : rootPG.getProcessors()) {

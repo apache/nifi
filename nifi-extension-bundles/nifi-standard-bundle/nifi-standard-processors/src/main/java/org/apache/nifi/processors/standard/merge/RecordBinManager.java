@@ -81,7 +81,6 @@ public class RecordBinManager {
         }
     }
 
-
     public void setMaxBinAge(final Long timePeriod, final TimeUnit timeUnit) {
         if (timePeriod == null) {
             maxBinAgeNanos.set(Long.MAX_VALUE);
@@ -89,7 +88,6 @@ public class RecordBinManager {
             maxBinAgeNanos.set(timeUnit.toNanos(timePeriod));
         }
     }
-
 
     public int getBinCount() {
         return binCount.get();
@@ -178,7 +176,6 @@ public class RecordBinManager {
         }
     }
 
-
     private RecordBinThresholds createThresholds(FlowFile flowfile) {
         int minRecords = context.getProperty(MergeRecord.MIN_RECORDS).evaluateAttributeExpressions().asInteger();
         final int maxRecords = context.getProperty(MergeRecord.MAX_RECORDS).evaluateAttributeExpressions().asInteger();
@@ -203,7 +200,6 @@ public class RecordBinManager {
 
         return new RecordBinThresholds(minRecords, maxRecords, minBytes, maxBytes, maxBinMillis, maxBinAge, fragmentCountAttribute);
     }
-
 
     public void completeOldestBin() throws IOException {
         RecordBin oldestBin = null;
@@ -233,7 +229,6 @@ public class RecordBinManager {
         logger.debug("Completing Bin {} because the maximum number of bins has been exceeded", oldestBin);
         oldestBin.complete("Maximum number of bins has been exceeded");
     }
-
 
     public int completeExpiredBins() throws IOException {
         final long maxNanos = maxBinAgeNanos.get();
@@ -284,7 +279,6 @@ public class RecordBinManager {
 
         return completed;
     }
-
 
     private void removeBins(final String key, final List<RecordBin> bins) {
         lock.lock();

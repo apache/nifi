@@ -191,7 +191,6 @@ class GetShopifyTest {
 
     static class CustomGetShopify extends GetShopify {
 
-
         @Override
         ShopifyRestService getShopifyRestService(WebClientServiceProvider webClientServiceProvider, String apiVersion,
                                                  String baseUrl, String accessToken, String resourceName, String limit,

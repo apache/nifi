@@ -409,7 +409,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final int DEFAULT_LOAD_BALANCE_MAX_THREAD_COUNT = 8;
     public static final String DEFAULT_LOAD_BALANCE_COMMS_TIMEOUT = "30 sec";
 
-
     // state management defaults
     public static final String DEFAULT_STATE_MANAGEMENT_CONFIG_FILE = "conf/state-management.xml";
 
@@ -601,7 +600,6 @@ public class NiFiProperties extends ApplicationProperties {
                 DEFAULT_AUTO_RESUME_STATE.toString());
         return Boolean.parseBoolean(rawAutoResumeState);
     }
-
 
     /**
      * Returns the number of milliseconds between FlowFileRepository
@@ -899,7 +897,6 @@ public class NiFiProperties extends ApplicationProperties {
             return null;
         }
     }
-
 
     public int getClusterNodeProtocolMaxPoolSize() {
         try {
@@ -1408,7 +1405,6 @@ public class NiFiProperties extends ApplicationProperties {
         }
         return provenanceRepositoryPaths;
     }
-
 
     /**
      * Returns the maximum size, in bytes, that claims should grow before writing a new file. This means that we won't continually write to one

@@ -46,7 +46,6 @@ public class TestBundleUtils {
     private static final Bundle frameworkBundle = createBundle("framework-bundle", FRAMEWORK_VERSION);
     private static ExtensionManager extensionManager;
 
-
     @BeforeAll
     public static void setup() throws IOException, ClassNotFoundException {
         extensionManager = Mockito.mock(ExtensionManager.class);

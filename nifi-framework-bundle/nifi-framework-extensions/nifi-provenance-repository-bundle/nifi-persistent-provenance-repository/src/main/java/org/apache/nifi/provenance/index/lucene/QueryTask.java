@@ -85,7 +85,6 @@ public class QueryTask implements Runnable {
             return;
         }
 
-
         final long borrowStart = System.nanoTime();
         final EventIndexSearcher searcher;
         try {

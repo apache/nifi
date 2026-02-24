@@ -97,7 +97,6 @@ public enum RemoteProcessGroupStatusDescriptor {
             }
         });
 
-
     private final MetricDescriptor<RemoteProcessGroupStatus> descriptor;
 
     RemoteProcessGroupStatusDescriptor(final String field, final String label, final String description,

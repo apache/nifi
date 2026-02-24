@@ -189,7 +189,6 @@ public class TestStandardSchemaValidator {
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid(Integer.MAX_VALUE, RecordFieldType.DECIMAL);
     }
 
-
     @Test
     public void testLongWithinRangeIsConsideredToBeValidFloatingPoint() {
         whenValueIsAcceptedAsDataTypeThenConsideredAsValid(MAX_PRECISE_WHOLE_IN_FLOAT, RecordFieldType.FLOAT);
@@ -249,11 +248,9 @@ public class TestStandardSchemaValidator {
         assertNotNull(result.getValidationErrors());
         assertTrue(result.getValidationErrors().isEmpty());
 
-
         // Update Map to set value to a String that is coerceable to an int
         valueMap.put("id", "1");
         record = new MapRecord(schema, valueMap);
-
 
         // Validate with incorrect type of string and a strict validation
         validator = new StandardSchemaValidator(strictValidationContext);
@@ -345,7 +342,6 @@ public class TestStandardSchemaValidator {
         assertEquals("/name", validationError.getFieldName().get());
     }
 
-
     @Test
     public void testInvalidEmbeddedField() {
         final List<RecordField> accountFields = new ArrayList<>();
@@ -378,7 +374,6 @@ public class TestStandardSchemaValidator {
         assertEquals(1, result.getValidationErrors().size());
         final ValidationError validationError = result.getValidationErrors().iterator().next();
         assertEquals("/account/balance", validationError.getFieldName().get());
-
 
         validator = new StandardSchemaValidator(lenientValidationContext);
         result = validator.validate(record);

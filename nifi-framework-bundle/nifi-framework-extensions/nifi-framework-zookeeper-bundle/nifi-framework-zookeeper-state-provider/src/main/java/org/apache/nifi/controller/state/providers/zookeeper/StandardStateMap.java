@@ -35,7 +35,6 @@ class StandardStateMap implements StateMap {
         this.version = version;
     }
 
-
     /**
      * Get State Version
      *

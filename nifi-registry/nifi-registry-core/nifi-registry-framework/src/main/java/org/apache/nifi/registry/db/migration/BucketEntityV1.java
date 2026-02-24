@@ -32,7 +32,6 @@ public class BucketEntityV1 {
 
     private Date created;
 
-
     public String getId() {
         return id;
     }

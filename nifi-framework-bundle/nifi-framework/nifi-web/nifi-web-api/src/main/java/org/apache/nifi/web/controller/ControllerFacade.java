@@ -1104,7 +1104,6 @@ public class ControllerFacade implements Authorizable {
         flowController.getFlowManager().getAllControllerServices().forEach(csConsumer);
         root.findAllControllerServices().forEach(csConsumer);
 
-
         // add each reporting task
         for (final ReportingTaskNode reportingTask : flowController.getAllReportingTasks()) {
             final Resource reportingTaskResource = reportingTask.getResource();

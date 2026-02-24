@@ -49,7 +49,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(MockitoExtension.class)
 class ConfluentProtobufMessageNameResolverTest {
 
-
     private static final int MAGIC_BYTE_LENGTH = 1;
     private static final int SCHEMA_ID_LENGTH = 4;
     // Schema without package (default package)
@@ -201,7 +200,6 @@ class ConfluentProtobufMessageNameResolverTest {
         final InputStream inputStream2 = createWireFormatData(SCHEMA_WITH_EXPLICIT_PACKAGE, new int[] {99});
         assertThrows(IllegalStateException.class, () -> resolver.getMessageName(Map.of(), SCHEMA_WITH_EXPLICIT_PACKAGE, inputStream2));
     }
-
 
     /**
      * Creates wire format data according to Confluent specification:

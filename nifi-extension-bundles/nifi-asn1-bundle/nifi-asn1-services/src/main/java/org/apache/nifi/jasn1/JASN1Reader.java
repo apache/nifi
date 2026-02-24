@@ -108,7 +108,6 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
             .required(false)
             .build();
 
-
     static final PropertyDescriptor ASN_FILES = new PropertyDescriptor.Builder()
             .name("ASN.1 Files")
             .description("Comma-separated list of ASN.1 files.")

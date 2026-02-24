@@ -209,7 +209,6 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             throw new ValidationException(requestValidation);
         }
 
-
         // verify update when appropriate
         if (isAnyNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount(),
                 remoteProcessGroupPortDto.getUseCompression(),

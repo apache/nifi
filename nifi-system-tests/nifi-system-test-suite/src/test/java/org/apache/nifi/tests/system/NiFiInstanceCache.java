@@ -135,7 +135,6 @@ public class NiFiInstanceCache {
         }
     }
 
-
     private static class CachedNiFiInstance implements NiFiInstance {
         private final NiFiInstance rawInstance;
         private boolean envCreated = false;

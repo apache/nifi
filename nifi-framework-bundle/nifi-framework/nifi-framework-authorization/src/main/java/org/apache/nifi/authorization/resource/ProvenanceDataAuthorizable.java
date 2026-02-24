@@ -44,5 +44,4 @@ public class ProvenanceDataAuthorizable implements Authorizable, EnforcePolicyPe
         return ResourceFactory.getProvenanceDataResource(authorizable.getResource());
     }
 
-
 }

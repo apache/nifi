@@ -1158,7 +1158,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createFunnelEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions);
     }
 
-
     /**
      * Updates a component with the given revision, using the provided supplier to call
      * into the appropriate DAO and the provided function to convert the component into a DTO.
@@ -1193,7 +1192,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new InvalidRevisionException("Failed to update component " + authorizable, erce);
         }
     }
-
 
     @Override
     public void verifyUpdateSnippet(final SnippetDTO snippetDto, final Set<String> affectedComponentIds) {
@@ -1539,7 +1537,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     }
 
-
     @Override
     public Set<AffectedComponentEntity> getProcessorsReferencingParameter(final String groupId) {
         return getComponentsReferencingParameter(groupId, ProcessGroup::getProcessors);
@@ -1829,7 +1826,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return updatedParameters;
     }
 
-
     @Override
     public ProcessGroupEntity updateProcessGroup(final Revision revision, final ProcessGroupDTO processGroupDTO) {
         final ProcessGroup processGroupNode = processGroupDAO.getProcessGroup(processGroupDTO.getId());
@@ -1950,7 +1946,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return updatedComponent.getComponent();
     }
 
-
     @Override
     public ControllerConfigurationEntity updateControllerConfiguration(final Revision revision, final ControllerConfigurationDTO controllerConfigurationDTO) {
         final RevisionUpdate<ControllerConfigurationDTO> updatedComponent = updateComponent(
@@ -1970,7 +1965,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createControllerConfigurationEntity(updatedComponent.getComponent(), updateRevision, permissions);
     }
 
-
     @Override
     public NodeDTO updateNode(final NodeDTO nodeDTO) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -1983,7 +1977,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (nodeId == null) {
             throw new UnknownNodeException("No node exists with ID " + nodeDTO.getNodeId());
         }
-
 
         if (NodeConnectionState.CONNECTING.name().equalsIgnoreCase(nodeDTO.getStatus())) {
             clusterCoordinator.requestNodeConnect(nodeId, userDn);
@@ -3219,7 +3212,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createControllerServiceEntity(snapshot, null, permissions, operatePermissions, null);
     }
 
-
     @Override
     public FlowRegistryClientEntity createRegistryClient(final Revision revision, final FlowRegistryClientDTO flowRegistryClientDTO) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -3235,7 +3227,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             // save the flow
             controllerFacade.save();
             awaitValidationCompletion(registryClient);
-
 
             final FlowRegistryClientDTO dto = dtoFactory.createRegistryDto(registryClient);
             final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
@@ -6043,7 +6034,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
     }
 
-
     private ProcessGroupNameDTO createProcessGroupNameDto(final ProcessGroup group) {
         if (group == null) {
             return null;
@@ -6147,7 +6137,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setComponent(dto);
         return entity;
     }
-
 
     private Authorizable getAuthorizable(final Connectable connectable) {
         return switch (connectable.getConnectableType()) {
@@ -7468,7 +7457,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return entity;
     }
-
 
     @Override
     public ClearBulletinsForGroupResultsEntity clearBulletinsForComponents(final String processGroupId, final Instant fromTimestamp, final Set<String> componentIds) {

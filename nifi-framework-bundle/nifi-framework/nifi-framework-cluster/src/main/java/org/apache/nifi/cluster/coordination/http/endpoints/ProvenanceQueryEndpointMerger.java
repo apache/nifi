@@ -51,7 +51,6 @@ public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
         return false;
     }
 
-
     @Override
     public NodeResponse merge(URI uri, String method, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses, NodeResponse clientResponse) {
         if (!canHandle(uri, method)) {
@@ -71,7 +70,6 @@ public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
         mergeResponses(dto, dtoMap, successfulResponses, problematicResponses);
         return new NodeResponse(clientResponse, responseEntity);
     }
-
 
     protected void mergeResponses(ProvenanceDTO clientDto, Map<NodeIdentifier, ProvenanceDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
         final ProvenanceResultsDTO results = clientDto.getResults();

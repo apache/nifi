@@ -52,7 +52,6 @@ public abstract class BucketItem extends LinkableEntity {
 
     private Permissions permissions;
 
-
     public BucketItem(final BucketItemType type) {
         this.type = type;
     }

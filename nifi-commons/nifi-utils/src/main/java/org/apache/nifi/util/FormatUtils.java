@@ -70,8 +70,6 @@ public class FormatUtils {
         return pad2Places(minutes) + ":" + pad2Places(seconds) + "." + pad3Places(millisLeft);
     }
 
-
-
     /**
      * Formats the specified duration in 'HH:mm:ss.SSS' format.
      *

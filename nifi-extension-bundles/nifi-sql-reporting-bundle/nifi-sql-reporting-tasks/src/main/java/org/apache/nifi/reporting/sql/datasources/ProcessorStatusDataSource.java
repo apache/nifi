@@ -61,7 +61,6 @@ public class ProcessorStatusDataSource implements ResettableDataSource {
         new ColumnSchema("garbageCollectionDuration", long.class, false)
     ));
 
-
     private final ReportingContext reportingContext;
     private final GroupStatusCache groupStatusCache;
     private ProcessGroupStatus lastFetchedStatus = null;
@@ -85,7 +84,8 @@ public class ProcessorStatusDataSource implements ResettableDataSource {
         if (groupStatus == lastFetchedStatus) {
             processorStatuses = lastStatuses;
         } else {
-            processorStatuses = lastStatuses = gatherProcessorStatuses(groupStatus);
+            lastStatuses = gatherProcessorStatuses(groupStatus);
+            processorStatuses = lastStatuses;
         }
 
         lastFetchedStatus = groupStatus;

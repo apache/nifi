@@ -48,7 +48,6 @@ public interface RecordPath {
      */
     RecordPathResult evaluate(Record record);
 
-
     /**
      * Evaluates a RecordPath against the given context node. This allows a RecordPath to be evaluated
      * against a Record via {@link #evaluate(Record)} and then have a Relative RecordPath evaluated against

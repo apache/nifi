@@ -71,7 +71,6 @@ public class ProvenanceDataSource implements ResettableDataSource {
     private Iterator<ProvenanceEventRecord> iterator;
     private long lastId = -1L;
 
-
     public ProvenanceDataSource(final ReportingContext reportingContext) {
         this.reportingContext = reportingContext;
 

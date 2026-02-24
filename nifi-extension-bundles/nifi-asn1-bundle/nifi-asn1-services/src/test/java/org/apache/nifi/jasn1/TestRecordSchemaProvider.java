@@ -100,7 +100,6 @@ public class TestRecordSchemaProvider {
 
     }
 
-
     @Test
     public void testRecursive() {
         final RecordSchemaProvider provider = new RecordSchemaProvider();

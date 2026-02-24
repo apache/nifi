@@ -119,7 +119,6 @@ public abstract class IndexCorrelatedJoinStrategy implements RecordJoinStrategy 
         }
     }
 
-
     private void closeQuietly(final AutoCloseable... closeables) {
         for (final AutoCloseable closeable : closeables) {
             closeQuietly(closeable);

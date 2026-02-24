@@ -32,7 +32,6 @@ public class MigrationReportingTask extends AbstractReportingTask {
             .defaultValue("0")
             .build();
 
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return List.of(START_VALUE);

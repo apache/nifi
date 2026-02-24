@@ -60,7 +60,6 @@ public class BucketItemDeserializer extends StdDeserializer<BucketItem[]> {
                 throw new IllegalStateException("Unknown type for BucketItem: " + type, e);
             }
 
-
             switch (bucketItemType) {
                 case Flow:
                     final VersionedFlow versionedFlow = jsonParser.getCodec().treeToValue(node, VersionedFlow.class);

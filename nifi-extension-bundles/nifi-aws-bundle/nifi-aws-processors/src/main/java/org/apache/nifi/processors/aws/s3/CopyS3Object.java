@@ -138,8 +138,6 @@ public class CopyS3Object extends AbstractS3Processor {
         final String destinationBucket = context.getProperty(DESTINATION_BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String destinationKey = context.getProperty(DESTINATION_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
-
-
         final AtomicReference<String> multipartIdRef = new AtomicReference<>();
         boolean multipartUploadRequired = false;
 

@@ -269,7 +269,6 @@ class StandardTlsConfiguration implements TlsConfiguration {
         return new String[]{getTruststorePath(), getTruststorePasswordForLogging(), getKeystoreType() != null ? getTruststoreType().getType() : NULL_LOG};
     }
 
-
     /**
      * Get Enabled TLS Protocols translates SSL to legacy protocols and TLS to current protocols or returns configured protocol
      *

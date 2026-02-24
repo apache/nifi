@@ -96,7 +96,6 @@ public class StandardFlowPropertyEncryptorTest {
         SENSITIVE_3, versionedPropertyDescriptor(SENSITIVE_3, true)
     );
 
-
     @Mock
     private PropertyEncryptor mockPropertyEncryptor;
     @Mock

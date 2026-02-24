@@ -48,7 +48,6 @@ public class TestLineDemarcator {
         assertLinesMatch(Arrays.asList("A\n", "B\n", "C\r", "D\r\n", "E\r\n", "F\r", "\r", "G"), lines);
     }
 
-
     @Test
     public void testEmptyStream() throws IOException {
         final List<String> lines = getLines("");

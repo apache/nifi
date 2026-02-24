@@ -126,7 +126,6 @@ public class ParameterContextIT extends NiFiSystemIT {
         assertEquals("********", returnedParamDto.getValue());
     }
 
-
     @Test
     public void testAddingMissingParameterMakesProcessorValid() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity createdProcessorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".CountEvents", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
@@ -1215,7 +1214,6 @@ public class ParameterContextIT extends NiFiSystemIT {
     private void waitForStoppedProcessor(final String processorId) throws InterruptedException, IOException, NiFiClientException {
         getClientUtil().waitForStoppedProcessor(processorId);
     }
-
 
     protected AssetEntity createAsset(final String paramContextId, final File assetFile) throws NiFiClientException, IOException {
         return createAsset(paramContextId, assetFile.getName(), assetFile);

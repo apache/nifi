@@ -294,7 +294,6 @@ public class ProvenanceEventResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
-
     /**
      * Triggers the latest Provenance Event for the specified component to be replayed.
      *
@@ -388,7 +387,6 @@ public class ProvenanceEventResource extends ApplicationResource {
                     return generateOkResponse(responseEntity).build();
                 });
     }
-
 
     /**
      * Creates a new replay request for the content associated with the specified provenance event id.

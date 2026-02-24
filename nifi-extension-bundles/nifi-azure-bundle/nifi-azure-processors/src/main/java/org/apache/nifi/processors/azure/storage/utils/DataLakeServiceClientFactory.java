@@ -31,6 +31,7 @@ import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import reactor.core.publisher.Mono;
 
@@ -46,6 +47,7 @@ public class DataLakeServiceClientFactory extends AbstractStorageClientFactory<A
         final String accountKey = credentialsDetails.getAccountKey();
         final String sasToken = credentialsDetails.getSasToken();
         final AccessToken accessToken = credentialsDetails.getAccessToken();
+        final AzureIdentityFederationTokenProvider identityTokenProvider = credentialsDetails.getIdentityTokenProvider();
         final String endpointSuffix = credentialsDetails.getEndpointSuffix();
         final boolean useManagedIdentity = credentialsDetails.getUseManagedIdentity();
         final String managedIdentityClientId = credentialsDetails.getManagedIdentityClientId();
@@ -64,6 +66,8 @@ public class DataLakeServiceClientFactory extends AbstractStorageClientFactory<A
             dataLakeServiceClientBuilder.credential(credential);
         } else if (StringUtils.isNotBlank(sasToken)) {
             dataLakeServiceClientBuilder.sasToken(sasToken);
+        } else if (identityTokenProvider != null) {
+            dataLakeServiceClientBuilder.credential(identityTokenProvider.getCredentials());
         } else if (accessToken != null) {
             final TokenCredential credential = tokenRequestContext -> Mono.just(accessToken);
             dataLakeServiceClientBuilder.credential(credential);

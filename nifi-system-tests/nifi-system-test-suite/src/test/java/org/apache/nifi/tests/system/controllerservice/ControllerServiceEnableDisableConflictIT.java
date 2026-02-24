@@ -83,7 +83,6 @@ public class ControllerServiceEnableDisableConflictIT extends NiFiSystemIT {
         });
     }
 
-
     private enum NodeReconnectMode {
         RECONNECT_DIRECTLY,
         RESTART_NODE;

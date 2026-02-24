@@ -32,7 +32,6 @@ public interface ListableEntity {
      */
     String getIdentifier();
 
-
     /**
      * @return the timestamp for this entity in milliseconds so that we can be efficient about not performing listings of the same
      *         entities multiple times

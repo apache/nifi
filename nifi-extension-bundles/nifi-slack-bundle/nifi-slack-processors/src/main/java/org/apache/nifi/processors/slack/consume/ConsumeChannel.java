@@ -60,7 +60,6 @@ public class ConsumeChannel {
     private static final Pattern MENTION_PATTERN = Pattern.compile("<@(U.*?)>");
     private static final long YIELD_MILLIS = 3_000L;
 
-
     private final ConsumeSlackClient client;
     private final String channelId;
     private final String channelName;
@@ -78,7 +77,6 @@ public class ConsumeChannel {
     private volatile long yieldExpiration;
     private volatile long lastReplyMonitorPollEnd = System.currentTimeMillis();
     private final AtomicLong nextRequestTime = new AtomicLong(0L);
-
 
     private ConsumeChannel(final Builder builder) {
         this.client = builder.client;
@@ -417,7 +415,6 @@ public class ConsumeChannel {
         }
     }
 
-
     private ConsumptionResults consumeMessages(final ProcessContext context, final ProcessSession session, final ConversationsHistoryRequest request, final Predicate<Message> messageFilter,
                                                final String startingRepliesCursor, final SlackTimestamp oldestReplyTs, final Predicate<Message> replyFilter) throws IOException, SlackApiException {
 
@@ -571,7 +568,6 @@ public class ConsumeChannel {
         return new StandardConsumptionResults(earliestTimestamp, latestTimestamp, repliesCursor, partialThreadException != null, continuePolling, moreMessages);
     }
 
-
     private boolean enrichMessage(final Message message) {
         message.setChannel(channelId);
 
@@ -611,7 +607,6 @@ public class ConsumeChannel {
         return !lookupFailed.get();
     }
 
-
     private void yieldOnException(final PartialThreadException e, final String channelId, final Message message, final ProcessContext context) {
         if (SlackResponseUtil.isRateLimited(e.getCause())) {
             final int retryAfterSeconds = SlackResponseUtil.getRetryAfterSeconds(e);
@@ -627,8 +622,6 @@ public class ConsumeChannel {
         nextRequestTime.getAndUpdate(currentTime -> Math.max(currentTime, timeOfNextRequest));
         context.yield();
     }
-
-
 
     private List<Message> fetchReplies(final Message message, final String startCursor, final SlackTimestamp oldestTs) throws SlackApiException, IOException, PartialThreadException {
         final List<Message> replies = new ArrayList<>();
@@ -698,8 +691,6 @@ public class ConsumeChannel {
         yieldExpiration = 0L;
         return false;
     }
-
-
 
     public static class Builder {
         private ConsumeSlackClient client;
@@ -780,7 +771,6 @@ public class ConsumeChannel {
         }
     }
 
-
     private interface ConsumptionResults {
         SlackTimestamp getEarliestTimestamp();
 
@@ -794,7 +784,6 @@ public class ConsumeChannel {
 
         boolean isMore();
     }
-
 
     private static class StandardConsumptionResults implements ConsumptionResults {
         private final SlackTimestamp earliestTimestamp;
@@ -844,7 +833,6 @@ public class ConsumeChannel {
             return isMore;
         }
     }
-
 
     private static class StateKeys {
         public final String ACTION;

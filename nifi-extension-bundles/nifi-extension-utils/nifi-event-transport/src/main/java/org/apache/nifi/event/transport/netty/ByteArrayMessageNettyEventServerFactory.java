@@ -59,7 +59,6 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
         this(log, address, port, protocol, delimiter, maxFrameLength, messages, FilteringStrategy.DISABLED);
     }
 
-
     /**
      * Netty Event Server Factory with configurable delimiter and queue of Byte Array Messages
      *

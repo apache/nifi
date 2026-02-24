@@ -129,9 +129,7 @@ public class FileSystemRepository implements ContentRepository {
     // Map of container to archived files that should be deleted next.
     private final Map<String, BlockingQueue<ArchiveInfo>> archivedFiles = new HashMap<>();
 
-
     private final NiFiProperties nifiProperties;
-
 
     public FileSystemRepository(final NiFiProperties nifiProperties) throws IOException {
         this.nifiProperties = nifiProperties;
@@ -764,7 +762,6 @@ public class FileSystemRepository implements ContentRepository {
         return newClaim;
     }
 
-
     @Override
     public long importFrom(final Path content, final ContentClaim claim) throws IOException {
         try (final InputStream in = Files.newInputStream(content, StandardOpenOption.READ)) {
@@ -1156,7 +1153,6 @@ public class FileSystemRepository implements ContentRepository {
     protected int getOpenStreamCount() {
         return writableClaimStreams.size();
     }
-
 
     protected ByteCountingOutputStream getWritableClaimStreamByResourceClaim(ResourceClaim rc) {
         return writableClaimStreams.get(rc);
@@ -1746,8 +1742,6 @@ public class FileSystemRepository implements ContentRepository {
         return cleanupInterval;
     }
 
-
-
     protected class ContentRepositoryOutputStream extends ContentClaimOutputStream {
         protected StandardContentClaim scc;
 
@@ -1898,7 +1892,6 @@ public class FileSystemRepository implements ContentRepository {
                 }
             }
         }
-
 
         @Override
         public synchronized ContentClaim newContentClaim() throws IOException {

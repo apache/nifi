@@ -226,7 +226,6 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .dependsOn(ASSUME_ROLE_ARN)
         .build();
 
-
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         USE_DEFAULT_CREDENTIALS,
         ACCESS_KEY_ID,
@@ -261,7 +260,6 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
         // Derived Credential Strategies
         new AssumeRoleCredentialsStrategy());
-
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

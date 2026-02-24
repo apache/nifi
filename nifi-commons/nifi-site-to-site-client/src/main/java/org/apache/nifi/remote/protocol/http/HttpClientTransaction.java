@@ -145,9 +145,8 @@ public class HttpClientTransaction extends AbstractTransaction {
                     } else {
                         logger.warn("{} BAD_CHECKSUM, Expected the transaction is canceled on server, but received {}.", this, badChecksumCancelResponse);
                     }
-
-                }
                     break;
+                }
                 case CONFIRM_TRANSACTION:
                     // The actual HTTP request will be sent in readTransactionResponse.
                     logger.debug("{} Transaction is confirmed.", this);
@@ -161,12 +160,11 @@ public class HttpClientTransaction extends AbstractTransaction {
                     } else {
                         logger.warn("{} CANCEL_TRANSACTION, Expected the transaction is canceled on server, but received {}.", this, cancelResponse);
                     }
-                }
                     break;
+                }
             }
         }
     }
-
 
     @Override
     protected void close() throws IOException {

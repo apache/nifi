@@ -105,7 +105,6 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
                         dataType = recordField.getDataType();
                     }
 
-
                     final Object value;
                     if (coerceTypes) {
                         value = convert(rawValue, dataType, rawFieldName);
@@ -127,7 +126,6 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
 
         return null;
     }
-
 
     private List<RecordField> getRecordFields() {
         if (this.recordFields != null) {

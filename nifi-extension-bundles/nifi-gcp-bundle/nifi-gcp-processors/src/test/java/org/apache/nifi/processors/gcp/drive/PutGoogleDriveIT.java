@@ -133,7 +133,6 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> {
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
     }
 
-
     private void runWithFileContent() {
         runWithFileContent(DEFAULT_FILE_CONTENT);
     }

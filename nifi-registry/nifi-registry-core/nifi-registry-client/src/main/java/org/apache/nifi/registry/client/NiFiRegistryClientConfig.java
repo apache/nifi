@@ -49,7 +49,6 @@ public class NiFiRegistryClientConfig {
     private final Integer readTimeout;
     private final Integer connectTimeout;
 
-
     private NiFiRegistryClientConfig(final Builder builder) {
         this.baseUrl = builder.baseUrl;
         this.sslContext = builder.sslContext;

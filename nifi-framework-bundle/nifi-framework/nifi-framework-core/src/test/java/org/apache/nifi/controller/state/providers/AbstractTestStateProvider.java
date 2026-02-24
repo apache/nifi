@@ -47,7 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public abstract class AbstractTestStateProvider {
     protected final String componentId = "111111111-1111-1111-1111-111111111111";
 
-
     @Test
     public void testSetAndGet() throws IOException {
         final Collection<String> initialStoredComponentIds = getProvider().getStoredComponentIds();
@@ -110,7 +109,6 @@ public abstract class AbstractTestStateProvider {
         assertEquals("intermediate value", stateMap.get(key));
         assertTrue(stateMap.getStateVersion().isPresent());
     }
-
 
     @Test
     public void testToMap() throws IOException {

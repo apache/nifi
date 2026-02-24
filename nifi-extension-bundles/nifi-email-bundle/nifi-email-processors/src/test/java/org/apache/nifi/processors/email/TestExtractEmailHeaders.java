@@ -74,7 +74,6 @@ public class TestExtractEmailHeaders {
         runner.assertTransferCount(ExtractEmailHeaders.REL_SUCCESS, 1);
         runner.assertTransferCount(ExtractEmailHeaders.REL_FAILURE, 0);
 
-
         runner.assertQueueEmpty();
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailHeaders.REL_SUCCESS);
         splits.getFirst().assertAttributeEquals("email.headers.from.0", from);

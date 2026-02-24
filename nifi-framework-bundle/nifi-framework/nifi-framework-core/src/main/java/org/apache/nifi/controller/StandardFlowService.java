@@ -584,7 +584,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         return new StandardDataFlow(flowBytes, snippetBytes, authorizerFingerprint, missingComponents);
     }
 
-
     private NodeIdentifier getNodeId() {
         readLock.lock();
         try {

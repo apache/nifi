@@ -111,7 +111,6 @@ public class TestNiFiPythonGateway {
         assertNull(gateway.getObject(objectId));
     }
 
-
     @Test
     public void testMultipleInvocationsActive() {
         final Object[] args = new Object[] {new Object()};

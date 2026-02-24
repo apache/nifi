@@ -29,7 +29,6 @@ public class BundleVersionDependencyEntity {
     private String artifactId;
     private String version;
 
-
     public String getId() {
         return id;
     }

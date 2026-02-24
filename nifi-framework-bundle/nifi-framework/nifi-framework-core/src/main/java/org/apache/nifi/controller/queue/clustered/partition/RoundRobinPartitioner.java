@@ -36,7 +36,6 @@ public class RoundRobinPartitioner implements FlowFilePartitioner {
         return false;
     }
 
-
     @Override
     public boolean isRebalanceOnFailure() {
         return true;

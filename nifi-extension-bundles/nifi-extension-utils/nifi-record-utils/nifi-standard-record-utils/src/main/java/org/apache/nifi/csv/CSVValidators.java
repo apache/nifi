@@ -83,7 +83,6 @@ public class CSVValidators {
                             .build();
                 }
 
-
                 if (!context.isExpressionLanguageSupported(subject) || !context.isExpressionLanguagePresent(input)) {
                     final String unescaped = CSVUtils.unescape(input);
                     if (unescaped.length() != 1) {

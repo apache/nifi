@@ -58,7 +58,6 @@ public class ConnectableDTO {
         this.versionedComponentId = id;
     }
 
-
     /**
      * @return type of this connectable component
      */

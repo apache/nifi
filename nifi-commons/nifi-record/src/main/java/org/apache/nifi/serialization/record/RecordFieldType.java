@@ -216,7 +216,6 @@ public enum RecordFieldType {
      */
     MAP("map", null, new MapDataType(null));
 
-
     private static final Map<String, RecordFieldType> SIMPLE_NAME_MAP = new HashMap<>();
 
     static {
@@ -258,7 +257,6 @@ public enum RecordFieldType {
         this.defaultDataType = defaultDataType;
         this.narrowDataTypes = Collections.emptySet();
     }
-
 
     public String getDefaultFormat() {
         return defaultFormat;
@@ -341,7 +339,6 @@ public enum RecordFieldType {
 
         return new EnumDataType(enums);
     }
-
 
     /**
      * Returns a Data Type that represents a "CHOICE" of multiple possible types. This method is

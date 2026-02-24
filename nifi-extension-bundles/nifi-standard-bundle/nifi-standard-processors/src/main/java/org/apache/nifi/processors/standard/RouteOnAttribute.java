@@ -286,7 +286,6 @@ public class RouteOnAttribute extends AbstractProcessor {
         this.propertyMap = newPropertyMap;
     }
 
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();

@@ -105,7 +105,6 @@ public class AdaptedNodeIdentifier {
         this.siteToSitePort = siteToSitePort;
     }
 
-
     public boolean isSiteToSiteSecure() {
         return siteToSiteSecure;
     }

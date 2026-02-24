@@ -97,7 +97,6 @@ public class ApicurioSchemaRegistry extends AbstractControllerService implements
             WEB_CLIENT_PROVIDER
     );
 
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;

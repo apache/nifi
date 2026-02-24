@@ -58,6 +58,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
@@ -73,6 +74,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -365,8 +367,13 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
     private static HttpAuthorization getHttpAuthorization(final AzureStorageCredentialsDetails_v12 credentialsDetails) {
         switch (credentialsDetails.getCredentialsType()) {
             case ACCESS_TOKEN -> {
-                TokenCredential credential = tokenRequestContext -> Mono.just(credentialsDetails.getAccessToken());
-                return getHttpAuthorizationFromTokenCredential(credential);
+                final TokenCredential accessTokenCredential = tokenRequestContext -> Mono.just(credentialsDetails.getAccessToken());
+                return getHttpAuthorizationFromTokenCredential(accessTokenCredential);
+            }
+            case IDENTITY_FEDERATION -> {
+                final AzureIdentityFederationTokenProvider identityTokenProvider = Objects.requireNonNull(
+                        credentialsDetails.getIdentityTokenProvider(), "Identity Federation Token Provider is required");
+                return getHttpAuthorizationFromTokenCredential(identityTokenProvider.getCredentials());
             }
             case MANAGED_IDENTITY -> {
                 final ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()

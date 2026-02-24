@@ -105,7 +105,6 @@ public interface RequestReplicator {
     AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean indicateReplicated,
         boolean performVerification);
 
-
     /**
      * Forwards a request to the Cluster Coordinator so that it is able to replicate the request to all nodes in the cluster.
      *

@@ -53,7 +53,6 @@ public class VerifiableControllerServiceSystemIT extends NiFiSystemIT {
         assertEquals(Outcome.SKIPPED.name(), resultList.get(2).getOutcome());
     }
 
-
     @Test
     public void testVerifyWithInvalidConfigWhenComponentValid() throws NiFiClientException, IOException, InterruptedException {
         final ControllerServiceEntity service = getClientUtil().createControllerService("EnsureControllerServiceConfigurationCorrect");
@@ -149,7 +148,6 @@ public class VerifiableControllerServiceSystemIT extends NiFiSystemIT {
 
         assertThrows(NiFiClientException.class, () -> getClientUtil().verifyControllerServiceConfig(service.getId(), properties));
     }
-
 
     @Test
     public void testVerifyWhenExceptionThrown() throws InterruptedException, IOException, NiFiClientException {

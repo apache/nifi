@@ -155,7 +155,6 @@ public abstract class CompressableRecordReader implements RecordReader {
         dis = new DataInputStream(byteCountingIn);
     }
 
-
     @Override
     public TocReader getTocReader() {
         return tocReader;

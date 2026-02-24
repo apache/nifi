@@ -73,7 +73,6 @@ public class TestConsumeKinesisStream {
         runner.assertValid();
     }
 
-
     @Test
     public void testMissingMandatoryProperties() {
         runner.removeProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME);
@@ -233,7 +232,6 @@ public class TestConsumeKinesisStream {
     public void testRunWorkerUnexpectedShutdown() throws UnknownHostException, InitializationException, InterruptedException {
         runWorker(true, true);
     }
-
 
     @Test
     public void testInvalidDynamicKCLProperties() {

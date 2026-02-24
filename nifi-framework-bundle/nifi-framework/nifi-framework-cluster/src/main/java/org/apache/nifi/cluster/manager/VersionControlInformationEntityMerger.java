@@ -42,7 +42,6 @@ public class VersionControlInformationEntityMerger {
             });
     }
 
-
     private static boolean isCurrent(final VersionedFlowState state) {
         return state == VersionedFlowState.UP_TO_DATE || state == VersionedFlowState.LOCALLY_MODIFIED;
     }

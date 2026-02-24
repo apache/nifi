@@ -107,7 +107,6 @@ public class TestRemoteProcessGroupAuditor {
 
         auditor.auditUpdateProcessGroupConfiguration(joinPoint, inputRPGDTO, remoteProcessGroupDAO);
 
-
         final Collection<Action> actions = addedActions.get();
 
         // Assert common action values.
@@ -313,7 +312,6 @@ public class TestRemoteProcessGroupAuditor {
 
     }
 
-
     @Test
     public void testConfigureProxyPortClear() throws Throwable {
 
@@ -454,7 +452,6 @@ public class TestRemoteProcessGroupAuditor {
         auditor.setAuditService(auditService);
 
         auditor.auditUpdateProcessGroupInputPortConfiguration(joinPoint, remoteProcessGroupId, inputRPGPortDTO, remoteProcessGroupDAO);
-
 
         final Collection<Action> actions = addedActions.get();
 

@@ -114,7 +114,6 @@ public class ClusterUrlParser {
             throw new IllegalArgumentException("The specified URL is invalid because it is not http or https: " + clusterUrl);
         }
 
-
         String uriPath = clusterUrl.getPath().trim();
 
         if (StringUtils.isEmpty(uriPath) || uriPath.equals("/")) {

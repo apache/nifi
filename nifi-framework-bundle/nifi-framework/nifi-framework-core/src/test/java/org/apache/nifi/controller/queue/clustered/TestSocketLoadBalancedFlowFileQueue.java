@@ -374,7 +374,6 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertNull(queue.getFlowFile("other"));
     }
 
-
     @Test
     public void testRecoverSwapFiles() throws IOException {
         long expectedMinLastQueueDate = Long.MAX_VALUE;
@@ -411,7 +410,6 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertEquals(expectedTotalLastQueueDate, swapSummary.getTotalLastQueueDate().longValue());
         assertEquals(expectedMinLastQueueDate, swapSummary.getMinLastQueueDate().longValue());
     }
-
 
     @Test
     @Timeout(10)
@@ -574,7 +572,6 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertEquals(3, queue.getPartitionCount());
     }
 
-
     private void assertPartitionSizes(final int[] expectedSizes) {
         final int[] partitionSizes = new int[queue.getPartitionCount()];
         while (!Arrays.equals(expectedSizes, partitionSizes)) {
@@ -585,7 +582,6 @@ public class TestSocketLoadBalancedFlowFileQueue {
             }
         }
     }
-
 
     private static class StaticFlowFilePartitioner implements FlowFilePartitioner {
         private final int partitionIndex;

@@ -161,7 +161,6 @@ public class StatelessBasicsIT extends NiFiSystemIT {
         assertEquals(startClaimantCount + 1, getClaimantCounts());
     }
 
-
     private void createFlowShell() throws NiFiClientException, IOException, InterruptedException {
         createFlowShell("1 min");
     }
@@ -222,7 +221,6 @@ public class StatelessBasicsIT extends NiFiSystemIT {
             .mapToInt(ResourceClaimDetailsDTO::getClaimantCount)
             .sum();
     }
-
 
     @Test
     public void testOneInCloneWaitsForAll() throws NiFiClientException, IOException, InterruptedException {
@@ -486,7 +484,6 @@ public class StatelessBasicsIT extends NiFiSystemIT {
         assertEquals(startClaimantCount + 1, getClaimantCounts());
     }
 
-
     @Test
     public void testTimeoutWithSplitFlowFile() throws NiFiClientException, IOException, InterruptedException {
         createFlowShell("2 sec");
@@ -570,7 +567,6 @@ public class StatelessBasicsIT extends NiFiSystemIT {
 
         assertEquals(startClaimantCount + 1, getClaimantCounts());
     }
-
 
     @Test
     public void testOneInRouteToFailurePort() throws NiFiClientException, IOException, InterruptedException {

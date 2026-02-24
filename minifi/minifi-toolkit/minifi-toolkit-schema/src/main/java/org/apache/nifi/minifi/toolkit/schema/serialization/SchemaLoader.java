@@ -48,7 +48,6 @@ public class SchemaLoader {
         return result;
     }
 
-
     public static Map<String, Object> loadYamlAsMap(InputStream sourceStream) throws IOException, SchemaLoaderException {
         try {
             Yaml yaml = new Yaml();

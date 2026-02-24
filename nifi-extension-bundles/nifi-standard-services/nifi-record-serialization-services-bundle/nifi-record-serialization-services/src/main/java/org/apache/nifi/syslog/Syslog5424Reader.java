@@ -95,7 +95,6 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
         return properties;
     }
 
-
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         charset = Charset.forName(context.getProperty(CHARSET).getValue());
@@ -153,7 +152,6 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
     private SchemaAccessStrategy createAccessStrategy() {
         return new SchemaAccessStrategy() {
             private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
-
 
             @Override
             public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) {

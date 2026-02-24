@@ -79,7 +79,6 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
             .build();
     }
 
-
     @Override
     public String cacheSchema(final RecordSchema schema) {
         final String identifier = createIdentifier(schema);

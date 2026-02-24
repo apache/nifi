@@ -85,7 +85,6 @@ public class TestUpdateRecord {
         readerService.addSchemaField("age", RecordFieldType.INT);
     }
 
-
     @Test
     public void testLiteralReplacementValue() {
         runner.setProperty("/name", "Jane Doe");

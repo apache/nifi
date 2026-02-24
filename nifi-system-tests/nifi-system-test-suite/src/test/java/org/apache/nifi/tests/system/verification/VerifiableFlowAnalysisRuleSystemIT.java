@@ -53,7 +53,6 @@ public class VerifiableFlowAnalysisRuleSystemIT extends NiFiSystemIT {
         assertEquals(Outcome.SKIPPED.name(), resultList.get(2).getOutcome());
     }
 
-
     @Test
     public void testVerifyWithInvalidConfigWhenComponentValid() throws NiFiClientException, IOException, InterruptedException {
         final FlowAnalysisRuleEntity rule = getClientUtil().createFlowAnalysisRule("EnsureFlowAnalysisRuleConfigurationCorrect");
@@ -117,7 +116,6 @@ public class VerifiableFlowAnalysisRuleSystemIT extends NiFiSystemIT {
 
         assertThrows(NiFiClientException.class, () -> getClientUtil().verifyFlowAnalysisRuleConfig(rule.getId(), properties));
     }
-
 
     @Test
     public void testVerifyWhenExceptionThrown() throws InterruptedException, IOException, NiFiClientException {

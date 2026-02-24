@@ -541,7 +541,6 @@ public class FlowsIT extends UnsecuredITBase {
         final String errorMessage = e.getResponse().readEntity(String.class);
         assertEquals("A versioned flow with the same name already exists in the selected bucket", errorMessage);
 
-
     }
 
     @Test

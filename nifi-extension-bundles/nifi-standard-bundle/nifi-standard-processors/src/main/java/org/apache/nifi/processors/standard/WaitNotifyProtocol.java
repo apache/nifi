@@ -217,7 +217,6 @@ public class WaitNotifyProtocol {
         throw new ConcurrentModificationException(msg);
     }
 
-
     /**
      * Notify a signal to increase a counter.
      * @param signalId a key in the underlying cache engine

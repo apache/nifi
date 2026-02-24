@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.services.azure.storage;
 
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
+import org.apache.nifi.services.azure.MockIdentityFederationTokenProvider;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -35,11 +38,13 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.S
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestAzureStorageCredentialsControllerService_v12 {
 
     public static final String CREDENTIALS_SERVICE_IDENTIFIER = "credentials-service";
+    private static final String TOKEN_PROVIDER_IDENTIFIER = "oauth2-provider";
 
     private static final String ACCOUNT_NAME_VALUE = "AccountName";
     private static final String ACCOUNT_KEY_VALUE = "AccountKey";
@@ -51,12 +56,17 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
     private TestRunner runner;
     private AzureStorageCredentialsControllerService_v12 credentialsService;
+    private MockIdentityFederationTokenProvider tokenProvider;
 
     @BeforeEach
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         credentialsService = new AzureStorageCredentialsControllerService_v12();
         runner.addControllerService(CREDENTIALS_SERVICE_IDENTIFIER, credentialsService);
+
+        tokenProvider = new MockIdentityFederationTokenProvider();
+        runner.addControllerService(TOKEN_PROVIDER_IDENTIFIER, tokenProvider);
+        runner.enableControllerService(tokenProvider);
     }
 
     @Test
@@ -148,6 +158,39 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         configureServicePrincipalClientId();
 
         runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testIdentityFederationCredentialsTypeValid() {
+        configureAccountName();
+        configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
+        configureIdentityFederationProvider();
+
+        runner.assertValid(credentialsService);
+    }
+
+    @Test
+    public void testIdentityFederationCredentialsTypeNotValidWhenProviderMissing() {
+        configureAccountName();
+        configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testGetCredentialsDetailsWithIdentityFederation() throws Exception {
+        configureAccountName();
+        configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
+        configureIdentityFederationProvider();
+
+        runner.enableControllerService(credentialsService);
+
+        final AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
+
+        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        assertEquals(AzureStorageCredentialsType.IDENTITY_FEDERATION, actual.getCredentialsType());
+        final AzureIdentityFederationTokenProvider identityTokenProvider = actual.getIdentityTokenProvider();
+        assertNotNull(identityTokenProvider);
     }
 
     @Test
@@ -276,4 +319,9 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     private void configureServicePrincipalClientSecret() {
         runner.setProperty(credentialsService, SERVICE_PRINCIPAL_CLIENT_SECRET, SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE);
     }
+
+    private void configureIdentityFederationProvider() {
+        runner.setProperty(credentialsService, AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER, TOKEN_PROVIDER_IDENTIFIER);
+    }
+
 }

@@ -102,7 +102,6 @@ public class PartialFunctions {
         boolean apply(ProcessContext context, RoutingResult result);
     }
 
-
     /**
      * <p>This method is identical to what {@link org.apache.nifi.processor.AbstractProcessor#onTrigger(ProcessContext, ProcessSession)} does.</p>
      * <p>Create a session from ProcessSessionFactory and execute specified onTrigger function, and commit the session if onTrigger finishes successfully.</p>

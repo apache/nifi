@@ -111,7 +111,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .description("The SQL query to execute. The query can be empty, a constant value, or built from attributes "
                     + "using Expression Language. If this property is specified, it will be used regardless of the content of "
                     + "incoming flowfiles. If this property is empty, the content of the incoming flow file is expected "
-                    + "to contain a valid SQL select query, to be issued by the processor to the database. Note that Expression "
+                    + "to contain a valid SQL query, to be issued by the processor to the database. Note that Expression "
                     + "Language is not evaluated for flow file contents.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

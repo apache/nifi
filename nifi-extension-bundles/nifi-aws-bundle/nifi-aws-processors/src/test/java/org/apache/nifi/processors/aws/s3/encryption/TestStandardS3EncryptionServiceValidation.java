@@ -43,7 +43,6 @@ public class TestStandardS3EncryptionServiceValidation {
         runner.addControllerService("s3-encryption-service", service);
     }
 
-
     // NoOpEncryptionStrategy
 
     @Test
@@ -53,7 +52,6 @@ public class TestStandardS3EncryptionServiceValidation {
         runner.assertValid(service);
     }
 
-
     // ServerSideS3EncryptionStrategy
 
     @Test
@@ -62,7 +60,6 @@ public class TestStandardS3EncryptionServiceValidation {
 
         runner.assertValid(service);
     }
-
 
     // ServerSideKMSEncryptionStrategy
 
@@ -110,7 +107,6 @@ public class TestStandardS3EncryptionServiceValidation {
         runner.assertNotValid(service);
     }
 
-
     // ServerSideCEncryptionStrategy
 
     @Test
@@ -156,7 +152,6 @@ public class TestStandardS3EncryptionServiceValidation {
 
         runner.assertNotValid(service);
     }
-
 
     // ClientSideKMSEncryptionStrategy
 
@@ -204,7 +199,6 @@ public class TestStandardS3EncryptionServiceValidation {
         runner.assertNotValid(service);
     }
 
-
     // ClientSideCEncryptionStrategy
 
     @Test
@@ -250,7 +244,6 @@ public class TestStandardS3EncryptionServiceValidation {
 
         runner.assertNotValid(service);
     }
-
 
     private void configureService(String encryptionStrategy, String keyId, String keyMaterial) {
         runner.setProperty(service, StandardS3EncryptionService.ENCRYPTION_STRATEGY, encryptionStrategy);

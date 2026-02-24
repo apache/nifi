@@ -102,7 +102,6 @@ public class Kafka3ConnectionServiceBaseIT {
     private static final String MAX_POLL_RECORDS_VALUE = "10";
     private static final Integer MAX_POLL_RECORDS_VALUE_INT = Integer.valueOf(MAX_POLL_RECORDS_VALUE);
 
-
     private static final String GROUP_ID = Kafka3ConnectionService.class.getSimpleName();
 
     private static final String TOPIC = Kafka3ConnectionServiceBaseIT.class.getSimpleName();

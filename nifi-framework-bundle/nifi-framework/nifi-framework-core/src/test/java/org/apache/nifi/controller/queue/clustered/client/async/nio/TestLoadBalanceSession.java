@@ -189,7 +189,6 @@ public class TestLoadBalanceSession {
         assertEquals(Arrays.asList(flowFile1, flowFile2), transaction.getAndPurgeFlowFilesSent());
     }
 
-
     @Test
     @Timeout(10)
     public void testLargeContent() throws InterruptedException, IOException {

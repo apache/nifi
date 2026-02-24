@@ -59,7 +59,6 @@ class TestMapRecord {
         new RecordField("number", RecordFieldType.INT.getDataType())
     );
 
-
     @Test
     void testRenameClearsSerializedForm() {
         final Map<String, Object> values = new HashMap<>(Map.of("string", "hello", "number", 8));
@@ -253,7 +252,6 @@ class TestMapRecord {
         assertEquals(33, record.getValue(withAlias));
         assertEquals("33", record.getAsString(withAlias, withAlias.getDataType().getFormat()));
     }
-
 
     @Test
     void testDefaultValueWithAliasValue() {

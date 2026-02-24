@@ -486,7 +486,6 @@ public class PutEmail extends AbstractProcessor {
                 message.setHeader("Content-Transfer-Encoding", MimeUtility.getEncoding(message.getDataHandler()));
             }
 
-
             message.saveChanges();
 
             send(message);

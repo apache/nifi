@@ -43,7 +43,6 @@ public class SetState extends AbstractProcessor {
         .name("success")
         .build();
 
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return List.of(STATE_SERVICE);

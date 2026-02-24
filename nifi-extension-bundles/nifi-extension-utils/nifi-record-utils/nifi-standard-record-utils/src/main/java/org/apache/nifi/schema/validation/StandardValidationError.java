@@ -29,7 +29,6 @@ public class StandardValidationError implements ValidationError {
     private final String explanation;
     private final ValidationErrorType type;
 
-
     public StandardValidationError(final String fieldName, final Object value, final ValidationErrorType type, final String explanation) {
         this.fieldName = Optional.ofNullable(fieldName);
         this.inputValue = Optional.ofNullable(value);

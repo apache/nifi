@@ -50,7 +50,6 @@ public class NonLocalPartitionPartitioner implements FlowFilePartitioner {
         return true;
     }
 
-
     @Override
     public boolean isRebalanceOnFailure() {
         return true;

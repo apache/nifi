@@ -415,7 +415,6 @@ public class EntityStoreAuditService implements AuditService, Closeable {
             }
         }
 
-
         return sortEntityProperty;
     }
 

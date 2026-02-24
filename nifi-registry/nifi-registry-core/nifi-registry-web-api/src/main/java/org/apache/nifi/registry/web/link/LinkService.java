@@ -61,7 +61,6 @@ public class LinkService {
     private static final String EXTENSION_REPO_EXTENSION_PATH = "extension-repository/{bucketName}/{groupId}/{artifactId}/{version}/extensions/{name}";
     private static final String EXTENSION_REPO_EXTENSION_DOCS_PATH = "extension-repository/{bucketName}/{groupId}/{artifactId}/{version}/extensions/{name}/docs";
 
-
     private static final LinkBuilder<Bucket> BUCKET_LINK_BUILDER = (bucket) -> {
         if (bucket == null) {
             return null;
@@ -269,7 +268,6 @@ public class LinkService {
         return Link.fromUri(uri).rel("docs").build();
     });
 
-
     private static final Map<Class, LinkBuilder> LINK_BUILDERS;
     static {
         final Map<Class, LinkBuilder> builderMap = new HashMap<>();
@@ -303,7 +301,6 @@ public class LinkService {
         builderMap.put(ExtensionRepoExtensionMetadata.class, EXTENSION_REPO_EXTENSION_METADATA_DOCS_LINK_BUILDER);
         DOCS_LINK_BUILDERS = Collections.unmodifiableMap(builderMap);
     }
-
 
     public <E extends LinkableEntity> void populateLinks(final E entity) {
         final LinkBuilder linkBuilder = LINK_BUILDERS.get(entity.getClass());

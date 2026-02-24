@@ -55,7 +55,6 @@ public class TestContentClaimInputStream {
         });
     }
 
-
     @Test
     public void testStreamCreatedFromRepository() throws IOException {
         final ContentClaimInputStream in = new ContentClaimInputStream(repo, contentClaim, 0L, new NopPerformanceTracker());
@@ -77,7 +76,6 @@ public class TestContentClaimInputStream {
         assertTrue(closed.get());
     }
 
-
     @Test
     public void testThatContentIsSkipped() throws IOException {
         final ContentClaimInputStream in = new ContentClaimInputStream(repo, contentClaim, 3L, new NopPerformanceTracker());
@@ -98,7 +96,6 @@ public class TestContentClaimInputStream {
         in.close();
         assertTrue(closed.get());
     }
-
 
     @Test
     public void testRereadEntireClaim() throws IOException {
@@ -130,7 +127,6 @@ public class TestContentClaimInputStream {
         assertTrue(closed.get());
     }
 
-
     @Test
     public void testMultipleResetCallsAfterMark() throws IOException {
         final ContentClaimInputStream in = new ContentClaimInputStream(repo, contentClaim, 0L, new NopPerformanceTracker());
@@ -160,7 +156,6 @@ public class TestContentClaimInputStream {
         in.close();
         assertTrue(closed.get());
     }
-
 
     @Test
     public void testRereadWithOffset() throws IOException {
@@ -192,7 +187,6 @@ public class TestContentClaimInputStream {
         assertTrue(closed.get());
     }
 
-
     @Test
     public void testRereadBiggerThanBuffer() throws IOException {
         final ContentClaimInputStream in = new ContentClaimInputStream(repo, contentClaim, 0L, new NopPerformanceTracker());
@@ -222,7 +216,6 @@ public class TestContentClaimInputStream {
         in.close();
         assertTrue(closed.get());
     }
-
 
     @Test
     public void testBigReadAfterSmallRereads() throws IOException {

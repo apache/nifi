@@ -49,7 +49,6 @@ class Util {
             this.fileName = fileName;
         }
 
-
         public String getFileName() {
             return this.fileName;
         }

@@ -358,7 +358,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return new ArrayList<>(requiredServices);
     }
 
-
     @Override
     public void removeReference(final ComponentNode referencingComponent, final PropertyDescriptor propertyDescriptor) {
         writeLock.lock();
@@ -854,7 +853,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     public ParameterLookup getParameterLookup() {
         return getParameterContext();
     }
-
 
     @Override
     public LogLevel getBulletinLevel() {

@@ -207,7 +207,6 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         fileExtensions.put("application/vnd.google-apps.script+json", ".json");
     }
 
-
     public static final PropertyDescriptor FILE_ID = new PropertyDescriptor.Builder()
             .name("File ID")
             .description("The Drive ID of the File to fetch. Please see Additional Details for information on how to obtain the Drive ID.")
@@ -258,8 +257,6 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             EXPORT_PDF, EXPORT_PNG, EXPORT_JPEG, EXPORT_SVG)
         .defaultValue(EXPORT_PDF.getValue())
         .build();
-
-
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")

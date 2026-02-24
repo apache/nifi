@@ -303,7 +303,6 @@ public class StreamDemarcatorTest {
         }
     }
 
-
     @Test
     public void testOnBufferSplit() throws IOException {
         final byte[] inputData = "123\n456\n789".getBytes(StandardCharsets.UTF_8);

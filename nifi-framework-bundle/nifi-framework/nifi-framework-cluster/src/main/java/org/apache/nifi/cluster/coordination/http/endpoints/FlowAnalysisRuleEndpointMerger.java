@@ -38,7 +38,6 @@ public class FlowAnalysisRuleEndpointMerger extends AbstractSingleEntityEndpoint
         new Endpoint(Pattern.compile("/nifi-api/controller/flow-analysis-rules/[a-f0-9\\-]{36}/run-status"), "PUT")
     );
 
-
     private final FlowAnalysisRuleEntityMerger flowAnalysisRuleEntityMerger = new FlowAnalysisRuleEntityMerger();
 
     @Override

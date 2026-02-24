@@ -498,7 +498,7 @@ public class FileUtils {
             }
         }
         if (!renamed) {
-            throw new IOException("Attempted " + maxAttempts + " times but unable to rename from \'" + source.getPath() + "\' to \'" + destination.getPath() + "\'");
+            throw new IOException("Attempted " + maxAttempts + " times but unable to rename from '" + source.getPath() + "' to '" + destination.getPath() + "'");
 
         }
     }

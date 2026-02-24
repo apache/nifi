@@ -533,7 +533,6 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                         .allowableValues(allowableValues)
                         .build();
 
-
                 descriptors.put(key, componentDescriptor);
             }
 

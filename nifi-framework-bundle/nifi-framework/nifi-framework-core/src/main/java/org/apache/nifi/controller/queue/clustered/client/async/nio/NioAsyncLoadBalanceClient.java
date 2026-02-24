@@ -89,7 +89,6 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     private final Lock loadBalanceSessionLock = new ReentrantLock();
     private LoadBalanceSession loadBalanceSession = null;
 
-
     public NioAsyncLoadBalanceClient(final NodeIdentifier nodeIdentifier, final SSLContext sslContext, final int timeoutMillis, final FlowFileContentAccess flowFileContentAccess,
                                     final LoadBalanceFlowFileCodec flowFileCodec, final EventReporter eventReporter, final ClusterCoordinator clusterCoordinator) {
         this.nodeIdentifier = nodeIdentifier;
@@ -371,7 +370,6 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         return null;
     }
 
-
     private RegisteredPartition getReadyPartition() {
         return getReadyPartition(true, partition -> true);
     }
@@ -477,7 +475,6 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         }
     }
 
-
     private PeerChannel createPeerChannel(final SocketChannel channel, final String peerDescription) {
         if (sslContext == null) {
             logger.debug("No SSL Context is available so will not perform SSL Handshake with Peer {}", peerDescription);
@@ -492,7 +489,6 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
         return new PeerChannel(channel, sslEngine, peerDescription);
     }
-
 
     private SocketChannel createChannel() throws IOException {
         final SocketChannel socketChannel = SocketChannel.open();
@@ -515,7 +511,6 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             throw e;
         }
     }
-
 
     @Override
     public String toString() {

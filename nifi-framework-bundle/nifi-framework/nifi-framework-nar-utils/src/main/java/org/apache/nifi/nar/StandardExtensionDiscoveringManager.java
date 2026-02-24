@@ -324,7 +324,6 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             .build();
     }
 
-
     /**
      * Loads extensions from the specified bundle.
      *
@@ -426,7 +425,6 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         registerServiceClass(implementationClassName, extensionType, classNameBundleLookup, bundleCoordinateClassesLookup, bundle, registeredClasses);
     }
 
-
     protected void initializeTempComponent(final ConfigurableComponent configurableComponent) {
         try {
             final ConfigurableComponentInitializer initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(this, configurableComponent.getClass());
@@ -437,7 +435,6 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             logger.warn("Unable to initialize component {} due to {}", configurableComponent.getClass().getName(), e.getMessage());
         }
     }
-
 
     /**
      * Registers extension for the specified type from the specified Bundle.
@@ -648,7 +645,6 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
         return instanceClassLoader;
     }
-
 
     /**
      * Find the bundle coordinates for any service APIs that are referenced by this component and not part of the same bundle.
@@ -965,7 +961,6 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             }
         }
     }
-
 
     private static class BaseClassLoaderKey {
         private final Bundle bundle;

@@ -66,5 +66,4 @@ public class StandardSwapSummary implements SwapSummary {
         return totalLastQueueDate;
     }
 
-
 }

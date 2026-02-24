@@ -209,7 +209,6 @@ public class TestCompressContent {
         flowFile.assertAttributeEquals("filename", "SampleFile1.txt");
     }
 
-
     @Test
     public void testGzipDecompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
@@ -247,7 +246,6 @@ public class TestCompressContent {
         flowFile.assertAttributeEquals("filename", "SampleFile.txt");
     }
 
-
     @Test
     public void testDeflateDecompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
@@ -263,7 +261,6 @@ public class TestCompressContent {
         flowFile.assertContentEquals(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
         flowFile.assertAttributeEquals("filename", "SampleFile.txt");
     }
-
 
     @Test
     public void testDeflateCompress() throws Exception {

@@ -83,7 +83,6 @@ public class SimpleRecordSchema implements RecordSchema {
         }
     }
 
-
     @Override
     public Optional<String> getSchemaFormat() {
         return Optional.ofNullable(schemaFormat);
@@ -161,7 +160,6 @@ public class SimpleRecordSchema implements RecordSchema {
         return Optional.ofNullable(fieldMap.get(fieldName));
     }
 
-
     @Override
     public boolean equals(final Object obj) {
         if (obj == null) {
@@ -194,7 +192,8 @@ public class SimpleRecordSchema implements RecordSchema {
     public int hashCode() {
         int computed = this.hashCode;
         if (computed == 0) {
-            computed = this.hashCode = calculateHashCode();
+            computed = calculateHashCode();
+            this.hashCode = computed;
         }
 
         return computed;
@@ -203,7 +202,6 @@ public class SimpleRecordSchema implements RecordSchema {
     private int calculateHashCode() {
         return 143 + 3 * fields.hashCode();
     }
-
 
     private static String createText(final List<RecordField> fields) {
         final StringBuilder sb = new StringBuilder("[");
@@ -296,7 +294,6 @@ public class SimpleRecordSchema implements RecordSchema {
         }
     }
 
-
     @Override
     public boolean renameField(final String currentName, final String newName) {
         final List<RecordField> updatedFields = new ArrayList<>(fields.size());
@@ -329,7 +326,6 @@ public class SimpleRecordSchema implements RecordSchema {
         schemaIdentifier = SchemaIdentifier.EMPTY;
         hashCode = calculateHashCode();
     }
-
 
     @Override
     public boolean isRecursive() {

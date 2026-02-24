@@ -174,7 +174,6 @@ public class TestDataTypeUtils {
         assertTrue(DataTypeUtils.isRecordWider(janeWithAge.getSchema(), jane.getSchema()));
     }
 
-
     @Test
     public void testWiderRecordDifferingFields() {
         final Record firstRecord = DataTypeUtils.toRecord(Map.of(
@@ -242,7 +241,6 @@ public class TestDataTypeUtils {
         assertEquals(RecordFieldType.RECORD, elementType.getFieldType());
         assertEquals(widerRecord.getSchema(), ((RecordDataType) elementType).getChildSchema());
     }
-
 
     @Test
     public void testConvertRecordMapToJavaMap() {
@@ -1111,7 +1109,6 @@ public class TestDataTypeUtils {
         assertTrue(DataTypeUtils.isDoubleWithinFloatInterval((double) Float.MIN_VALUE));
         assertTrue(DataTypeUtils.isDoubleWithinFloatInterval((double) -1 * Float.MAX_VALUE));
         assertTrue(DataTypeUtils.isDoubleWithinFloatInterval((double) -1 * Float.MIN_VALUE));
-
 
         assertFalse(DataTypeUtils.isDoubleWithinFloatInterval("test"));
         assertFalse(DataTypeUtils.isDoubleWithinFloatInterval(9));

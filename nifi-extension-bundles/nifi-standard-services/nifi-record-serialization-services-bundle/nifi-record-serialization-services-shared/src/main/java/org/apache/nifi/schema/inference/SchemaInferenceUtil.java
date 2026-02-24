@@ -40,7 +40,6 @@ public class SchemaInferenceUtil {
             .identifiesControllerService(RecordSchemaCacheService.class)
             .build();
 
-
     public static <T> SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final PropertyContext context,  final ComponentLog logger,
                                                                    final RecordSourceFactory<T> recordSourceFactory, final Supplier<SchemaInferenceEngine<T>> inferenceSupplier,
                                                                    final Supplier<SchemaAccessStrategy> defaultSupplier) {

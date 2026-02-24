@@ -74,7 +74,6 @@ class TestJsonPathRowRecordReader {
         allJsonPaths.put("country", JsonPath.compile("$.country"));
     }
 
-
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
@@ -95,7 +94,6 @@ class TestJsonPathRowRecordReader {
 
         return new SimpleRecordSchema(accountFields);
     }
-
 
     @Test
     void testReadArray() throws IOException, MalformedRecordException {
@@ -196,8 +194,6 @@ class TestJsonPathRowRecordReader {
         }
     }
 
-
-
     @Test
     void testElementWithNestedData() throws IOException, MalformedRecordException {
         final Map<String, JsonPath> jsonPaths = new LinkedHashMap<>(allJsonPaths);
@@ -244,7 +240,6 @@ class TestJsonPathRowRecordReader {
         final List<RecordField> fields = getDefaultFields();
         fields.add(new RecordField("accounts", accountsType));
         final RecordSchema schema = new SimpleRecordSchema(fields);
-
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/single-element-nested-array.json");
              final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, schema, in, mock(ComponentLog.class), dateFormat, timeFormat, timestampFormat, mapper, parserFactory)) {
@@ -321,7 +316,6 @@ class TestJsonPathRowRecordReader {
         final List<RecordField> fields = getDefaultFields();
         fields.add(new RecordField("address2", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
-
 
         try (final InputStream in = new FileInputStream("src/test/resources/json/bank-account-array-different-schemas.json");
              final JsonPathRowRecordReader reader = new JsonPathRowRecordReader(jsonPaths, schema, in, mock(ComponentLog.class), dateFormat, timeFormat, timestampFormat, mapper, parserFactory)) {

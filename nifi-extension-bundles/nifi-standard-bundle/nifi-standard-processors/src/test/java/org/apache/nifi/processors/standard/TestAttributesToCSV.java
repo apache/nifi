@@ -172,7 +172,6 @@ public class TestAttributesToCSV {
                 .getFirst().assertAttributeEquals("CSVData", "");
     }
 
-
     @Test
     public void testNoAttrListCoreNullOffToContent() {
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_OVERWRITE_CONTENT);
@@ -277,7 +276,6 @@ public class TestAttributesToCSV {
         assertTrue(contentValues.contains("\"California, US\""));
         assertTrue(contentValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
     }
-
 
     @Test
     public void testAttrListNoCoreNullOffToAttribute() {
@@ -387,7 +385,6 @@ public class TestAttributesToCSV {
         assertTrue(CSVDataValues.contains("\"California, US\""));
         assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
 
-
         assertFalse(CSVDataValues.contains(flowFile.getAttribute("filename")));
         assertFalse(CSVDataValues.contains(flowFile.getAttribute("path")));
         assertTrue(CSVDataValues.contains(flowFile.getAttribute("uuid")));
@@ -460,7 +457,6 @@ public class TestAttributesToCSV {
         testRunner.setProperty(AttributesToCSV.ATTRIBUTES_LIST, "${myAttribs}");
         testRunner.setProperty(AttributesToCSV.NULL_VALUE_FOR_EMPTY_STRING, "false");
 
-
         Map<String, String> attrsCommaInName = Map.of("beach,name", "Malibu Beach",
                     "beach,location", "California, US",
                     "beach,endorsement", "This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim",
@@ -514,7 +510,6 @@ public class TestAttributesToCSV {
         assertTrue(CSVDataValues.contains(flowFile.getAttribute("uuid")));
     }
 
-
     @Test
     public void testAttrListFromExpNoCoreNullOffOverrideCoreByAttrListToAttribute() {
         testRunner.setProperty(AttributesToCSV.DESTINATION, OUTPUT_NEW_ATTRIBUTE);
@@ -549,7 +544,6 @@ public class TestAttributesToCSV {
         assertTrue(CSVDataValues.contains("Malibu Beach"));
         assertTrue(CSVDataValues.contains("\"California, US\""));
         assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
-
 
         assertFalse(CSVDataValues.contains(flowFile.getAttribute("filename")));
         assertFalse(CSVDataValues.contains(flowFile.getAttribute("path")));
@@ -590,7 +584,6 @@ public class TestAttributesToCSV {
         assertTrue(CSVDataValues.contains("Malibu Beach"));
         assertTrue(CSVDataValues.contains("\"California, US\""));
         assertTrue(CSVDataValues.contains("\"This is our family's favorite beach. We highly recommend it. \n\nThanks, Jim\""));
-
 
         assertFalse(CSVDataValues.contains(flowFile.getAttribute("filename")));
         assertFalse(CSVDataValues.contains(flowFile.getAttribute("path")));
@@ -641,7 +634,6 @@ public class TestAttributesToCSV {
         assertFalse(CSVDataValues.contains(flowFile.getAttribute("path")));
         assertFalse(CSVDataValues.contains(flowFile.getAttribute("uuid")));
     }
-
 
     @Test
     public void testSchemaToAttribute() {
@@ -702,7 +694,6 @@ public class TestAttributesToCSV {
         assertEquals(contentDataString.split(newline)[0], "beach-name,beach-location");
         assertEquals(contentDataString.split(newline)[1], "Malibu Beach,\"California, US\"");
     }
-
 
     @Test
     public void testSchemaWithCoreAttribuesToAttribute() {

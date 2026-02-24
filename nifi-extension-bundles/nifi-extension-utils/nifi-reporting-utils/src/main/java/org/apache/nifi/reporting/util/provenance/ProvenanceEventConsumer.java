@@ -65,7 +65,6 @@ public class ProvenanceEventConsumer {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
-
     private String startPositionValue = PROVENANCE_START_POSITION.getDefaultValue();
     private Pattern componentTypeRegex;
     private Pattern componentTypeRegexExclude;
@@ -252,7 +251,6 @@ public class ProvenanceEventConsumer {
 
         return lastEvent.getEventId() + 1;
     }
-
 
     protected boolean isFilteringEnabled() {
         // Collect all non-blank patterns

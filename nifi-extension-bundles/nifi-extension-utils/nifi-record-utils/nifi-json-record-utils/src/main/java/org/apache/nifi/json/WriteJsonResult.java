@@ -109,7 +109,6 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         }
     }
 
-
     @Override
     protected void onBeginRecordSet() throws IOException {
         final OutputStream out = getOutputStream();
@@ -143,7 +142,6 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             generator.flush();
         }
     }
-
 
     @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
@@ -471,7 +469,6 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         }
         generator.writeEndArray();
     }
-
 
     @Override
     public String getMimeType() {

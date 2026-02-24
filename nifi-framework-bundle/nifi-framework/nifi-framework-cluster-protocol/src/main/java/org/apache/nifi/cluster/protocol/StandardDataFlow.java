@@ -56,7 +56,6 @@ public class StandardDataFlow implements Serializable, DataFlow {
     private Document flowDocument;
     private VersionedDataflow versionedDataflow;
 
-
     /**
      * Constructs an instance.
      *

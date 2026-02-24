@@ -63,7 +63,6 @@ public interface IdentifierLookup {
         return inverted;
     }
 
-
     IdentifierLookup EMPTY = new IdentifierLookup() {
         @Override
         public List<String> getComponentIdentifiers() {

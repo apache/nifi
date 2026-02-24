@@ -101,7 +101,6 @@ public class PropertyConfiguration {
         return Objects.hash(rawValue);
     }
 
-
     public static class ComputedEffectiveValue {
         private final ParameterLookup parameterLookup;
         private final long contextVersion;

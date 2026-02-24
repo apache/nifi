@@ -159,8 +159,6 @@ public class StandardFlowSnippet implements FlowSnippet {
         instantiate(flowManager, flowController, group, true);
     }
 
-
-
     /**
      * Recursively finds all ConnectionDTO's
      *
@@ -223,7 +221,6 @@ public class StandardFlowSnippet implements FlowSnippet {
             templateContents.getProcessGroups().forEach(processGroup -> verifyProcessorsInSnippet(processGroup.getContents(), supportedTypes));
         }
     }
-
 
     public void instantiate(final FlowManager flowManager, final FlowController flowController, final ProcessGroup group, final boolean topLevel) {
         //
@@ -675,7 +672,6 @@ public class StandardFlowSnippet implements FlowSnippet {
             return group.getProcessGroup(parentGroupId);
         }
     }
-
 
     private Position toPosition(final PositionDTO dto) {
         return new Position(dto.getX(), dto.getY());

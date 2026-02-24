@@ -145,15 +145,18 @@ public class PutRedisHashRecord extends AbstractProcessor {
     }
 
     private volatile RedisConnectionPool redisConnectionPool;
+    private volatile String transitUri;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         this.redisConnectionPool = context.getProperty(REDIS_CONNECTION_POOL).asControllerService(RedisConnectionPool.class);
+        this.transitUri = "redis://%s".formatted(redisConnectionPool.getConnectionString());
     }
 
     @OnStopped
     public void onStopped() {
         this.redisConnectionPool = null;
+        this.transitUri = null;
     }
 
     @Override
@@ -220,6 +223,7 @@ public class PutRedisHashRecord extends AbstractProcessor {
         }
 
         flowFile = session.putAttribute(flowFile, SUCCESS_RECORD_COUNT, String.valueOf(count));
+        session.getProvenanceReporter().send(flowFile, transitUri);
         session.transfer(flowFile, REL_SUCCESS);
     }
 

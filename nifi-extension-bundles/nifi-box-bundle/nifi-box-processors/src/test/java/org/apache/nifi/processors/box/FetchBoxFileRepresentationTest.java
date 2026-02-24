@@ -94,7 +94,6 @@ class FetchBoxFileRepresentationTest extends AbstractBoxFileTest {
             return null;
         }).when(mockBoxFile).getRepresentationContent(eq("[" + TEST_REPRESENTATION_TYPE + "]"), anyString(), any(OutputStream.class), anyInt());
 
-
         testRunner.enqueue("");
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchBoxFileRepresentation.REL_SUCCESS, 1);

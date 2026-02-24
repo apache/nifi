@@ -41,5 +41,4 @@ public class Attribute {
         this.description = description;
     }
 
-
 }

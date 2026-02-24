@@ -169,7 +169,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     private ControllerServiceResource controllerServiceResource;
     private ParameterContextReplacer parameterContextReplacer;
 
-
     public RequestManager<String, Void> flowAnalysisAsyncRequestManager =
             new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "On-demand Flow Analysis");
 
@@ -204,7 +203,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         processGroupEntity.setUri(generateResourceUri("process-groups", processGroupEntity.getId()));
         return processGroupEntity;
     }
-
 
     /**
      * Populates the remaining content of the specified snippet.
@@ -1172,7 +1170,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         return flowSnapshotContainer;
     }
-
 
     /**
      * Retrieves all the child process groups of the process group with the given id.

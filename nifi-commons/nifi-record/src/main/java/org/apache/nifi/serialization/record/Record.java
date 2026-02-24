@@ -168,7 +168,6 @@ public interface Record {
      */
     boolean rename(RecordField field, String newName);
 
-
     /**
      * Creates a new schema for the Record based on the Record's field types.
      * In case any of the Record's fields were changed, this method propagates the changes to the parent Record.

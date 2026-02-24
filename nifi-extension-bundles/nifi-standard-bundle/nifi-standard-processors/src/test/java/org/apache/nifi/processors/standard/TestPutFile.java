@@ -313,7 +313,6 @@ public class TestPutFile {
         putFileRunner.clearTransferState();
     }
 
-
     private void emptyTestDirectory() throws IOException {
         Files.walkFileTree(Paths.get("target/test/data/out/PutFile"), new FileVisitor<>() {
 

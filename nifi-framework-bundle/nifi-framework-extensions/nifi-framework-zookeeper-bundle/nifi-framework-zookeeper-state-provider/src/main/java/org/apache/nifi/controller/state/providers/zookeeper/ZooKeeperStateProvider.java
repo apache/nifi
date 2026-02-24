@@ -293,7 +293,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         return new Scope[]{Scope.CLUSTER};
     }
 
-
     private byte[] serialize(final Map<String, String> stateValues) throws IOException {
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
              final DataOutputStream dos = new DataOutputStream(baos)) {

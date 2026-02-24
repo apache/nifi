@@ -173,7 +173,6 @@ public class TestStandardControllerServiceProvider {
         serviceNode.setProperties(props);
     }
 
-
     private ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final ControllerServiceProvider serviceProvider) {
         final ControllerServiceNode serviceNode = new ExtensionBuilder()
             .identifier(id)
@@ -193,7 +192,6 @@ public class TestStandardControllerServiceProvider {
 
         return serviceNode;
     }
-
 
     @Test
     public void testDisableControllerService() {

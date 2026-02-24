@@ -154,7 +154,6 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
             );
         }
 
-
         return results;
     }
 

@@ -28,7 +28,6 @@ public class RandomNumberGeneratorEvaluator extends WholeNumberEvaluator {
 
     private static final Random RNG = new Random();
 
-
     @Override
     public QueryResult<Long> evaluate(final EvaluationContext evaluationContext) {
         return new WholeNumberQueryResult(Math.abs(RNG.nextLong()));

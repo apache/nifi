@@ -56,7 +56,6 @@ public class SyslogPrefixedKeyProvider implements KeyProvider {
         return SyslogAttributes.SYSLOG_SEVERITY.key();
     }
 
-
     @Override
     public String getHeaderProcessId() {
         return Syslog5424Attributes.SYSLOG_PROCID.key();

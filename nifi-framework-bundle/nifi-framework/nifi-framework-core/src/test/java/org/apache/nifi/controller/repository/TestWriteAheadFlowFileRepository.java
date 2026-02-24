@@ -350,7 +350,6 @@ public class TestWriteAheadFlowFileRepository {
             }
         };
 
-
         final int numPartitions = 16;
         final int numThreads = 8;
         final int totalUpdates = 160_000_000;
@@ -427,7 +426,6 @@ public class TestWriteAheadFlowFileRepository {
 
         file.delete();
     }
-
 
     @Test
     public void testNormalizeSwapLocation() {

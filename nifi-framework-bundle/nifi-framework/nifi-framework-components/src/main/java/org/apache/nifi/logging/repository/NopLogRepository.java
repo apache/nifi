@@ -51,7 +51,6 @@ public class NopLogRepository implements LogRepository {
     public void setObservationLevel(final LogLevel level) {
     }
 
-
     @Override
     public void removeAllObservers() {
     }

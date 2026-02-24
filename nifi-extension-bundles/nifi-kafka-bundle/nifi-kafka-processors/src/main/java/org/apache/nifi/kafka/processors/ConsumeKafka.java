@@ -414,7 +414,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
     }
 
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final KafkaConsumerService consumerService = getConsumerService(context);

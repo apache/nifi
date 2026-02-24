@@ -109,7 +109,6 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         this.authorizer = authorizer;
     }
 
-
     @Override
     public void receiveFlowFiles(final Socket socket, final InputStream in, final OutputStream out) throws IOException {
         String peerDescription = socket.getInetAddress().getHostName();
@@ -135,7 +134,6 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
         receiveFlowFiles(in, out, peerDescription, version);
     }
-
 
     protected int negotiateProtocolVersion(final InputStream in, final OutputStream out, final String peerDescription, final String channelDescription) throws IOException {
         final VersionNegotiator negotiator = new StandardVersionNegotiator(1);
@@ -186,7 +184,6 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
             out.flush();
         }
     }
-
 
     protected void receiveFlowFiles(final InputStream in, final OutputStream out, final String peerDescription, final int protocolVersion) throws IOException {
         logger.debug("Receiving FlowFiles from {}", peerDescription);

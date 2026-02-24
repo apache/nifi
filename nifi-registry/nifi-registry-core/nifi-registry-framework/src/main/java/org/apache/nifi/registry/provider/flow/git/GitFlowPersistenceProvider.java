@@ -163,7 +163,6 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
             }
         }
 
-
         try {
             if (currentFlowSnapshotFilename.isPresent() && !flowSnapshotFilename.equals(currentFlowSnapshotFilename.get())) {
                 // Delete old file if flow name has been changed.
@@ -331,7 +330,6 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
                         flowName = flowName.substring(0, flowName.lastIndexOf("."));
                     }
                 }
-
 
                 final FlowMetadata flowMetadata = new FlowMetadata();
                 flowMetadata.setIdentifier(flowId);

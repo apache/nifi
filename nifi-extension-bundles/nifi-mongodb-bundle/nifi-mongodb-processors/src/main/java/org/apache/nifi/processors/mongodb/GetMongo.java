@@ -185,7 +185,6 @@ public class GetMongo extends AbstractMongoQueryProcessor {
         final String usePrettyPrint  = context.getProperty(USE_PRETTY_PRINTING).getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(input).getValue());
 
-
         final Document projection = context.getProperty(PROJECTION).isSet()
                 ? Document.parse(context.getProperty(PROJECTION).evaluateAttributeExpressions(input).getValue()) : null;
         final Document sort = context.getProperty(SORT).isSet()

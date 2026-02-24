@@ -97,7 +97,6 @@ public class TestProxyConfiguration {
         when(service.getIdentifier()).thenReturn(serviceId);
         when(service.getConfiguration()).thenReturn(DIRECT_CONFIGURATION, HTTP_CONFIG, HTTP_AUTH_CONFIG, SOCKS_CONFIG, SOCKS_AUTH_CONFIG);
 
-
         final ComponentUsingProxy processor = new ComponentUsingProxy();
         processor.setProxySpecs(specs);
 

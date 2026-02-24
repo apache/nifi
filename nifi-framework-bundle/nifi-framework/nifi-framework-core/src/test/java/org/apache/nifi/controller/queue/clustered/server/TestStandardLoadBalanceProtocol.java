@@ -93,7 +93,6 @@ public class TestStandardLoadBalanceProtocol {
 
     private ConcurrentMap<ContentClaim, byte[]> claimContents;
 
-
     @BeforeEach
     public void setup() throws IOException, IllegalClusterStateException {
         flowFileQueuePutRecords = new ArrayList<>();
@@ -160,7 +159,6 @@ public class TestStandardLoadBalanceProtocol {
             return null;
         }).when(provenanceRepo).registerEvents(anyCollection());
     }
-
 
     @Test
     public void testSimpleFlowFileTransaction() throws IOException, IllegalClusterStateException {
@@ -273,7 +271,6 @@ public class TestStandardLoadBalanceProtocol {
 
         assertTrue(provRepoUpdateRecords.stream().allMatch(event -> event.getEventType() == ProvenanceEventType.RECEIVE));
     }
-
 
     @Test
     public void testMultipleFlowFilesWithoutCheckingSpace() throws IOException {

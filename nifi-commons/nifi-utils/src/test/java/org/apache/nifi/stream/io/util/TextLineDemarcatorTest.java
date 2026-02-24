@@ -53,7 +53,6 @@ public class TextLineDemarcatorTest {
         assertNull(demarcator.nextOffsetInfo());
     }
 
-
     @Test
     public void emptyStreamAndStartWithFilter() throws IOException {
         String data = "";

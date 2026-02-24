@@ -38,5 +38,4 @@ public class FieldName extends RecordPathSegment {
         return fieldValues.map(fv -> new StandardFieldValue(fv.getField().getFieldName(), fv.getField(), fv.getParent().orElse(null)));
     }
 
-
 }

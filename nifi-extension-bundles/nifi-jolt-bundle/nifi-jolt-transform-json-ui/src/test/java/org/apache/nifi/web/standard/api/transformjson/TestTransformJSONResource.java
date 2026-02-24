@@ -72,7 +72,6 @@ public class TestTransformJSONResource extends JerseyTest {
         return new InMemoryTestContainerFactory();
     }
 
-
     @Test
     public void testValidateWithInvalidSpec() {
 

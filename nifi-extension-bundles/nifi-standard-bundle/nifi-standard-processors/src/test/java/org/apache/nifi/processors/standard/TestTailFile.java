@@ -214,7 +214,6 @@ public class TestTailFile {
         runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
         runner.setProperty(TailFile.REREAD_ON_NUL, "true");
 
-
         // first line fully written, second partially
         raf.write("a\nb".getBytes());
         // read the first line
@@ -246,8 +245,6 @@ public class TestTailFile {
         List<String> lines = flowFiles.stream().map(MockFlowFile::toByteArray).map(String::new).collect(Collectors.toList());
         assertEquals(Arrays.asList("a\n", "bc\n", "d\n"), lines);
     }
-
-
 
     @Test
     public void testRotateMultipleBeforeConsuming() throws IOException {
@@ -284,7 +281,6 @@ public class TestTailFile {
         runner.clearTransferState();
     }
 
-
     @Test
     public void testStartPositionCurrentTime() throws IOException {
         raf.write("1\n".getBytes());
@@ -312,7 +308,6 @@ public class TestTailFile {
         raf = new RandomAccessFile(file, "rw");
         return rolledOverFile;
     }
-
 
     @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test requires renaming a file while a file handle is still open to it, so it won't run on Windows")
     @Test
@@ -400,7 +395,6 @@ public class TestTailFile {
 
         raf.close();
     }
-
 
     @Test
     public void testConsumeAfterTruncationStartAtBeginningOfFile() throws IOException, InterruptedException {
@@ -637,7 +631,6 @@ public class TestTailFile {
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("world");
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("longer than hello\n");
     }
-
 
     @Test
     public void testMultipleRolloversAfterHavingReadAllData() throws IOException, InterruptedException {
@@ -888,7 +881,6 @@ public class TestTailFile {
         final MockFlowFile finalOutputFile = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).getFirst();
         finalOutputFile.assertContentEquals("<4>Last One\n");
     }
-
 
     @Test
     public void testRolloverAndUpdateAtSameTime() throws IOException {

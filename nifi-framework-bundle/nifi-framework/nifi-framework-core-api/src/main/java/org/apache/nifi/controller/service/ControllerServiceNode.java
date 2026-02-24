@@ -214,7 +214,6 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
      */
     boolean awaitEnabled(long timePeriod, TimeUnit timeUnit) throws InterruptedException;
 
-
     /**
      * Waits up to the given amount of time for the Controller Service to transition to a DISABLED state.
      * @param timePeriod maximum amount of time to wait

@@ -150,7 +150,6 @@ public class TestFlowConfigurationArchiveManager {
         when(properties.getFlowConfigurationArchiveDir()).thenReturn(archiveDir.getPath());
         when(properties.getFlowConfigurationFile()).thenReturn(flowXmlFile);
 
-
         final File flowXmlFile = new File("does-not-exist");
         final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(properties);
 

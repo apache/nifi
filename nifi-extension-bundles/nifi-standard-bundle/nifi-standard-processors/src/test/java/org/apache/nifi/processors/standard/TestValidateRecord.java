@@ -105,7 +105,6 @@ public class TestValidateRecord {
         runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst().assertContentEquals(content);
     }
 
-
     @Test
     public void testWriteFailureRoutesToFailure() throws InitializationException {
         final CSVReader csvReader = new CSVReader();
@@ -520,7 +519,6 @@ public class TestValidateRecord {
         runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
         runner.clearTransferState();
     }
-
 
     @Test
     public void testValidateJsonTimestamp() throws IOException, InitializationException {

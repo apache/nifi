@@ -417,7 +417,6 @@ public class StandardManagedAuthorizerTest {
         assertEquals(AuthorizationResult.approved(), managedAuthorizer.authorize(request));
     }
 
-
     @Test
     public void testResourceNotFound() {
         final String userIdentity = "userIdentity1";

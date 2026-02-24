@@ -195,6 +195,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
                             failedFlowFiles.add(flowFile);
                         } else {
                             flowFile = session.putAllAttributes(flowFile, attributes);
+                            session.getProvenanceReporter().send(flowFile, "kinesis://%s".formatted(streamName));
                             successfulFlowFiles.add(flowFile);
                         }
                     }

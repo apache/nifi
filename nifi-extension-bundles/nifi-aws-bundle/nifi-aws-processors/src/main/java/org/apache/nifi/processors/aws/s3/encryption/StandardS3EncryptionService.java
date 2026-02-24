@@ -287,4 +287,3 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     }
 }
 
-

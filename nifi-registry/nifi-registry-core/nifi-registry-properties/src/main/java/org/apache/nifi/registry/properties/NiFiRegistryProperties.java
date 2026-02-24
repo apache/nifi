@@ -57,7 +57,6 @@ public class NiFiRegistryProperties extends ApplicationProperties {
     public static final String WEB_HTTPS_CIPHERSUITES_EXCLUDE = "nifi.registry.web.https.ciphersuites.exclude";
     public static final String WEB_HTTPS_APPLICATION_PROTOCOLS = "nifi.registry.web.https.application.protocols";
 
-
     public static final String WEB_WORKING_DIR = "nifi.registry.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.registry.web.jetty.threads";
     public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.registry.web.should.send.server.version";

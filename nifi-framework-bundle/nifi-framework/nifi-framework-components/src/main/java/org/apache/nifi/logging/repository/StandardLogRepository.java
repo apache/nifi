@@ -137,7 +137,6 @@ public class StandardLogRepository implements LogRepository {
         }
     }
 
-
     @Override
     public void addObserver(final LogLevel minimumLevel, final LogObserver observer) {
         lock.lock();
@@ -165,7 +164,6 @@ public class StandardLogRepository implements LogRepository {
             lock.unlock();
         }
     }
-
 
     @Override
     public void removeAllObservers() {

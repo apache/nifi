@@ -104,7 +104,6 @@ public class TestEmailRecordSink {
         runner.enableControllerService(writerFactory);
         runner.enableControllerService(recordSink);
 
-
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("a", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("b", RecordFieldType.BOOLEAN.getDataType()));

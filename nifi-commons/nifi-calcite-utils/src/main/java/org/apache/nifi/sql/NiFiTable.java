@@ -48,7 +48,6 @@ public class NiFiTable implements Closeable {
     private volatile ResettableDataSource dataSource;
     private volatile int maxRecordsRead;
 
-
     /**
      * Created a NiFi table with a datasource already established. The table's schema will be established as the schema
      * of the datasource.
@@ -149,7 +148,6 @@ public class NiFiTable implements Closeable {
             enumerator.close();
         }
     }
-
 
     private class NiFiTableEnumerable extends AbstractEnumerable<Object> {
         private final int[] fields;

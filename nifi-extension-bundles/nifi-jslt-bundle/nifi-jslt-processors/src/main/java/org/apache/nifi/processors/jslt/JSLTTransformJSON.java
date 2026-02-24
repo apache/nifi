@@ -361,7 +361,6 @@ public class JSLTTransformJSON extends AbstractProcessor {
         }
     }
 
-
     protected JsonNode getNextJsonNode(final TransformationStrategy transformationStrategy, final JsonParser jsonParser) throws IOException {
 
         if (ENTIRE_FLOWFILE.equals(transformationStrategy)) {

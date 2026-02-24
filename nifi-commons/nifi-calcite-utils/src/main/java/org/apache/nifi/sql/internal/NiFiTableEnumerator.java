@@ -35,11 +35,9 @@ public class NiFiTableEnumerator implements Enumerator<Object> {
     private final Runnable onFinishCallback;
     private final Consumer<NiFiTableEnumerator> onCloseCallback;
 
-
     private RowStream rowStream;
     private Object currentRow;
     private int recordsRead = 0;
-
 
     public NiFiTableEnumerator(final ResettableDataSource dataSource, final ComponentLog logger, final int[] fields, final Runnable onFinishCallback,
                                final Consumer<NiFiTableEnumerator> onCloseCallback) {
@@ -51,12 +49,10 @@ public class NiFiTableEnumerator implements Enumerator<Object> {
         reset();
     }
 
-
     @Override
     public Object current() {
         return currentRow;
     }
-
 
     @Override
     public boolean moveNext() {
@@ -153,7 +149,6 @@ public class NiFiTableEnumerator implements Enumerator<Object> {
             throw new RuntimeException("Failed to data stream from " + dataSource, e);
         }
     }
-
 
     @Override
     public final void close() {

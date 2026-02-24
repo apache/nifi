@@ -43,16 +43,16 @@ public class TestOracle12DatabaseAdapter {
         String expected1 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename";
         assertEquals(sql1, expected1);
 
-        String sql2 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that=\'some\"\' value\'", "", null, null);
-        String expected2 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that=\'some\"\' value\'";
+        String sql2 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that='some\"' value'", "", null, null);
+        String expected2 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that='some\"' value'";
         assertEquals(sql2, expected2);
 
-        String sql3 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that=\'some\"\' value\'", "might DESC", null, null);
-        String expected3 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that=\'some\"\' value\' ORDER BY might DESC";
+        String sql3 = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that='some\"' value'", "might DESC", null, null);
+        String expected3 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that='some\"' value' ORDER BY might DESC";
         assertEquals(sql3, expected3);
 
-        String sql4 = db.getSelectStatement("database.tablename", "", "that=\'some\"\' value\'", "might DESC", null, null);
-        String expected4 = "SELECT * FROM database.tablename WHERE that=\'some\"\' value\' ORDER BY might DESC";
+        String sql4 = db.getSelectStatement("database.tablename", "", "that='some\"' value'", "might DESC", null, null);
+        String expected4 = "SELECT * FROM database.tablename WHERE that='some\"' value' ORDER BY might DESC";
         assertEquals(sql4, expected4);
     }
 
@@ -174,7 +174,6 @@ public class TestOracle12DatabaseAdapter {
         String actualStatement = db.getCreateTableStatement(tableSchema);
         assertEquals(expectedStatement, actualStatement);
     }
-
 
     private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {

@@ -275,7 +275,6 @@ public class ExtractText extends AbstractProcessor {
     private final BlockingQueue<byte[]> bufferQueue = new LinkedBlockingQueue<>();
     private final AtomicReference<Map<String, Pattern>> compiledPattersMapRef = new AtomicReference<>();
 
-
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;

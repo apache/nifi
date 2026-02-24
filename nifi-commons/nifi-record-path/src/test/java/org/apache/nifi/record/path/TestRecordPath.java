@@ -964,7 +964,6 @@ public class TestRecordPath {
                 assertEquals("123.45", added.getValue("balance"));
             }
 
-
             @Test
             public void testAppendMultipleValues() {
                 final RecordPath recordPath = RecordPath.compile("arrayOf( /accounts[*], recordOf('id', '5555', 'balance', '123.45'), /accounts[0] )");

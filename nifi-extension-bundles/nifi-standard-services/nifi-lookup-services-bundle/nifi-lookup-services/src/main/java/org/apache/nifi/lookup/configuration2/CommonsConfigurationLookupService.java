@@ -73,7 +73,6 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
 
     private final Class<T> resultClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
 
-
     private volatile ReloadingFileBasedConfigurationBuilder<T> builder;
 
     private Configuration getConfiguration() throws LookupFailureException {

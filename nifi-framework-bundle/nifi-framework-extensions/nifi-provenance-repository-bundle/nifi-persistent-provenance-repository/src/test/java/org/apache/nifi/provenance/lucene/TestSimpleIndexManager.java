@@ -75,7 +75,6 @@ public class TestSimpleIndexManager {
         }
     }
 
-
     @Test
     public void testMultipleWritersSimultaneouslySameIndex() throws IOException {
         final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration());

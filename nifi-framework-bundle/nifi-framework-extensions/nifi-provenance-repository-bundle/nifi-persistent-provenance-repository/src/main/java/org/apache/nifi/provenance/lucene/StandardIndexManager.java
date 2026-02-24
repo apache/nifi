@@ -399,7 +399,6 @@ public class StandardIndexManager implements IndexManager {
         }
     }
 
-
     protected static class IndexWriterCount implements Closeable {
         private final EventIndexWriter writer;
         private final Analyzer analyzer;

@@ -53,7 +53,6 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
         this.controllerDiagnosticsDto = controllerDiagnostics;
     }
 
-
     @Override
     public JVMDiagnosticsSnapshotDTO clone() {
         final JVMDiagnosticsSnapshotDTO clone = new JVMDiagnosticsSnapshotDTO();
@@ -62,9 +61,6 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
         clone.controllerDiagnosticsDto = controllerDiagnosticsDto == null ? null : controllerDiagnosticsDto.clone();
         return clone;
     }
-
-
-
 
     @XmlType(name = "versionInfo")
     public static class VersionInfoDTO implements Cloneable {
@@ -139,7 +135,6 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
         public void setOsArchitecture(String osArchitecture) {
             this.osArchitecture = osArchitecture;
         }
-
 
         @Override
         public VersionInfoDTO clone() {

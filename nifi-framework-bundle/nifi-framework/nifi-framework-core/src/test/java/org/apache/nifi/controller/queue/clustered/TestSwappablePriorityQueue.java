@@ -122,7 +122,6 @@ public class TestSwappablePriorityQueue {
         }
     }
 
-
     @Test
     public void testOrderingWithCornerCases() {
         final FlowFilePrioritizer iAttributePrioritizer = (o1, o2) -> {
@@ -279,7 +278,6 @@ public class TestSwappablePriorityQueue {
         ffs.forEach(queue::put);
         logger.info(StringUtils.join(attrs, ", "));
     }
-
 
     @Test
     public void testSwapOutFailureLeavesCorrectQueueSize() {
@@ -674,7 +672,6 @@ public class TestSwappablePriorityQueue {
         assertEquals(2, swapManager.swapInCalledCount);
     }
 
-
     @Test
     @Timeout(5)
     public void testGetActiveFlowFilesReturnsAllActiveFlowFiles() throws InterruptedException {
@@ -687,7 +684,6 @@ public class TestSwappablePriorityQueue {
         assertEquals(9999, active.size());
     }
 
-
     @Test
     @Timeout(5)
     public void testListFlowFilesResultsLimited() throws InterruptedException {
@@ -699,7 +695,6 @@ public class TestSwappablePriorityQueue {
         assertNotNull(activeFlowFiles);
         assertEquals(10000, activeFlowFiles.size());
     }
-
 
     @Test
     public void testOOMEFollowedBySuccessfulSwapIn() {

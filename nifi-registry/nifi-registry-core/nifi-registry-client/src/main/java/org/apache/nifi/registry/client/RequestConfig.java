@@ -28,5 +28,4 @@ public interface RequestConfig {
      */
     Map<String, String> getHeaders();
 
-
 }
