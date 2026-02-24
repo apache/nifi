@@ -317,6 +317,15 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
+    public void markInvalid(final String subject, final String explanation) {
+        validationState.set(new ValidationState(ValidationStatus.INVALID, List.of(new ValidationResult.Builder()
+                .subject(subject)
+                .valid(false)
+                .explanation(explanation)
+                .build())));
+    }
+
+    @Override
     public void setConfiguration(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
         setConfiguration(stepName, configuration, false);
     }

@@ -1175,9 +1175,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         connectorRepository.updateConnector(connectorNode, versionedConnector.getName());
 
-        // TODO: We don't want to throw an Exception here. Consider handling Connectors first so that we can get all Connectors in a state of
-        // prepareForUpdate. If any fails, we can restore them and throw an Exception. We don't want to be throwing an Exception in the middle
-        // of updating the flow.
         try {
             final List<VersionedConfigurationStep> activeFlowConfig = versionedConnector.getActiveFlowConfiguration();
             final List<VersionedConfigurationStep> workingFlowConfig = versionedConnector.getWorkingFlowConfiguration();
@@ -1190,7 +1187,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 connectorRepository.stopConnector(connectorNode);
             }
         } catch (final FlowUpdateException e) {
-            throw new RuntimeException(connectorNode + " failed to inherit configuration", e);
+            logger.error("{} failed to inherit configuration", connectorNode, e);
         }
     }
 

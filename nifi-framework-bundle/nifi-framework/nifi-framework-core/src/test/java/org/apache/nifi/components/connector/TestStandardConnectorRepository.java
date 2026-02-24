@@ -48,6 +48,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -757,6 +758,43 @@ public class TestStandardConnectorRepository {
         verify(provider, never()).deleteAsset(connectorId, referencedAssetId);
         // AssetManager.deleteAsset NOT called directly since provider handles local deletion
         verify(assetManager, never()).deleteAsset(anyString());
+    }
+
+    @Test
+    public void testInheritConfigurationFailureCallsAbortUpdateAndMarkInvalid() throws FlowUpdateException {
+        final StandardConnectorRepository repository = createRepositoryWithProvider(null);
+
+        final ConnectorNode connector = mock(ConnectorNode.class);
+        when(connector.getIdentifier()).thenReturn("connector-1");
+        doThrow(new FlowUpdateException("Simulated failure"))
+            .when(connector).inheritConfiguration(any(), any(), any());
+
+        repository.addConnector(connector);
+
+        assertThrows(FlowUpdateException.class, () -> repository.inheritConfiguration(connector, List.of(), List.of(), null));
+
+        verify(connector).abortUpdate(any(FlowUpdateException.class));
+        verify(connector).markInvalid(eq("Flow Update Failure"), eq("The flow could not be updated: Simulated failure"));
+    }
+
+    @Test
+    public void testApplyUpdateFailureCallsAbortUpdateButNotMarkInvalid() throws FlowUpdateException {
+        final AssetManager assetManager = mock(AssetManager.class);
+        when(assetManager.getAssets("connector-1")).thenReturn(List.of());
+        final StandardConnectorRepository repository = createRepositoryWithProviderAndAssetManager(null, assetManager);
+
+        final ConnectorNode connector = mock(ConnectorNode.class);
+        when(connector.getIdentifier()).thenReturn("connector-1");
+        when(connector.getDesiredState()).thenReturn(ConnectorState.STOPPED);
+        doThrow(new FlowUpdateException("Simulated failure"))
+            .when(connector).prepareForUpdate();
+
+        repository.addConnector(connector);
+
+        repository.applyUpdate(connector, mock(ConnectorUpdateContext.class));
+
+        verify(connector, timeout(5000)).abortUpdate(any(FlowUpdateException.class));
+        verify(connector, never()).markInvalid(anyString(), anyString());
     }
 
     // --- Helper Methods ---
